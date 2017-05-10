@@ -1,0 +1,24 @@
+package: github.com/directxman12/k8s-prometheus-adapter
+import:
+- package: github.com/spf13/cobra
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/util/wait
+- package: k8s.io/apiserver
+  subpackages:
+  - pkg/util/logs
+- package: k8s.io/client-go
+  subpackages:
+  - kubernetes/typed/core/v1
+  - rest
+  - tools/clientcmd
+- package: k8s.io/custom-metrics-boilerplate
+  repo: git@github.com:directxman12/custom-metrics-boilerplate.git
+  subpackages:
+  - pkg/cmd/server
+  - pkg/provider
+- package: github.com/stretchr/testify
+  version: ^1.1.4
+  subpackages:
+  - assert
+  - require
