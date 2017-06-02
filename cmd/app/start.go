@@ -33,6 +33,7 @@ import (
 	"k8s.io/custom-metrics-boilerplate/pkg/cmd/server"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 )
 
 // NewCommandStartPrometheusAdapterServer provides a CLI handler for 'start master' command
@@ -87,6 +88,8 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 		return err
 	}
 
+	config.GenericConfig.EnableMetrics = true
+
 	var clientConfig *rest.Config
 	if len(o.RemoteKubeConfigFile) > 0 {
 		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: o.RemoteKubeConfigFile}
@@ -122,7 +125,9 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	if err != nil {
 		return fmt.Errorf("invalid Prometheus URL %q: %v", baseURL, err)
 	}
-	promClient := prom.NewClient(http.DefaultClient, baseURL)
+	genericPromClient := prom.NewGenericAPIClient(http.DefaultClient, baseURL)
+	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
+	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
 	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.MetricsRelistInterval, o.RateInterval)
 
