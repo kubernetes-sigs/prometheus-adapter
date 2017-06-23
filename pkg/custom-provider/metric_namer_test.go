@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/custom-metrics-boilerplate/pkg/provider"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
 
 	// install extensions so that our RESTMapper knows about it
 	_ "k8s.io/client-go/pkg/apis/extensions/install"

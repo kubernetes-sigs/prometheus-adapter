@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/discovery"
 
-	"k8s.io/custom-metrics-boilerplate/pkg/cmd/server"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/cmd/server"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"

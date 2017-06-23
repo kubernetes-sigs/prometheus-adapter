@@ -34,7 +34,7 @@ import (
 	_ "k8s.io/client-go/pkg/api/install"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/custom-metrics-boilerplate/pkg/provider"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	pmodel "github.com/prometheus/common/model"

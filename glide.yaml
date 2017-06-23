@@ -12,7 +12,7 @@ import:
   - kubernetes/typed/core/v1
   - rest
   - tools/clientcmd
-- package: k8s.io/custom-metrics-boilerplate
+- package: github.com/directxman12/custom-metrics-boilerplate
   repo: git@github.com:directxman12/custom-metrics-boilerplate.git
   subpackages:
   - pkg/cmd/server

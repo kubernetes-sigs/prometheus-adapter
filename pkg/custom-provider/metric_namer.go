@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/custom-metrics-boilerplate/pkg/provider"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
 
 	"github.com/golang/glog"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
