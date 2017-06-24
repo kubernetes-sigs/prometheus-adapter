@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: cm-adapter
+  name: cm-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cm-adapter
+  template:
+    metadata:
+      labels:
+        app: cm-adapter
+      name: cm-adapter
+    spec:
+      containers:
+      - name: cm-adapter
+        image: cm-adapter
+        imagePullPolicy: Never
+        args:
+        - "/cm-adapter"
+        - "--secure-port=6443"
+        - "--tls-cert-file=/var/run/serving-cert/serving.crt"
+        - "--tls-private-key-file=/var/run/serving-cert/serving.key"
+        - "--logtostderr=true"
+        - "--prometheus-url=http://prometheus.prom.svc:9090/"
+        - "--metrics-relist-interval=30s"
+        - "--rate-interval=30s"
+        - "--v=10"
+        ports:
+        - containerPort: 6443
+        volumeMounts:
+        - mountPath: /var/run/serving-cert
+          name: volume-serving-cert
+          readOnly: true
+      volumes:
+      - name: volume-serving-cert
+        secret:
+          secretName: cm-adapter-serving-certs
