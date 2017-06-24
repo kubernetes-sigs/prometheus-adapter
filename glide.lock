@@ -1,5 +1,5 @@
-hash: 392c27ea77f03fae3cba2775189e5e12f987b5bca8d897750ac83c407e84166f
-updated: 2017-05-01T14:24:55.988198521-04:00
+hash: 5301bfa390fea808bce92640a9c3ea2165b8484a75a394144d242d49f4a8e6e6
+updated: 2017-06-23T21:03:10.447897871-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -8,7 +8,7 @@ imports:
   subpackages:
   - quantile
 - name: github.com/coreos/etcd
-  version: cc198e22d3b8fd7ec98304c95e68ee375be54589
+  version: 20490caaf0dcd96bb4a95e40625559def8ef5b04
   subpackages:
   - alarm
   - auth
@@ -37,12 +37,14 @@ imports:
   - mvcc/mvccpb
   - pkg/adt
   - pkg/contention
+  - pkg/cpuutil
   - pkg/crc
   - pkg/fileutil
   - pkg/httputil
   - pkg/idutil
   - pkg/ioutil
   - pkg/logutil
+  - pkg/monotime
   - pkg/netutil
   - pkg/pathutil
   - pkg/pbutil
@@ -53,6 +55,8 @@ imports:
   - pkg/transport
   - pkg/types
   - pkg/wait
+  - proxy/grpcproxy
+  - proxy/grpcproxy/cache
   - raft
   - raft/raftpb
   - rafthttp
@@ -78,6 +82,14 @@ imports:
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
+- name: github.com/directxman12/custom-metrics-boilerplate
+  version: 066dd03155e1cdb3dfa513f8bdcb3a30edda1137
+  subpackages:
+  - pkg/apiserver
+  - pkg/apiserver/installer
+  - pkg/cmd/server
+  - pkg/provider
+  - pkg/registry/custom_metrics
 - name: github.com/docker/distribution
   version: cd27f179f2c10c5d300e6d09025b538c475b0d51
   subpackages:
@@ -86,46 +98,63 @@ imports:
 - name: github.com/elazarl/go-bindata-assetfs
   version: 3dcc96556217539f50599357fb481ac0dc7439b9
 - name: github.com/emicklei/go-restful
-  version: 09691a3b6378b740595c1002f40c34dd5f218a22
+  version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - log
-  - swagger
+- name: github.com/emicklei/go-restful-swagger12
+  version: dcef7f55730566d41eae5db10e7d6981829720f6
 - name: github.com/evanphx/json-patch
   version: ba18e35c5c1b36ef6334cad706eb681153d2d379
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+- name: github.com/go-openapi/analysis
+  version: b44dc874b601d9e4e2f6e19140e794ba24bead3b
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
   version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
+- name: github.com/go-openapi/loads
+  version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
 - name: github.com/go-openapi/spec
   version: 6aced65f8501fe1217321abf0749d354824ba2ff
 - name: github.com/go-openapi/swag
   version: 1d0bd113de87027671077d3c71eb3ac5d7dbba72
 - name: github.com/gogo/protobuf
-  version: e18d7aa8f8c624c915db340349aad4c49b10d173
+  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
   - proto
   - sortkeys
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
-- name: github.com/golang/groupcache
-  version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
-  subpackages:
-  - lru
 - name: github.com/golang/protobuf
-  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
+  version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
   - jsonpb
   - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+- name: github.com/googleapis/gnostic
+  version: 68f4ded48ba9414dab2ae69b3f0d69971da73aa5
+  subpackages:
+  - OpenAPIv2
+  - compiler
+  - extensions
+- name: github.com/grpc-ecosystem/go-grpc-prometheus
+  version: 2500245aa6110c562d17020fb31a2c133d737799
 - name: github.com/grpc-ecosystem/grpc-gateway
-  version: f52d055dc48aec25854ed7d31862f78913cf17d1
+  version: 84398b94e188ee336f307779b57b3aa91af7063c
   subpackages:
   - runtime
   - runtime/internal
   - utilities
+- name: github.com/hashicorp/golang-lru
+  version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
+  subpackages:
+  - simplelru
 - name: github.com/howeyc/gopass
   version: 3ca23474a7c7203e0a0a070fd33508f6efdb9b3d
 - name: github.com/imdario/mergo
@@ -175,6 +204,7 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+  - require
 - name: github.com/ugorji/go
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
@@ -186,7 +216,7 @@ imports:
   - blowfish
   - ssh/terminal
 - name: golang.org/x/net
-  version: e90d6d0afc4c315a0d87a568ae68577cc15149a0
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
   - context
   - html
@@ -216,7 +246,7 @@ imports:
   - unicode/norm
   - width
 - name: google.golang.org/grpc
-  version: 231b4cfea0e79843053a33f5fe90bd4d84b23cd3
+  version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
   subpackages:
   - codes
   - credentials
@@ -233,7 +263,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/apimachinery
-  version: 20e10d54608f05c3059443a6c0afb9979641e88d
+  version: 2de00c78cb6d6127fb51b9531c1b3def1cbcac8c
   subpackages:
   - pkg/api/equality
   - pkg/api/errors
@@ -248,6 +278,7 @@ imports:
   - pkg/apis/meta/v1
   - pkg/apis/meta/v1/unstructured
   - pkg/apis/meta/v1/validation
+  - pkg/apis/meta/v1alpha1
   - pkg/conversion
   - pkg/conversion/queryparams
   - pkg/conversion/unstructured
@@ -264,6 +295,8 @@ imports:
   - pkg/runtime/serializer/versioning
   - pkg/selection
   - pkg/types
+  - pkg/util/cache
+  - pkg/util/clock
   - pkg/util/diff
   - pkg/util/errors
   - pkg/util/framer
@@ -287,9 +320,10 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: dcf548fbe26dacc3a78d18e1135adf17006552e9
+  version: c809cf8581e1e44c6174bf5ab4415e6ee39965ca
   subpackages:
   - pkg/admission
+  - pkg/admission/initializer
   - pkg/apis/apiserver
   - pkg/apis/apiserver/install
   - pkg/apis/apiserver/v1alpha1
@@ -308,6 +342,7 @@ imports:
   - pkg/authorization/authorizerfactory
   - pkg/authorization/union
   - pkg/endpoints
+  - pkg/endpoints/discovery
   - pkg/endpoints/filters
   - pkg/endpoints/handlers
   - pkg/endpoints/handlers/negotiation
@@ -338,7 +373,7 @@ imports:
   - pkg/storage/names
   - pkg/storage/storagebackend
   - pkg/storage/storagebackend/factory
-  - pkg/util/cache
+  - pkg/storage/value
   - pkg/util/feature
   - pkg/util/flag
   - pkg/util/flushwriter
@@ -351,25 +386,80 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: dabf37f5df16a224729883d9f616ce4a2c282e95
+  version: 450baa5d60f8d6a251c7682cb6f86e939b750b2d
   subpackages:
   - discovery
   - dynamic
+  - informers
+  - informers/apps
+  - informers/apps/v1beta1
+  - informers/autoscaling
+  - informers/autoscaling/v1
+  - informers/autoscaling/v2alpha1
+  - informers/batch
+  - informers/batch/v1
+  - informers/batch/v2alpha1
+  - informers/certificates
+  - informers/certificates/v1beta1
+  - informers/core
+  - informers/core/v1
+  - informers/extensions
+  - informers/extensions/v1beta1
+  - informers/internalinterfaces
+  - informers/policy
+  - informers/policy/v1beta1
+  - informers/rbac
+  - informers/rbac/v1alpha1
+  - informers/rbac/v1beta1
+  - informers/settings
+  - informers/settings/v1alpha1
+  - informers/storage
+  - informers/storage/v1
+  - informers/storage/v1beta1
+  - kubernetes
   - kubernetes/scheme
+  - kubernetes/typed/apps/v1beta1
+  - kubernetes/typed/authentication/v1
   - kubernetes/typed/authentication/v1beta1
+  - kubernetes/typed/authorization/v1
   - kubernetes/typed/authorization/v1beta1
+  - kubernetes/typed/autoscaling/v1
+  - kubernetes/typed/autoscaling/v2alpha1
+  - kubernetes/typed/batch/v1
+  - kubernetes/typed/batch/v2alpha1
+  - kubernetes/typed/certificates/v1beta1
   - kubernetes/typed/core/v1
+  - kubernetes/typed/extensions/v1beta1
+  - kubernetes/typed/policy/v1beta1
+  - kubernetes/typed/rbac/v1alpha1
+  - kubernetes/typed/rbac/v1beta1
+  - kubernetes/typed/settings/v1alpha1
+  - kubernetes/typed/storage/v1
+  - kubernetes/typed/storage/v1beta1
+  - listers/apps/v1beta1
+  - listers/autoscaling/v1
+  - listers/autoscaling/v2alpha1
+  - listers/batch/v1
+  - listers/batch/v2alpha1
+  - listers/certificates/v1beta1
+  - listers/core/v1
+  - listers/extensions/v1beta1
+  - listers/policy/v1beta1
+  - listers/rbac/v1alpha1
+  - listers/rbac/v1beta1
+  - listers/settings/v1alpha1
+  - listers/storage/v1
+  - listers/storage/v1beta1
   - pkg/api
   - pkg/api/install
   - pkg/api/v1
+  - pkg/api/v1/ref
   - pkg/apis/apps
   - pkg/apis/apps/v1beta1
   - pkg/apis/authentication
-  - pkg/apis/authentication/install
   - pkg/apis/authentication/v1
   - pkg/apis/authentication/v1beta1
   - pkg/apis/authorization
-  - pkg/apis/authorization/install
   - pkg/apis/authorization/v1
   - pkg/apis/authorization/v1beta1
   - pkg/apis/autoscaling
@@ -381,6 +471,7 @@ imports:
   - pkg/apis/certificates
   - pkg/apis/certificates/v1beta1
   - pkg/apis/extensions
+  - pkg/apis/extensions/install
   - pkg/apis/extensions/v1beta1
   - pkg/apis/policy
   - pkg/apis/policy/v1beta1
@@ -406,20 +497,9 @@ imports:
   - tools/metrics
   - transport
   - util/cert
-  - util/clock
   - util/flowcontrol
   - util/homedir
   - util/integer
-- name: k8s.io/custom-metrics-boilerplate
-  version: 0d451f3d16c623ca5b7025b34723e91e9ac543fc
-  repo: git@github.com:directxman12/custom-metrics-boilerplate.git
-  subpackages:
-  - pkg/apiserver
-  - pkg/apiserver/installer
-  - pkg/apiserver/installer/context
-  - pkg/cmd/server
-  - pkg/provider
-  - pkg/registry/custom_metrics
 - name: k8s.io/metrics
   version: fd2415bb9381a6731027b48a8c6b78f28e13f876
   subpackages:

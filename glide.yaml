@@ -13,7 +13,6 @@ import:
   - rest
   - tools/clientcmd
 - package: github.com/directxman12/custom-metrics-boilerplate
-  repo: git@github.com:directxman12/custom-metrics-boilerplate.git
   subpackages:
   - pkg/cmd/server
   - pkg/provider
