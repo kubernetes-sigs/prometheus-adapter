@@ -24,7 +24,7 @@ ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
 endif
 
-all: docker-build
+all: build
 build: vendor
 	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o $(OUT_DIR)/$(ARCH)/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 
