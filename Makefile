@@ -4,6 +4,7 @@ TEMP_DIR:=$(shell mktemp -d)
 ARCH?=amd64
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
+OUT_DIR?=./_output
 
 VERSION?=latest
 
@@ -25,7 +26,7 @@ endif
 
 all: docker-build
 build:
-	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
+	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o $(OUT_DIR)/$(ARCH)/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
