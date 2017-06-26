@@ -25,14 +25,14 @@ endif
 
 all: docker-build
 build:
-	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd
+	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
 
 	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) golang:1.8 /bin/bash -c "\
-		CGO_ENABLED=0 go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd"
+		CGO_ENABLED=0 go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
 
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 	sudo rm -r $(TEMP_DIR)

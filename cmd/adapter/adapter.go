@@ -24,7 +24,7 @@ import (
     "k8s.io/apimachinery/pkg/util/wait"
     "k8s.io/apiserver/pkg/util/logs"
 
-	"github.com/directxman12/k8s-prometheus-adapter/cmd/app"
+	"github.com/directxman12/k8s-prometheus-adapter/cmd/adapter/app"
 )
 
 func main() {
