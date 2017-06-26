@@ -25,10 +25,10 @@ ifeq ($(ARCH),s390x)
 endif
 
 all: docker-build
-build:
+build: vendor
 	CGO_ENABLED=0 GOARCH=$(ARCH) go build -a -tags netgo -o $(OUT_DIR)/$(ARCH)/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 
-docker-build:
+docker-build: vendor
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
 
@@ -48,3 +48,6 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 ./manifest-tool:
 	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
 	chmod +x manifest-tool
+
+vendor: glide.lock
+	glide install -v
