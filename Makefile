@@ -51,3 +51,6 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 
 vendor: glide.lock
 	glide install -v
+
+test: vendor
+	CGO_ENABLED=0 go test ./pkg/...
