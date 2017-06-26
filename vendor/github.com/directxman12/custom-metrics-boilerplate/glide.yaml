@@ -1,0 +1,45 @@
+package: github.com/directxman12/custom-metrics-boilerplate
+import:
+- package: github.com/emicklei/go-restful
+- package: github.com/spf13/cobra
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/api/errors
+  - pkg/api/meta
+  - pkg/api/resource
+  - pkg/apimachinery
+  - pkg/apimachinery/announced
+  - pkg/apimachinery/registered
+  - pkg/apis/meta/internalversion
+  - pkg/apis/meta/v1
+  - pkg/conversion
+  - pkg/labels
+  - pkg/runtime
+  - pkg/runtime/schema
+  - pkg/runtime/serializer
+  - pkg/util/errors
+  - pkg/util/wait
+  - pkg/version
+- package: k8s.io/apiserver
+  subpackages:
+  - pkg/endpoints
+  - pkg/endpoints/handlers
+  - pkg/endpoints/handlers/negotiation
+  - pkg/endpoints/metrics
+  - pkg/endpoints/request
+  - pkg/registry/rest
+  - pkg/server
+  - pkg/server/options
+  - pkg/util/logs
+- package: k8s.io/client-go
+  subpackages:
+  - kubernetes/scheme
+  - kubernetes/typed/core/v1
+  - pkg/api
+  - pkg/api/install
+  - rest
+  - tools/clientcmd
+- package: k8s.io/metrics
+  subpackages:
+  - pkg/apis/custom_metrics
+  - pkg/apis/custom_metrics/install
