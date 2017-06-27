@@ -86,13 +86,13 @@ func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 		} else if namespaceLabel, hasNamespaceLabel := series.Labels["namespace"]; hasNamespaceLabel && namespaceLabel != "" {
 			// TODO: handle metrics describing a namespace
 			if err := r.namer.processNamespacedSeries(series, newInfo); err != nil {
-				// TODO: do we want to log this and continue, or abort?
-				return err
+				glog.Errorf("Unable to process namespaced series %q: %v", series.Name, err)
+				continue
 			}
 		} else {
 			if err := r.namer.processRootScopedSeries(series, newInfo); err != nil {
-				// TODO: do we want to log this and continue, or abort?
-				return err
+				glog.Errorf("Unable to process root-scoped series %q: %v", series.Name, err)
+				continue
 			}
 		}
 	}
@@ -263,6 +263,7 @@ func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provi
 // processNamespacedSeries adds the metric info for the given generic namespaced series to
 // the map of metric info.
 func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[provider.MetricInfo]seriesInfo) error {
+	// NB: all errors must occur *before* we save the series info
 	name, metricKind := n.metricNameFromSeries(series)
 	resources, err := n.groupResourcesFromSeries(series)
 	if err != nil {
@@ -294,6 +295,7 @@ func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[prov
 // processesRootScopedSeries adds the metric info for the given generic namespaced series to
 // the map of metric info.
 func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[provider.MetricInfo]seriesInfo) error {
+	// NB: all errors must occur *before* we save the series info
 	name, metricKind := n.metricNameFromSeries(series)
 	resources, err := n.groupResourcesFromSeries(series)
 	if err != nil {
