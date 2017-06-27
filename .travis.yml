@@ -16,7 +16,7 @@ addons:
 install:
 - make -B vendor
 
-script: make test
+script: make verify
 
 cache:
   directories:
