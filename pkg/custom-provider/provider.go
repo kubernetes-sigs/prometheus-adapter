@@ -18,27 +18,27 @@ package provider
 
 import (
 	"context"
-	"time"
 	"fmt"
-	"net/http"
 	"github.com/golang/glog"
+	"net/http"
+	"time"
 
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/metrics/pkg/apis/custom_metrics"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/pkg/api"
 	_ "k8s.io/client-go/pkg/api/install"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/client-go/dynamic"
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
-	"k8s.io/apimachinery/pkg/util/wait"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	pmodel "github.com/prometheus/common/model"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
@@ -47,9 +47,9 @@ import (
 // It is similar to NewNotFound, but more specialized
 func newMetricNotFoundError(resource schema.GroupResource, metricName string) *apierr.StatusError {
 	return &apierr.StatusError{metav1.Status{
-		Status: metav1.StatusFailure,
-		Code: int32(http.StatusNotFound),
-		Reason: metav1.StatusReasonNotFound,
+		Status:  metav1.StatusFailure,
+		Code:    int32(http.StatusNotFound),
+		Reason:  metav1.StatusReasonNotFound,
 		Message: fmt.Sprintf("the server could not find the metric %s for %s", metricName, resource.String()),
 	}}
 }
@@ -58,15 +58,15 @@ func newMetricNotFoundError(resource schema.GroupResource, metricName string) *a
 // the given named object. It is similar to NewNotFound, but more specialized
 func newMetricNotFoundForError(resource schema.GroupResource, metricName string, resourceName string) *apierr.StatusError {
 	return &apierr.StatusError{metav1.Status{
-		Status: metav1.StatusFailure,
-		Code: int32(http.StatusNotFound),
-		Reason: metav1.StatusReasonNotFound,
+		Status:  metav1.StatusFailure,
+		Code:    int32(http.StatusNotFound),
+		Reason:  metav1.StatusReasonNotFound,
 		Message: fmt.Sprintf("the server could not find the metric %s for %s %s", metricName, resource.String(), resourceName),
 	}}
 }
 
 type prometheusProvider struct {
-	mapper apimeta.RESTMapper
+	mapper     apimeta.RESTMapper
 	kubeClient dynamic.ClientPool
 	promClient prom.Client
 
@@ -78,13 +78,13 @@ type prometheusProvider struct {
 func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration) provider.CustomMetricsProvider {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
-		promClient: promClient,
+		promClient:     promClient,
 
 		SeriesRegistry: &basicSeriesRegistry{
 			namer: metricNamer{
 				// TODO: populate this...
 				overrides: nil,
-				mapper: mapper,
+				mapper:    mapper,
 			},
 		},
 	}
@@ -93,7 +93,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientP
 	lister.Run()
 
 	return &prometheusProvider{
-		mapper: mapper,
+		mapper:     mapper,
 		kubeClient: kubeClient,
 		promClient: promClient,
 
@@ -111,14 +111,14 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 
 	return &custom_metrics.MetricValue{
 		DescribedObject: api.ObjectReference{
-			APIVersion: groupResource.Group+"/"+runtime.APIVersionInternal,
-			Kind: kind.Kind,
-			Name: name,
-			Namespace: namespace,
+			APIVersion: groupResource.Group + "/" + runtime.APIVersionInternal,
+			Kind:       kind.Kind,
+			Name:       name,
+			Namespace:  namespace,
 		},
 		MetricName: metricName,
-		Timestamp: metav1.Time{time.Now()},
-		Value: *resource.NewMilliQuantity(int64(value * 1000.0), resource.DecimalSI),
+		Timestamp:  metav1.Time{time.Now()},
+		Value:      *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI),
 	}, nil
 }
 
@@ -227,7 +227,7 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 	// we can construct a this APIResource ourself, since the dynamic client only uses Name and Namespaced
 	// TODO: use discovery information instead
 	apiRes := &metav1.APIResource{
-		Name: info.GroupResource.Resource,
+		Name:       info.GroupResource.Resource,
 		Namespaced: info.Namespaced,
 	}
 
@@ -267,19 +267,18 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 func (p *prometheusProvider) GetRootScopedMetricByName(groupResource schema.GroupResource, name string, metricName string) (*custom_metrics.MetricValue, error) {
 	info := provider.MetricInfo{
 		GroupResource: groupResource,
-		Metric: metricName,
-		Namespaced: false,
+		Metric:        metricName,
+		Namespaced:    false,
 	}
 
 	return p.getSingle(info, "", name)
 }
 
-
 func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.GroupResource, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
 	info := provider.MetricInfo{
 		GroupResource: groupResource,
-		Metric: metricName,
-		Namespaced: false,
+		Metric:        metricName,
+		Namespaced:    false,
 	}
 	return p.getMultiple(info, "", selector)
 }
@@ -287,8 +286,8 @@ func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.
 func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error) {
 	info := provider.MetricInfo{
 		GroupResource: groupResource,
-		Metric: metricName,
-		Namespaced: true,
+		Metric:        metricName,
+		Namespaced:    true,
 	}
 
 	return p.getSingle(info, namespace, name)
@@ -297,8 +296,8 @@ func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.Grou
 func (p *prometheusProvider) GetNamespacedMetricBySelector(groupResource schema.GroupResource, namespace string, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
 	info := provider.MetricInfo{
 		GroupResource: groupResource,
-		Metric: metricName,
-		Namespaced: true,
+		Metric:        metricName,
+		Namespaced:    true,
 	}
 	return p.getMultiple(info, namespace, selector)
 }
@@ -306,12 +305,12 @@ func (p *prometheusProvider) GetNamespacedMetricBySelector(groupResource schema.
 type cachingMetricsLister struct {
 	SeriesRegistry
 
-	promClient prom.Client
+	promClient     prom.Client
 	updateInterval time.Duration
 }
 
 func (l *cachingMetricsLister) Run() {
-	go wait.Forever(func () {
+	go wait.Forever(func() {
 		if err := l.updateMetrics(); err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -319,7 +318,7 @@ func (l *cachingMetricsLister) Run() {
 }
 
 func (l *cachingMetricsLister) updateMetrics() error {
-	startTime := pmodel.Now().Add(-1*l.updateInterval)
+	startTime := pmodel.Now().Add(-1 * l.updateInterval)
 
 	// TODO: figure out a good way to add all Kubernetes-related metrics at once
 	// (i.e. how do we determine if something is a Kubernetes-related metric?)

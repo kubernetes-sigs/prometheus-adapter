@@ -24,7 +24,7 @@ ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
 endif
 
-.PHONY: all build docker-build push-% push test
+.PHONY: all build docker-build push-% push test verify-gofmt gofmt verify
 
 all: build
 build: vendor
@@ -56,3 +56,11 @@ vendor: glide.lock
 
 test: vendor
 	CGO_ENABLED=0 go test ./pkg/...
+
+verify-gofmt:
+	./hack/gofmt-all.sh -v
+
+gofmt:
+	./hack/gofmt-all.sh
+
+verify: verify-gofmt test

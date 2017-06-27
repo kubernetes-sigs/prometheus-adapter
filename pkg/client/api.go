@@ -20,14 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
-	"io/ioutil"
-	"io"
 
-	"github.com/prometheus/common/model"
 	"github.com/golang/glog"
+	"github.com/prometheus/common/model"
 )
 
 // APIClient is a raw client to the Prometheus Query API.
@@ -44,7 +44,7 @@ type GenericAPIClient interface {
 
 // httpAPIClient is a GenericAPIClient implemented in terms of an underlying http.Client.
 type httpAPIClient struct {
-	client *http.Client
+	client  *http.Client
 	baseURL *url.URL
 }
 
@@ -80,7 +80,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	if code/100 != 2 && code != 400 && code != 422 && code != 503 {
 		return APIResponse{}, &Error{
 			Type: ErrBadResponse,
-			Msg: fmt.Sprintf("unknown response code %d", code),
+			Msg:  fmt.Sprintf("unknown response code %d", code),
 		}
 	}
 
@@ -106,7 +106,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	if res.Status == ResponseError {
 		return res, &Error{
 			Type: res.ErrorType,
-			Msg: res.Error,
+			Msg:  res.Error,
 		}
 	}
 
@@ -116,15 +116,15 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 // NewGenericAPIClient builds a new generic Prometheus API client for the given base URL and HTTP Client.
 func NewGenericAPIClient(client *http.Client, baseURL *url.URL) GenericAPIClient {
 	return &httpAPIClient{
-		client: client,
+		client:  client,
 		baseURL: baseURL,
 	}
 }
 
 const (
-	queryURL = "/api/v1/query"
+	queryURL      = "/api/v1/query"
 	queryRangeURL = "/api/v1/query_range"
-	seriesURL = "/api/v1/series"
+	seriesURL     = "/api/v1/series"
 )
 
 // queryClient is a Client that connects to the Prometheus HTTP API.

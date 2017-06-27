@@ -31,8 +31,8 @@ var (
 	// overhead and HTTP overhead.
 	queryLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "cmgateway_prometheus_query_latency_seconds",
-			Help: "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
+			Name:    "cmgateway_prometheus_query_latency_seconds",
+			Help:    "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
 			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 10),
 		},
 		[]string{"endpoint", "server"},
@@ -47,7 +47,7 @@ func init() {
 // capturing request latency.
 type instrumentedGenericClient struct {
 	serverName string
-	client client.GenericAPIClient
+	client     client.GenericAPIClient
 }
 
 func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint string, query url.Values) (client.APIResponse, error) {
@@ -73,6 +73,6 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 func InstrumentGenericAPIClient(client client.GenericAPIClient, serverName string) client.GenericAPIClient {
 	return &instrumentedGenericClient{
 		serverName: serverName,
-		client: client,
+		client:     client,
 	}
 }

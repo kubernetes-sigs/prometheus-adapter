@@ -17,23 +17,23 @@ limitations under the License.
 package app
 
 import (
-	"net/http"
-	"net/url"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/pkg/api"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/directxman12/custom-metrics-boilerplate/pkg/cmd/server"
-	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
+	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 )
 
 // NewCommandStartPrometheusAdapterServer provides a CLI handler for 'start master' command
@@ -41,9 +41,9 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 	baseOpts := server.NewCustomMetricsAdapterServerOptions(out, errOut)
 	o := PrometheusAdapterServerOptions{
 		CustomMetricsAdapterServerOptions: baseOpts,
-		MetricsRelistInterval: 10 * time.Minute,
-		RateInterval: 5 * time.Minute,
-		PrometheusURL: "https://localhost",
+		MetricsRelistInterval:             10 * time.Minute,
+		RateInterval:                      5 * time.Minute,
+		PrometheusURL:                     "https://localhost",
 	}
 
 	cmd := &cobra.Command{
