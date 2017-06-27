@@ -90,11 +90,11 @@ func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.
 	return prom.QueryResult{}, nil
 }
 
-func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fakePromClient) {
+func setupPrometheusProvider(t *testing.T, stopCh <-chan struct{}) (provider.CustomMetricsProvider, *fakePromClient) {
 	fakeProm := &fakePromClient{}
 	fakeKubeClient := &fakedyn.FakeClientPool{}
 
-	prov := NewPrometheusProvider(api.Registry.RESTMapper(), fakeKubeClient, fakeProm, fakeProviderUpdateInterval, 1*time.Minute)
+	prov := NewPrometheusProvider(api.Registry.RESTMapper(), fakeKubeClient, fakeProm, fakeProviderUpdateInterval, 1*time.Minute, stopCh)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
@@ -134,7 +134,9 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 
 func TestListAllMetrics(t *testing.T) {
 	// setup
-	prov, fakeProm := setupPrometheusProvider(t)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	prov, fakeProm := setupPrometheusProvider(t, stopCh)
 
 	// assume we have no updates
 	require.Len(t, prov.ListAllMetrics(), 0, "assume: should have no metrics updates at the start")

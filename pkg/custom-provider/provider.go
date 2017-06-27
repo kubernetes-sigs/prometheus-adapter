@@ -75,7 +75,7 @@ type prometheusProvider struct {
 	rateInterval time.Duration
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration) provider.CustomMetricsProvider {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		promClient:     promClient,
@@ -89,8 +89,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientP
 		},
 	}
 
-	// TODO: allow for RunUntil
-	lister.Run()
+	lister.RunUntil(stopChan)
 
 	return &prometheusProvider{
 		mapper:     mapper,
@@ -310,11 +309,15 @@ type cachingMetricsLister struct {
 }
 
 func (l *cachingMetricsLister) Run() {
-	go wait.Forever(func() {
+	l.RunUntil(wait.NeverStop)
+}
+
+func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
+	go wait.Until(func() {
 		if err := l.updateMetrics(); err != nil {
 			utilruntime.HandleError(err)
 		}
-	}, l.updateInterval)
+	}, l.updateInterval, stopChan)
 }
 
 func (l *cachingMetricsLister) updateMetrics() error {
