@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/common/model"
@@ -54,7 +55,6 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	u.RawQuery = query.Encode()
 	req, err := http.NewRequest(verb, u.String(), nil)
 	if err != nil {
-		// TODO: fix this to return Error?
 		return APIResponse{}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
 	}
 	req.WithContext(ctx)
@@ -96,7 +96,6 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 
 	var res APIResponse
 	if err = json.NewDecoder(body).Decode(&res); err != nil {
-		// TODO: return what the body actually was?
 		return APIResponse{}, &Error{
 			Type: ErrBadResponse,
 			Msg:  err.Error(),
@@ -174,7 +173,9 @@ func (h *queryClient) Query(ctx context.Context, t model.Time, query Selector) (
 	if t != 0 {
 		vals.Set("time", t.String())
 	}
-	// TODO: get timeout from context...
+	if timeout, hasTimeout := timeoutFromContext(ctx); hasTimeout {
+		vals.Set("timeout", model.Duration(timeout).String())
+	}
 
 	res, err := h.api.Do(ctx, "GET", queryURL, vals)
 	if err != nil {
@@ -199,7 +200,9 @@ func (h *queryClient) QueryRange(ctx context.Context, r Range, query Selector) (
 	if r.Step != 0 {
 		vals.Set("step", model.Duration(r.Step).String())
 	}
-	// TODO: get timeout from context...
+	if timeout, hasTimeout := timeoutFromContext(ctx); hasTimeout {
+		vals.Set("timeout", model.Duration(timeout).String())
+	}
 
 	res, err := h.api.Do(ctx, "GET", queryRangeURL, vals)
 	if err != nil {
@@ -209,4 +212,14 @@ func (h *queryClient) QueryRange(ctx context.Context, r Range, query Selector) (
 	var queryRes QueryResult
 	err = json.Unmarshal(res.Data, &queryRes)
 	return queryRes, err
+}
+
+// timeoutFromContext checks the context for a deadline and calculates a "timeout" duration from it,
+// when present
+func timeoutFromContext(ctx context.Context) (time.Duration, bool) {
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		return time.Now().Sub(deadline), true
+	}
+
+	return time.Duration(0), false
 }

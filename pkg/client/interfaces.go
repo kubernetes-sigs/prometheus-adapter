@@ -40,7 +40,9 @@ type Range struct {
 	Step time.Duration
 }
 
-// TODO: support timeout in the client?
+// Client is a Prometheus client for the Prometheus HTTP API.
+// The "timeout" parameter for the HTTP API is set based on the context's deadline,
+// when present and applicable.
 type Client interface {
 	// Series lists the time series matching the given series selectors
 	Series(ctx context.Context, interval model.Interval, selectors ...Selector) ([]Series, error)
