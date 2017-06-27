@@ -20,12 +20,12 @@ import (
 	"sort"
 	"testing"
 
-	"k8s.io/client-go/pkg/api"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	pmodel "github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
-	pmodel "github.com/prometheus/common/model"
+	"k8s.io/client-go/pkg/api"
 
 	// install extensions so that our RESTMapper knows about it
 	_ "k8s.io/client-go/pkg/apis/extensions/install"
@@ -36,9 +36,9 @@ import (
 func setupMetricNamer(t *testing.T) *metricNamer {
 	return &metricNamer{
 		overrides: map[string]seriesSpec{
-			"container_actually_gauge_seconds_total": seriesSpec{
+			"container_actually_gauge_seconds_total": {
 				metricName: "actually_gauge",
-				kind: GaugeSeries,
+				kind:       GaugeSeries,
 			},
 		},
 		mapper: api.Registry.RESTMapper(),
@@ -46,56 +46,56 @@ func setupMetricNamer(t *testing.T) *metricNamer {
 }
 
 func TestMetricNamerContainerSeries(t *testing.T) {
-	testCases := []struct{
-		input prom.Series
+	testCases := []struct {
+		input            prom.Series
 		outputMetricName string
-		outputInfo seriesInfo
+		outputInfo       seriesInfo
 	}{
 		{
 			input: prom.Series{
-				Name: "container_actually_gauge_seconds_total",
+				Name:   "container_actually_gauge_seconds_total",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "actually_gauge",
 			outputInfo: seriesInfo{
-				baseSeries: prom.Series{Name: "container_actually_gauge_seconds_total"},
-				kind: GaugeSeries,
+				baseSeries:  prom.Series{Name: "container_actually_gauge_seconds_total"},
+				kind:        GaugeSeries,
 				isContainer: true,
 			},
 		},
 		{
 			input: prom.Series{
-				Name: "container_some_usage",
+				Name:   "container_some_usage",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_usage",
 			outputInfo: seriesInfo{
-				baseSeries: prom.Series{Name: "container_some_usage"},
-				kind: GaugeSeries,
+				baseSeries:  prom.Series{Name: "container_some_usage"},
+				kind:        GaugeSeries,
 				isContainer: true,
 			},
 		},
 		{
 			input: prom.Series{
-				Name: "container_some_count_total",
+				Name:   "container_some_count_total",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_count",
 			outputInfo: seriesInfo{
-				baseSeries: prom.Series{Name: "container_some_count_total"},
-				kind: CounterSeries,
+				baseSeries:  prom.Series{Name: "container_some_count_total"},
+				kind:        CounterSeries,
 				isContainer: true,
 			},
 		},
 		{
 			input: prom.Series{
-				Name: "container_some_time_seconds_total",
+				Name:   "container_some_time_seconds_total",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_time",
 			outputInfo: seriesInfo{
-				baseSeries: prom.Series{Name: "container_some_time_seconds_total"},
-				kind: SecondsCounterSeries,
+				baseSeries:  prom.Series{Name: "container_some_time_seconds_total"},
+				kind:        SecondsCounterSeries,
 				isContainer: true,
 			},
 		},
@@ -109,9 +109,9 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 	for _, test := range testCases {
 		namer.processContainerSeries(test.input, resMap)
 		metric := provider.MetricInfo{
-			Metric: test.outputMetricName,
+			Metric:        test.outputMetricName,
 			GroupResource: schema.GroupResource{Resource: "pods"},
-			Namespaced: true,
+			Namespaced:    true,
 		}
 		if assert.Contains(resMap, metric) {
 			assert.Equal(test.outputInfo, resMap[metric])
@@ -131,63 +131,63 @@ func TestSeriesRegistry(t *testing.T) {
 	inputSeries := []prom.Series{
 		// container series
 		{
-			Name: "container_actually_gauge_seconds_total",
+			Name:   "container_actually_gauge_seconds_total",
 			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
-			Name: "container_some_usage",
+			Name:   "container_some_usage",
 			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
-			Name: "container_some_count_total",
+			Name:   "container_some_count_total",
 			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
-			Name: "container_some_time_seconds_total",
+			Name:   "container_some_time_seconds_total",
 			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		// namespaced series
 		// a series that should turn into multiple metrics
 		{
-			Name: "ingress_hits_total",
+			Name:   "ingress_hits_total",
 			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
 		},
 		{
-			Name: "ingress_hits_total",
+			Name:   "ingress_hits_total",
 			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
 		},
 		{
-			Name: "service_proxy_packets",
+			Name:   "service_proxy_packets",
 			Labels: pmodel.LabelSet{"service": "somesvc", "namespace": "somens"},
 		},
 		{
-			Name: "work_queue_wait_seconds_total",
+			Name:   "work_queue_wait_seconds_total",
 			Labels: pmodel.LabelSet{"deployment": "somedep", "namespace": "somens"},
 		},
 		// non-namespaced series
 		{
-			Name: "node_gigawatts",
+			Name:   "node_gigawatts",
 			Labels: pmodel.LabelSet{"node": "somenode"},
 		},
 		{
-			Name: "volume_claims_total",
+			Name:   "volume_claims_total",
 			Labels: pmodel.LabelSet{"persistentvolume": "somepv"},
 		},
 		{
-			Name: "node_fan_seconds_total",
+			Name:   "node_fan_seconds_total",
 			Labels: pmodel.LabelSet{"node": "somenode"},
 		},
 		// unrelated series
 		{
-			Name: "admin_coffee_liters_total",
+			Name:   "admin_coffee_liters_total",
 			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 		{
-			Name: "admin_unread_emails",
+			Name:   "admin_unread_emails",
 			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 		{
-			Name: "admin_reddit_seconds_total",
+			Name:   "admin_reddit_seconds_total",
 			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 	}
@@ -196,126 +196,126 @@ func TestSeriesRegistry(t *testing.T) {
 	require.NoError(registry.SetSeries(inputSeries))
 
 	// make sure each metric got registered and can form queries
-	testCases := []struct{
-		title string
-		info provider.MetricInfo
-		namespace string
+	testCases := []struct {
+		title         string
+		info          provider.MetricInfo
+		namespace     string
 		resourceNames []string
 
-		expectedKind SeriesType
-		expectedQuery string
+		expectedKind    SeriesType
+		expectedQuery   string
 		expectedGroupBy string
 	}{
 		// container metrics
 		{
-			title: "container metrics overrides / single resource name",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
-			namespace: "somens",
+			title:         "container metrics overrides / single resource name",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
+			namespace:     "somens",
 			resourceNames: []string{"somepod"},
 
-			expectedKind: GaugeSeries,
-			expectedQuery: "container_actually_gauge_seconds_total{pod_name=\"somepod\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedKind:    GaugeSeries,
+			expectedQuery:   "container_actually_gauge_seconds_total{pod_name=\"somepod\",container_name!=\"POD\",namespace=\"somens\"}",
 			expectedGroupBy: "pod_name",
 		},
 		{
-			title: "container metrics gauge / multiple resource names",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
-			namespace: "somens",
+			title:         "container metrics gauge / multiple resource names",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
-			expectedKind: GaugeSeries,
-			expectedQuery: "container_some_usage{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedKind:    GaugeSeries,
+			expectedQuery:   "container_some_usage{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
 			expectedGroupBy: "pod_name",
 		},
 		{
-			title: "container metrics counter",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
-			namespace: "somens",
+			title:         "container metrics counter",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
+			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
-			expectedKind: CounterSeries,
-			expectedQuery: "container_some_count_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedKind:    CounterSeries,
+			expectedQuery:   "container_some_count_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
 			expectedGroupBy: "pod_name",
 		},
 		{
-			title: "container metrics seconds counter",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
-			namespace: "somens",
+			title:         "container metrics seconds counter",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
+			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
-			expectedKind: SecondsCounterSeries,
-			expectedQuery: "container_some_time_seconds_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedKind:    SecondsCounterSeries,
+			expectedQuery:   "container_some_time_seconds_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
 			expectedGroupBy: "pod_name",
 		},
 		// namespaced metrics
 		{
-			title: "namespaced metrics counter / multidimensional (service)",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
-			namespace: "somens",
+			title:         "namespaced metrics counter / multidimensional (service)",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
+			namespace:     "somens",
 			resourceNames: []string{"somesvc"},
 
-			expectedKind: CounterSeries,
+			expectedKind:  CounterSeries,
 			expectedQuery: "ingress_hits_total{service=\"somesvc\",namespace=\"somens\"}",
 		},
 		{
-			title: "namespaced metrics counter / multidimensional (ingress)",
-			info: provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingress"}, true, "ingress_hits"},
-			namespace: "somens",
+			title:         "namespaced metrics counter / multidimensional (ingress)",
+			info:          provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingress"}, true, "ingress_hits"},
+			namespace:     "somens",
 			resourceNames: []string{"someingress"},
 
-			expectedKind: CounterSeries,
+			expectedKind:  CounterSeries,
 			expectedQuery: "ingress_hits_total{ingress=\"someingress\",namespace=\"somens\"}",
 		},
 		{
-			title: "namespaced metrics counter / multidimensional (pod)",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "pod"}, true, "ingress_hits"},
-			namespace: "somens",
+			title:         "namespaced metrics counter / multidimensional (pod)",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "pod"}, true, "ingress_hits"},
+			namespace:     "somens",
 			resourceNames: []string{"somepod"},
 
-			expectedKind: CounterSeries,
+			expectedKind:  CounterSeries,
 			expectedQuery: "ingress_hits_total{pod=\"somepod\",namespace=\"somens\"}",
 		},
 		{
-			title: "namespaced metrics gauge",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
-			namespace: "somens",
+			title:         "namespaced metrics gauge",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
+			namespace:     "somens",
 			resourceNames: []string{"somesvc"},
 
-			expectedKind: GaugeSeries,
+			expectedKind:  GaugeSeries,
 			expectedQuery: "service_proxy_packets{service=\"somesvc\",namespace=\"somens\"}",
 		},
 		{
-			title: "namespaced metrics seconds counter",
-			info: provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployment"}, true, "work_queue_wait"},
-			namespace: "somens",
+			title:         "namespaced metrics seconds counter",
+			info:          provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployment"}, true, "work_queue_wait"},
+			namespace:     "somens",
 			resourceNames: []string{"somedep"},
 
-			expectedKind: SecondsCounterSeries,
+			expectedKind:  SecondsCounterSeries,
 			expectedQuery: "work_queue_wait_seconds_total{deployment=\"somedep\",namespace=\"somens\"}",
 		},
 		// non-namespaced series
 		{
-			title: "root scoped metrics gauge",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_gigawatts"},
+			title:         "root scoped metrics gauge",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_gigawatts"},
 			resourceNames: []string{"somenode"},
 
-			expectedKind: GaugeSeries,
+			expectedKind:  GaugeSeries,
 			expectedQuery: "node_gigawatts{node=\"somenode\"}",
 		},
 		{
-			title: "root scoped metrics counter",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "persistentvolume"}, false, "volume_claims"},
+			title:         "root scoped metrics counter",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "persistentvolume"}, false, "volume_claims"},
 			resourceNames: []string{"somepv"},
 
-			expectedKind: CounterSeries,
+			expectedKind:  CounterSeries,
 			expectedQuery: "volume_claims_total{persistentvolume=\"somepv\"}",
 		},
 		{
-			title: "root scoped metrics seconds counter",
-			info: provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_fan"},
+			title:         "root scoped metrics seconds counter",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_fan"},
 			resourceNames: []string{"somenode"},
 
-			expectedKind: SecondsCounterSeries,
+			expectedKind:  SecondsCounterSeries,
 			expectedQuery: "node_fan_seconds_total{node=\"somenode\"}",
 		},
 	}
@@ -338,21 +338,21 @@ func TestSeriesRegistry(t *testing.T) {
 
 	allMetrics := registry.ListAllMetrics()
 	expectedMetrics := []provider.MetricInfo{
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
-		provider.MetricInfo{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
-		provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
-		provider.MetricInfo{schema.GroupResource{Resource: "nodes"}, false, "node_gigawatts"},
-		provider.MetricInfo{schema.GroupResource{Resource: "persistentvolumes"}, false, "volume_claims"},
-		provider.MetricInfo{schema.GroupResource{Resource: "nodes"}, false, "node_fan"},
+		{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
+		{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+		{schema.GroupResource{Resource: "pods"}, true, "some_count"},
+		{schema.GroupResource{Resource: "pods"}, true, "some_time"},
+		{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
+		{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
+		{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
+		{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
+		{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
+		{schema.GroupResource{Resource: "nodes"}, false, "node_gigawatts"},
+		{schema.GroupResource{Resource: "persistentvolumes"}, false, "volume_claims"},
+		{schema.GroupResource{Resource: "nodes"}, false, "node_fan"},
 	}
 
 	// sort both for easy comparison

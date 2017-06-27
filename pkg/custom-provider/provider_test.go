@@ -17,18 +17,18 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"fmt"
 	"sort"
-	"time"
 	"testing"
-	"context"
+	"time"
 
-	fakedyn "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/pkg/api"
+	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	fakedyn "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/pkg/api"
 
 	// install extensions so that our RESTMapper knows about it
 	_ "k8s.io/client-go/pkg/apis/extensions/install"
@@ -37,7 +37,7 @@ import (
 	pmodel "github.com/prometheus/common/model"
 )
 
-const fakeProviderUpdateInterval = 2*time.Second
+const fakeProviderUpdateInterval = 2 * time.Second
 
 // fakePromClient is a fake instance of prom.Client
 type fakePromClient struct {
@@ -82,7 +82,7 @@ func (c *fakePromClient) Query(_ context.Context, t pmodel.Time, query prom.Sele
 	}
 
 	return prom.QueryResult{
-		Type: pmodel.ValVector,
+		Type:   pmodel.ValVector,
 		Vector: &pmodel.Vector{},
 	}, nil
 }
@@ -99,31 +99,31 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
 	fakeProm.series = map[prom.Selector][]prom.Series{
-		containerSel: []prom.Series{
+		containerSel: {
 			{
-				Name: "container_actually_gauge_seconds_total",
+				Name:   "container_actually_gauge_seconds_total",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			{
-				Name: "container_some_usage",
+				Name:   "container_some_usage",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 		},
-		namespacedSel: []prom.Series{
+		namespacedSel: {
 			{
-				Name: "ingress_hits_total",
+				Name:   "ingress_hits_total",
 				Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
 			},
 			{
-				Name: "ingress_hits_total",
+				Name:   "ingress_hits_total",
 				Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
 			},
 			{
-				Name: "service_proxy_packets",
+				Name:   "service_proxy_packets",
 				Labels: pmodel.LabelSet{"service": "somesvc", "namespace": "somens"},
 			},
 			{
-				Name: "work_queue_wait_seconds_total",
+				Name:   "work_queue_wait_seconds_total",
 				Labels: pmodel.LabelSet{"deployment": "somedep", "namespace": "somens"},
 			},
 		},
@@ -152,16 +152,16 @@ func TestListAllMetrics(t *testing.T) {
 	sort.Sort(metricInfoSorter(actualMetrics))
 
 	expectedMetrics := []provider.MetricInfo{
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
-		provider.MetricInfo{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
-		provider.MetricInfo{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
-		provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
-		provider.MetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
+		{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
+		{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+		{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
+		{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
+		{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
+		{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
+		{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
 	}
 	sort.Sort(metricInfoSorter(expectedMetrics))
 

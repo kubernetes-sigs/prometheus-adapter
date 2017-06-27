@@ -17,27 +17,27 @@ limitations under the License.
 package main
 
 import (
-    "flag"
-    "os"
-    "runtime"
+	"flag"
+	"os"
+	"runtime"
 
-    "k8s.io/apimachinery/pkg/util/wait"
-    "k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/directxman12/k8s-prometheus-adapter/cmd/adapter/app"
 )
 
 func main() {
-    logs.InitLogs()
-    defer logs.FlushLogs()
+	logs.InitLogs()
+	defer logs.FlushLogs()
 
-    if len(os.Getenv("GOMAXPROCS")) == 0 {
-        runtime.GOMAXPROCS(runtime.NumCPU())
-    }
+	if len(os.Getenv("GOMAXPROCS")) == 0 {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
 
-    cmd := app.NewCommandStartPrometheusAdapterServer(os.Stdout, os.Stderr, wait.NeverStop)
-    cmd.Flags().AddGoFlagSet(flag.CommandLine)
-    if err := cmd.Execute(); err != nil {
-        panic(err)
-    }
+	cmd := app.NewCommandStartPrometheusAdapterServer(os.Stdout, os.Stderr, wait.NeverStop)
+	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+	if err := cmd.Execute(); err != nil {
+		panic(err)
+	}
 }

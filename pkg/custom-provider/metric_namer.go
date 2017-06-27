@@ -21,12 +21,12 @@ import (
 	"strings"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/golang/glog"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
 )
 
@@ -36,6 +36,7 @@ import (
 
 // SeriesType represents the kind of series backing a metric.
 type SeriesType int
+
 const (
 	CounterSeries SeriesType = iota
 	SecondsCounterSeries
@@ -97,7 +98,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 	}
 
 	newMetrics := make([]provider.MetricInfo, 0, len(newInfo))
-	for info, _ := range newInfo {
+	for info := range newInfo {
 		newMetrics = append(newMetrics, info)
 	}
 
@@ -248,13 +249,13 @@ func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provi
 	info := provider.MetricInfo{
 		// TODO: is the plural correct?
 		GroupResource: schema.GroupResource{Resource: "pods"},
-		Namespaced: true,
-		Metric: name,
+		Namespaced:    true,
+		Metric:        name,
 	}
 
 	infos[info] = seriesInfo{
-		kind: metricKind,
-		baseSeries: prom.Series{Name: originalName},
+		kind:        metricKind,
+		baseSeries:  prom.Series{Name: originalName},
 		isContainer: true,
 	}
 }
@@ -272,8 +273,8 @@ func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[prov
 	for _, resource := range resources {
 		info := provider.MetricInfo{
 			GroupResource: resource,
-			Namespaced: true,
-			Metric: name,
+			Namespaced:    true,
+			Metric:        name,
 		}
 
 		// metrics describing namespaces aren't considered to be namespaced
@@ -282,7 +283,7 @@ func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[prov
 		}
 
 		infos[info] = seriesInfo{
-			kind: metricKind,
+			kind:       metricKind,
 			baseSeries: prom.Series{Name: series.Name},
 		}
 	}
@@ -303,12 +304,12 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 	for _, resource := range resources {
 		info := provider.MetricInfo{
 			GroupResource: resource,
-			Namespaced: false,
-			Metric: name,
+			Namespaced:    false,
+			Metric:        name,
 		}
 
 		infos[info] = seriesInfo{
-			kind: metricKind,
+			kind:       metricKind,
 			baseSeries: prom.Series{Name: series.Name},
 		}
 	}
@@ -324,7 +325,7 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 func (n *metricNamer) groupResourcesFromSeries(series prom.Series) ([]schema.GroupResource, error) {
 	// TODO: do we need to cache this, or is ResourceFor good enough?
 	var res []schema.GroupResource
-	for label, _ := range series.Labels {
+	for label := range series.Labels {
 		// TODO: figure out a way to let people specify a fully-qualified name in label-form
 		// TODO: will this work when missing a group?
 		gvr, err := n.mapper.ResourceFor(schema.GroupVersionResource{Resource: string(label)})

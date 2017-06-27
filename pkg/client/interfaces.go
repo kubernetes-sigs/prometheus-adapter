@@ -99,7 +99,7 @@ func (qr *QueryResult) UnmarshalJSON(b []byte) error {
 // Series is roughly equivalent to model.Metrics, but has easy access to name
 // and the set of non-name labels.
 type Series struct {
-	Name string
+	Name   string
 	Labels model.LabelSet
 }
 

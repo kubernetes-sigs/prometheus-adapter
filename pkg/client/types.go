@@ -43,6 +43,7 @@ func (e *Error) Error() string {
 
 // ResponseStatus is the type of response from the API: succeeded or error.
 type ResponseStatus string
+
 const (
 	ResponseSucceeded ResponseStatus = "succeeded"
 	ResponseError                    = "error"
