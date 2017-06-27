@@ -21,6 +21,7 @@ import (
 	"sort"
 	"time"
 	"testing"
+	"context"
 
 	fakedyn "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/pkg/api"
@@ -50,7 +51,7 @@ type fakePromClient struct {
 	queryResults map[prom.Selector]prom.QueryResult
 }
 
-func (c *fakePromClient) Series(interval pmodel.Interval, selectors ...prom.Selector) ([]prom.Series, error) {
+func (c *fakePromClient) Series(_ context.Context, interval pmodel.Interval, selectors ...prom.Selector) ([]prom.Series, error) {
 	if (interval.Start != 0 && interval.Start < c.acceptibleInterval.Start) || (interval.End != 0 && interval.End > c.acceptibleInterval.End) {
 		return nil, fmt.Errorf("interval [%v, %v] for query is outside range [%v, %v]", interval.Start, interval.End, c.acceptibleInterval.Start, c.acceptibleInterval.End)
 	}
@@ -67,7 +68,7 @@ func (c *fakePromClient) Series(interval pmodel.Interval, selectors ...prom.Sele
 	return res, nil
 }
 
-func (c *fakePromClient) Query(t pmodel.Time, query prom.Selector) (prom.QueryResult, error) {
+func (c *fakePromClient) Query(_ context.Context, t pmodel.Time, query prom.Selector) (prom.QueryResult, error) {
 	if t < c.acceptibleInterval.Start || t > c.acceptibleInterval.End {
 		return prom.QueryResult{}, fmt.Errorf("time %v for query is outside range [%v, %v]", t, c.acceptibleInterval.Start, c.acceptibleInterval.End)
 	}
@@ -85,6 +86,9 @@ func (c *fakePromClient) Query(t pmodel.Time, query prom.Selector) (prom.QueryRe
 		Vector: &pmodel.Vector{},
 	}, nil
 }
+func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.Selector) (prom.QueryResult, error) {
+	return prom.QueryResult{}, nil
+}
 
 func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fakePromClient) {
 	fakeProm := &fakePromClient{}
@@ -98,29 +102,29 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 		containerSel: []prom.Series{
 			{
 				Name: "container_actually_gauge_seconds_total",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			{
 				Name: "container_some_usage",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 		},
 		namespacedSel: []prom.Series{
 			{
 				Name: "ingress_hits_total",
-				Labels: map[string]string{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
+				Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
 			},
 			{
 				Name: "ingress_hits_total",
-				Labels: map[string]string{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
+				Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
 			},
 			{
 				Name: "service_proxy_packets",
-				Labels: map[string]string{"service": "somesvc", "namespace": "somens"},
+				Labels: pmodel.LabelSet{"service": "somesvc", "namespace": "somens"},
 			},
 			{
 				Name: "work_queue_wait_seconds_total",
-				Labels: map[string]string{"deployment": "somedep", "namespace": "somens"},
+				Labels: pmodel.LabelSet{"deployment": "somedep", "namespace": "somens"},
 			},
 		},
 	}

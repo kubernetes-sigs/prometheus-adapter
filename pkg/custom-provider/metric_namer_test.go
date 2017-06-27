@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	pmodel "github.com/prometheus/common/model"
 
 	// install extensions so that our RESTMapper knows about it
 	_ "k8s.io/client-go/pkg/apis/extensions/install"
@@ -53,7 +54,7 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 		{
 			input: prom.Series{
 				Name: "container_actually_gauge_seconds_total",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "actually_gauge",
 			outputInfo: seriesInfo{
@@ -65,7 +66,7 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 		{
 			input: prom.Series{
 				Name: "container_some_usage",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_usage",
 			outputInfo: seriesInfo{
@@ -77,7 +78,7 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 		{
 			input: prom.Series{
 				Name: "container_some_count_total",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_count",
 			outputInfo: seriesInfo{
@@ -89,7 +90,7 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 		{
 			input: prom.Series{
 				Name: "container_some_time_seconds_total",
-				Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 			},
 			outputMetricName: "some_time",
 			outputInfo: seriesInfo{
@@ -131,63 +132,63 @@ func TestSeriesRegistry(t *testing.T) {
 		// container series
 		{
 			Name: "container_actually_gauge_seconds_total",
-			Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
 			Name: "container_some_usage",
-			Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
 			Name: "container_some_count_total",
-			Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		{
 			Name: "container_some_time_seconds_total",
-			Labels: map[string]string{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+			Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
 		},
 		// namespaced series
 		// a series that should turn into multiple metrics
 		{
 			Name: "ingress_hits_total",
-			Labels: map[string]string{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
 		},
 		{
 			Name: "ingress_hits_total",
-			Labels: map[string]string{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
 		},
 		{
 			Name: "service_proxy_packets",
-			Labels: map[string]string{"service": "somesvc", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"service": "somesvc", "namespace": "somens"},
 		},
 		{
 			Name: "work_queue_wait_seconds_total",
-			Labels: map[string]string{"deployment": "somedep", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"deployment": "somedep", "namespace": "somens"},
 		},
 		// non-namespaced series
 		{
 			Name: "node_gigawatts",
-			Labels: map[string]string{"node": "somenode"},
+			Labels: pmodel.LabelSet{"node": "somenode"},
 		},
 		{
 			Name: "volume_claims_total",
-			Labels: map[string]string{"persistentvolume": "somepv"},
+			Labels: pmodel.LabelSet{"persistentvolume": "somepv"},
 		},
 		{
 			Name: "node_fan_seconds_total",
-			Labels: map[string]string{"node": "somenode"},
+			Labels: pmodel.LabelSet{"node": "somenode"},
 		},
 		// unrelated series
 		{
 			Name: "admin_coffee_liters_total",
-			Labels: map[string]string{"admin": "some-admin"},
+			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 		{
 			Name: "admin_unread_emails",
-			Labels: map[string]string{"admin": "some-admin"},
+			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 		{
 			Name: "admin_reddit_seconds_total",
-			Labels: map[string]string{"admin": "some-admin"},
+			Labels: pmodel.LabelSet{"admin": "some-admin"},
 		},
 	}
 
@@ -203,6 +204,7 @@ func TestSeriesRegistry(t *testing.T) {
 
 		expectedKind SeriesType
 		expectedQuery string
+		expectedGroupBy string
 	}{
 		// container metrics
 		{
@@ -213,6 +215,7 @@ func TestSeriesRegistry(t *testing.T) {
 
 			expectedKind: GaugeSeries,
 			expectedQuery: "container_actually_gauge_seconds_total{pod_name=\"somepod\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedGroupBy: "pod_name",
 		},
 		{
 			title: "container metrics gauge / multiple resource names",
@@ -222,6 +225,7 @@ func TestSeriesRegistry(t *testing.T) {
 
 			expectedKind: GaugeSeries,
 			expectedQuery: "container_some_usage{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedGroupBy: "pod_name",
 		},
 		{
 			title: "container metrics counter",
@@ -231,6 +235,7 @@ func TestSeriesRegistry(t *testing.T) {
 
 			expectedKind: CounterSeries,
 			expectedQuery: "container_some_count_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedGroupBy: "pod_name",
 		},
 		{
 			title: "container metrics seconds counter",
@@ -240,6 +245,7 @@ func TestSeriesRegistry(t *testing.T) {
 
 			expectedKind: SecondsCounterSeries,
 			expectedQuery: "container_some_time_seconds_total{pod_name=~\"somepod1|somepod2\",container_name!=\"POD\",namespace=\"somens\"}",
+			expectedGroupBy: "pod_name",
 		},
 		// namespaced metrics
 		{
@@ -315,13 +321,19 @@ func TestSeriesRegistry(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		outputKind, outputQuery, found := registry.QueryForMetric(testCase.info, testCase.namespace, testCase.resourceNames...)
+		outputKind, outputQuery, groupBy, found := registry.QueryForMetric(testCase.info, testCase.namespace, testCase.resourceNames...)
 		if !assert.True(found, "%s: metric %v should available", testCase.title, testCase.info) {
 			continue
 		}
 
 		assert.Equal(testCase.expectedKind, outputKind, "%s: metric %v should have had the right series type", testCase.title, testCase.info)
 		assert.Equal(prom.Selector(testCase.expectedQuery), outputQuery, "%s: metric %v should have produced the correct query for %v in namespace %s", testCase.title, testCase.info, testCase.resourceNames, testCase.namespace)
+
+		expectedGroupBy := testCase.expectedGroupBy
+		if expectedGroupBy == "" {
+			expectedGroupBy = testCase.info.GroupResource.Resource
+		}
+		assert.Equal(expectedGroupBy, groupBy, "%s: metric %v should have produced the correct groupBy clause", testCase.title)
 	}
 
 	allMetrics := registry.ListAllMetrics()
