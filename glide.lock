@@ -1,5 +1,5 @@
-hash: 5301bfa390fea808bce92640a9c3ea2165b8484a75a394144d242d49f4a8e6e6
-updated: 2017-06-23T21:03:10.447897871-04:00
+hash: 4432fd0d13b3a79f1febb9040cad9576793e44ab1c4d6e40abc664ad0582999f
+updated: 2017-06-27T18:59:14.961201169-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -386,10 +386,12 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 450baa5d60f8d6a251c7682cb6f86e939b750b2d
+  version: b932a6d0e02c2b5afe156f4dd193a095efd8e954
+  repo: https://github.com/directxman12/client-go.git
   subpackages:
   - discovery
   - dynamic
+  - dynamic/fake
   - informers
   - informers/apps
   - informers/apps/v1beta1
@@ -488,6 +490,7 @@ imports:
   - pkg/version
   - rest
   - rest/watch
+  - testing
   - tools/auth
   - tools/cache
   - tools/clientcmd
