@@ -123,13 +123,12 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 
 func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.MetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
 	if !apimeta.IsListType(list) {
-		// TODO: fix the error type here
-		return nil, fmt.Errorf("returned object was not a list")
+		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
 
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
-		// TODO: throw error
+		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 	res := []custom_metrics.MetricValue{}
 
@@ -203,9 +202,22 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	if len(queryResults) < 1 {
 		return nil, newMetricNotFoundForError(info.GroupResource, info.Metric, name)
 	}
-	// TODO: check if lenght of results > 1?
-	// TODO: check if our output name is the same as our input name
-	resultValue := queryResults[0].Value
+
+	namedValues, found := p.MatchValuesToNames(info, queryResults)
+	if !found {
+		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
+	}
+
+	if len(namedValues) > 1 {
+		glog.V(2).Infof("Got more than one result (%v results) when fetching metric %s for %q, using the first one with a matching name...", len(queryResults), info.String(), name)
+	}
+
+	resultValue, nameFound := namedValues[name]
+	if !nameFound {
+		glog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
+		return nil, newMetricNotFoundForError(info.GroupResource, info.Metric, name)
+	}
+
 	return p.metricFor(resultValue, info.GroupResource, "", name, info.Metric)
 }
 
@@ -235,8 +247,7 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 
 	// make sure we have a list
 	if !apimeta.IsListType(matchingObjectsRaw) {
-		// TODO: fix the error type here
-		return nil, fmt.Errorf("returned object was not a list")
+		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
 
 	// convert a list of objects into the corresponding list of names
