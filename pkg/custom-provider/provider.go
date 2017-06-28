@@ -82,7 +82,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientP
 
 		SeriesRegistry: &basicSeriesRegistry{
 			namer: metricNamer{
-				// TODO: populate this...
+				// TODO: populate the overrides list
 				overrides: nil,
 				mapper:    mapper,
 			},
@@ -133,8 +133,6 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 	}
 	res := []custom_metrics.MetricValue{}
 
-	// blech, EachListItem should pass an index --
-	// it's an implementation detail that it happens to be sequential
 	err := apimeta.EachListItem(list, func(item runtime.Object) error {
 		objUnstructured := item.(*unstructured.Unstructured)
 		objName := objUnstructured.GetName()
@@ -173,7 +171,7 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 		fullQuery = prom.Selector(prom.Selector(fmt.Sprintf("rate(%s[%s])", baseQuery, pmodel.Duration(p.rateInterval).String())))
 	}
 
-	// TODO: too small of a rate interval will return no results...
+	// NB: too small of a rate interval will return no results...
 
 	// sum over all other dimensions of this query (e.g. if we select on route, sum across all pods,
 	// but if we select on pods, sum across all routes), and split by the dimension of our resource
@@ -183,7 +181,6 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 	// TODO: use an actual context
 	queryResults, err := p.promClient.Query(context.Background(), pmodel.Now(), fullQuery)
 	if err != nil {
-		// TODO: interpret this somehow?
 		glog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
@@ -214,29 +211,24 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 
 func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	// construct a client to list the names of objects matching the label selector
-	// TODO: figure out version?
 	client, err := p.kubeClient.ClientForGroupVersionResource(info.GroupResource.WithVersion(""))
 	if err != nil {
 		glog.Errorf("unable to construct dynamic client to list matching resource names: %v", err)
-		// TODO: check for resource not found error?
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
 
 	// we can construct a this APIResource ourself, since the dynamic client only uses Name and Namespaced
-	// TODO: use discovery information instead
 	apiRes := &metav1.APIResource{
 		Name:       info.GroupResource.Resource,
 		Namespaced: info.Namespaced,
 	}
 
 	// actually list the objects matching the label selector
-	// TODO: work for objects not in core v1
 	matchingObjectsRaw, err := client.Resource(apiRes, namespace).
 		List(metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		glog.Errorf("unable to list matching resource names: %v", err)
-		// TODO: check for resource not found error?
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
@@ -322,9 +314,6 @@ func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
 
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.updateInterval)
-
-	// TODO: figure out a good way to add all Kubernetes-related metrics at once
-	// (i.e. how do we determine if something is a Kubernetes-related metric?)
 
 	// container-specific metrics from cAdvsior have their own form, and need special handling
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))

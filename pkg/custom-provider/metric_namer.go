@@ -84,7 +84,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 		if strings.HasPrefix(series.Name, "container_") {
 			r.namer.processContainerSeries(series, newInfo)
 		} else if namespaceLabel, hasNamespaceLabel := series.Labels["namespace"]; hasNamespaceLabel && namespaceLabel != "" {
-			// TODO: handle metrics describing a namespace
+			// we also handle namespaced metrics here as part of the resource-association logic
 			if err := r.namer.processNamespacedSeries(series, newInfo); err != nil {
 				glog.Errorf("Unable to process namespaced series %q: %v", series.Name, err)
 				continue
@@ -123,7 +123,8 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 	defer r.mu.RUnlock()
 
 	if len(resourceNames) == 0 {
-		// TODO: return error?  panic?
+		glog.Errorf("no resource names requested while producing a query for metric %s", metricInfo.String())
+		return 0, "", "", false
 	}
 
 	metricInfo, singularResource, err := r.namer.normalizeInfo(metricInfo)
@@ -214,7 +215,7 @@ type seriesSpec struct {
 // normalizeInfo takes in some metricInfo an "normalizes" it to ensure a common GroupResource form.
 func (r *metricNamer) normalizeInfo(metricInfo provider.MetricInfo) (provider.MetricInfo, string, error) {
 	// NB: we need to "normalize" the metricInfo's GroupResource so we have a consistent pluralization, etc
-	// TODO: move this to the boilerplate?
+	// TODO: move this to the boilerplate
 	normalizedGroupRes, err := r.mapper.ResourceFor(metricInfo.GroupResource.WithVersion(""))
 	if err != nil {
 		return provider.MetricInfo{}, "", err
@@ -247,7 +248,6 @@ func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provi
 	}
 
 	info := provider.MetricInfo{
-		// TODO: is the plural correct?
 		GroupResource: schema.GroupResource{Resource: "pods"},
 		Namespaced:    true,
 		Metric:        name,
@@ -325,11 +325,9 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 // would return three GroupResources: "pods", "services", and "ingresses".
 // Returned MetricInfo is equilavent to the "normalized" info produced by normalizeInfo.
 func (n *metricNamer) groupResourcesFromSeries(series prom.Series) ([]schema.GroupResource, error) {
-	// TODO: do we need to cache this, or is ResourceFor good enough?
 	var res []schema.GroupResource
 	for label := range series.Labels {
 		// TODO: figure out a way to let people specify a fully-qualified name in label-form
-		// TODO: will this work when missing a group?
 		gvr, err := n.mapper.ResourceFor(schema.GroupVersionResource{Resource: string(label)})
 		if err != nil {
 			if apimeta.IsNoMatchError(err) {
