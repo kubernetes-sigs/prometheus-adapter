@@ -34,6 +34,7 @@ import (
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/dynamicmapper"
 )
 
 // NewCommandStartPrometheusAdapterServer provides a CLI handler for 'start master' command
@@ -44,6 +45,7 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 		MetricsRelistInterval:             10 * time.Minute,
 		RateInterval:                      5 * time.Minute,
 		PrometheusURL:                     "https://localhost",
+		DiscoveryInterval:                 10 * time.Minute,
 	}
 
 	cmd := &cobra.Command{
@@ -76,6 +78,8 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	flags.DurationVar(&o.RateInterval, "rate-interval", o.RateInterval, ""+
 		"period of time used to calculate rate metrics from cumulative metrics")
+	flags.DurationVar(&o.DiscoveryInterval, "discovery-interval", o.DiscoveryInterval, ""+
+		"interval at which to refresh API discovery information")
 	flags.StringVar(&o.PrometheusURL, "prometheus-url", o.PrometheusURL,
 		"URL and configuration for connecting to Prometheus.  Query parameters are used to configure the connection")
 
@@ -108,12 +112,10 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 		return fmt.Errorf("unable to construct discovery client for dynamic client: %v", err)
 	}
 
-	// TODO: this needs to refresh it's discovery info every once and a while
-	resources, err := discovery.GetAPIGroupResources(discoveryClient)
+	dynamicMapper, err := dynamicmapper.NewRESTMapper(discoveryClient, api.Registry.InterfacesFor, o.DiscoveryInterval)
 	if err != nil {
-		return fmt.Errorf("unable to construct discovery REST mapper: unable to fetch list of resources: %v", err)
+		return fmt.Errorf("unable to construct dynamic discovery mapper: %v", err)
 	}
-	dynamicMapper := discovery.NewRESTMapper(resources, api.Registry.InterfacesFor)
 
 	clientPool := dynamic.NewClientPool(clientConfig, dynamicMapper, dynamic.LegacyAPIPathResolverFunc)
 	if err != nil {
@@ -147,6 +149,8 @@ type PrometheusAdapterServerOptions struct {
 	MetricsRelistInterval time.Duration
 	// RateInterval is the period of time used to calculate rate metrics
 	RateInterval time.Duration
+	// DiscoveryInterval is the interval at which discovery information is refreshed
+	DiscoveryInterval time.Duration
 	// PrometheusURL is the URL describing how to connect to Prometheus.  Query parameters configure connection options.
 	PrometheusURL string
 }
