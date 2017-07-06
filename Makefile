@@ -5,6 +5,7 @@ ARCH?=amd64
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=./_output
+VENDOR_DOCKERIZED=0
 
 VERSION?=latest
 
@@ -52,7 +53,13 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 	chmod +x manifest-tool
 
 vendor: glide.lock
+ifeq ($(VENDOR_DOCKERIZED),1)
+	docker run -it -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -w /go/src/github.com/directxman12/k8s-prometheus-adapter golang:1.8 /bin/bash -c "\
+		curl https://glide.sh/get | sh \
+		&& glide install -v"
+else
 	glide install -v
+endif
 
 test: vendor
 	CGO_ENABLED=0 go test ./pkg/...
