@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/glog"
-	"net/http"
 	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -42,28 +41,6 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
-
-// newMetricNotFoundError returns a StatusError indicating the given metric could not be found.
-// It is similar to NewNotFound, but more specialized
-func newMetricNotFoundError(resource schema.GroupResource, metricName string) *apierr.StatusError {
-	return &apierr.StatusError{metav1.Status{
-		Status:  metav1.StatusFailure,
-		Code:    int32(http.StatusNotFound),
-		Reason:  metav1.StatusReasonNotFound,
-		Message: fmt.Sprintf("the server could not find the metric %s for %s", metricName, resource.String()),
-	}}
-}
-
-// newMetricNotFoundForError returns a StatusError indicating the given metric could not be found for
-// the given named object. It is similar to NewNotFound, but more specialized
-func newMetricNotFoundForError(resource schema.GroupResource, metricName string, resourceName string) *apierr.StatusError {
-	return &apierr.StatusError{metav1.Status{
-		Status:  metav1.StatusFailure,
-		Code:    int32(http.StatusNotFound),
-		Reason:  metav1.StatusReasonNotFound,
-		Message: fmt.Sprintf("the server could not find the metric %s for %s %s", metricName, resource.String(), resourceName),
-	}}
-}
 
 type prometheusProvider struct {
 	mapper     apimeta.RESTMapper
@@ -128,7 +105,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
-		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 	res := []custom_metrics.MetricValue{}
 
@@ -158,7 +135,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
 	kind, baseQuery, groupBy, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
-		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	fullQuery := baseQuery
@@ -200,12 +177,12 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	}
 
 	if len(queryResults) < 1 {
-		return nil, newMetricNotFoundForError(info.GroupResource, info.Metric, name)
+		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name)
 	}
 
 	namedValues, found := p.MatchValuesToNames(info, queryResults)
 	if !found {
-		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	if len(namedValues) > 1 {
@@ -215,7 +192,7 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	resultValue, nameFound := namedValues[name]
 	if !nameFound {
 		glog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
-		return nil, newMetricNotFoundForError(info.GroupResource, info.Metric, name)
+		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name)
 	}
 
 	return p.metricFor(resultValue, info.GroupResource, "", name, info.Metric)

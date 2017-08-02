@@ -127,7 +127,7 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 		return 0, "", "", false
 	}
 
-	metricInfo, singularResource, err := r.namer.normalizeInfo(metricInfo)
+	metricInfo, singularResource, err := metricInfo.Normalized(r.namer.mapper)
 	if err != nil {
 		glog.Errorf("unable to normalize group resource while producing a query: %v", err)
 		return 0, "", "", false
@@ -167,7 +167,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.MetricInfo,
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	metricInfo, singularResource, err := r.namer.normalizeInfo(metricInfo)
+	metricInfo, singularResource, err := metricInfo.Normalized(r.namer.mapper)
 	if err != nil {
 		glog.Errorf("unable to normalize group resource while matching values to names: %v", err)
 		return nil, false
@@ -210,24 +210,6 @@ type seriesSpec struct {
 	// kind indicates whether or not this metric is cumulative,
 	// and thus has to be calculated as a rate when returning it
 	kind SeriesType
-}
-
-// normalizeInfo takes in some metricInfo an "normalizes" it to ensure a common GroupResource form.
-func (r *metricNamer) normalizeInfo(metricInfo provider.MetricInfo) (provider.MetricInfo, string, error) {
-	// NB: we need to "normalize" the metricInfo's GroupResource so we have a consistent pluralization, etc
-	// TODO: move this to the boilerplate
-	normalizedGroupRes, err := r.mapper.ResourceFor(metricInfo.GroupResource.WithVersion(""))
-	if err != nil {
-		return provider.MetricInfo{}, "", err
-	}
-	metricInfo.GroupResource = normalizedGroupRes.GroupResource()
-
-	singularResource, err := r.mapper.ResourceSingularizer(metricInfo.GroupResource.Resource)
-	if err != nil {
-		return provider.MetricInfo{}, "", err
-	}
-
-	return metricInfo, singularResource, nil
 }
 
 // processContainerSeries performs special work to extract metric definitions
@@ -323,7 +305,7 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 // going through each label, checking to see if it corresponds to a known resource.  For instance,
 // a series `ingress_http_hits_total{pod="foo",service="bar",ingress="baz",namespace="ns"}`
 // would return three GroupResources: "pods", "services", and "ingresses".
-// Returned MetricInfo is equilavent to the "normalized" info produced by normalizeInfo.
+// Returned MetricInfo is equilavent to the "normalized" info produced by metricInfo.Normalized.
 func (n *metricNamer) groupResourcesFromSeries(series prom.Series) ([]schema.GroupResource, error) {
 	var res []schema.GroupResource
 	for label := range series.Labels {
