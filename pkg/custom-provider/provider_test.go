@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"

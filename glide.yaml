@@ -14,7 +14,7 @@ import:
   - kubernetes/typed/core/v1
   - rest
   - tools/clientcmd
-- package: github.com/directxman12/custom-metrics-boilerplate
+- package: github.com/kubernetes-incubator/custom-metrics-apiserver
   subpackages:
   - pkg/cmd/server
   - pkg/provider

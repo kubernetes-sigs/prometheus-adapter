@@ -30,10 +30,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/cmd/server"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
 )
 
 // NewCommandStartPrometheusAdapterServer provides a CLI handler for 'start master' command

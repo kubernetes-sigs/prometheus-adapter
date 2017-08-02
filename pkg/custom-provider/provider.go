@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"

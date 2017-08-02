@@ -1,5 +1,5 @@
-hash: 4432fd0d13b3a79f1febb9040cad9576793e44ab1c4d6e40abc664ad0582999f
-updated: 2017-06-27T18:59:14.961201169-04:00
+hash: 815ac74b9c61bedb6cc960ca8b9de13ff7584a66f1a0f9fdb80c5c49986a10cf
+updated: 2017-08-02T15:16:48.029828608-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -82,14 +82,6 @@ imports:
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
-- name: github.com/directxman12/custom-metrics-boilerplate
-  version: 066dd03155e1cdb3dfa513f8bdcb3a30edda1137
-  subpackages:
-  - pkg/apiserver
-  - pkg/apiserver/installer
-  - pkg/cmd/server
-  - pkg/provider
-  - pkg/registry/custom_metrics
 - name: github.com/docker/distribution
   version: cd27f179f2c10c5d300e6d09025b538c475b0d51
   subpackages:
@@ -163,6 +155,14 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/juju/ratelimit
   version: 77ed1c8a01217656d2080ad51981f6e99adaa177
+- name: github.com/kubernetes-incubator/custom-metrics-apiserver
+  version: e17b36ca6ebbec8acbc76d729d24058a09d042ee
+  subpackages:
+  - pkg/apiserver
+  - pkg/apiserver/installer
+  - pkg/cmd/server
+  - pkg/provider
+  - pkg/registry/custom_metrics
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
