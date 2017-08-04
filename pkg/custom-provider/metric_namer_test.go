@@ -20,7 +20,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

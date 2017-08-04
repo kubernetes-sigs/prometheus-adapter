@@ -78,3 +78,19 @@ aggregated over all non-requested metrics.
 The adapter does not consider resources consumed by the "POD" container,
 which exists as part of all Kubernetes pods running in Docker simply
 supports the existance of the pod's shared network namespace.
+
+Example
+-------
+
+@luxas has an excellent example deployment of Prometheus, this adapter,
+and a demo pod which serves a metric `http_requests_total`, which becomes
+the custom metrics API metric `pods/http_requests`.  It also autoscales on
+that metric using the `autoscaling/v2alpha1` HorizontalPodAutoscaler.
+
+It can be found at https://github.com/luxas/kubeadm-workshop.  Pay special
+attention to:
+
+- [Deploying the Prometheus
+  Operator](https://github.com/luxas/kubeadm-workshop#deploying-the-prometheus-operator-for-monitoring-services-in-the-cluster)
+- [Setting up the custom metrics adapter and sample
+  app](https://github.com/luxas/kubeadm-workshop#deploying-a-custom-metrics-api-server-and-a-sample-app)

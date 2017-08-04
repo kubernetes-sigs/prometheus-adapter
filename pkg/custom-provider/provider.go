@@ -20,10 +20,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/glog"
-	"net/http"
 	"time"
 
-	"github.com/directxman12/custom-metrics-boilerplate/pkg/provider"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -43,28 +42,6 @@ import (
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
 
-// newMetricNotFoundError returns a StatusError indicating the given metric could not be found.
-// It is similar to NewNotFound, but more specialized
-func newMetricNotFoundError(resource schema.GroupResource, metricName string) *apierr.StatusError {
-	return &apierr.StatusError{metav1.Status{
-		Status:  metav1.StatusFailure,
-		Code:    int32(http.StatusNotFound),
-		Reason:  metav1.StatusReasonNotFound,
-		Message: fmt.Sprintf("the server could not find the metric %s for %s", metricName, resource.String()),
-	}}
-}
-
-// newMetricNotFoundForError returns a StatusError indicating the given metric could not be found for
-// the given named object. It is similar to NewNotFound, but more specialized
-func newMetricNotFoundForError(resource schema.GroupResource, metricName string, resourceName string) *apierr.StatusError {
-	return &apierr.StatusError{metav1.Status{
-		Status:  metav1.StatusFailure,
-		Code:    int32(http.StatusNotFound),
-		Reason:  metav1.StatusReasonNotFound,
-		Message: fmt.Sprintf("the server could not find the metric %s for %s %s", metricName, resource.String(), resourceName),
-	}}
-}
-
 type prometheusProvider struct {
 	mapper     apimeta.RESTMapper
 	kubeClient dynamic.ClientPool
@@ -75,22 +52,21 @@ type prometheusProvider struct {
 	rateInterval time.Duration
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration) provider.CustomMetricsProvider {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		promClient:     promClient,
 
 		SeriesRegistry: &basicSeriesRegistry{
 			namer: metricNamer{
-				// TODO: populate this...
+				// TODO: populate the overrides list
 				overrides: nil,
 				mapper:    mapper,
 			},
 		},
 	}
 
-	// TODO: allow for RunUntil
-	lister.Run()
+	lister.RunUntil(stopChan)
 
 	return &prometheusProvider{
 		mapper:     mapper,
@@ -124,18 +100,15 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 
 func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.MetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
 	if !apimeta.IsListType(list) {
-		// TODO: fix the error type here
-		return nil, fmt.Errorf("returned object was not a list")
+		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
 
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
-		// TODO: throw error
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 	res := []custom_metrics.MetricValue{}
 
-	// blech, EachListItem should pass an index --
-	// it's an implementation detail that it happens to be sequential
 	err := apimeta.EachListItem(list, func(item runtime.Object) error {
 		objUnstructured := item.(*unstructured.Unstructured)
 		objName := objUnstructured.GetName()
@@ -162,7 +135,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
 	kind, baseQuery, groupBy, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
-		return nil, newMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	fullQuery := baseQuery
@@ -174,7 +147,7 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 		fullQuery = prom.Selector(prom.Selector(fmt.Sprintf("rate(%s[%s])", baseQuery, pmodel.Duration(p.rateInterval).String())))
 	}
 
-	// TODO: too small of a rate interval will return no results...
+	// NB: too small of a rate interval will return no results...
 
 	// sum over all other dimensions of this query (e.g. if we select on route, sum across all pods,
 	// but if we select on pods, sum across all routes), and split by the dimension of our resource
@@ -184,7 +157,6 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 	// TODO: use an actual context
 	queryResults, err := p.promClient.Query(context.Background(), pmodel.Now(), fullQuery)
 	if err != nil {
-		// TODO: interpret this somehow?
 		glog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
@@ -205,47 +177,54 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	}
 
 	if len(queryResults) < 1 {
-		return nil, newMetricNotFoundForError(info.GroupResource, info.Metric, name)
+		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name)
 	}
-	// TODO: check if lenght of results > 1?
-	// TODO: check if our output name is the same as our input name
-	resultValue := queryResults[0].Value
+
+	namedValues, found := p.MatchValuesToNames(info, queryResults)
+	if !found {
+		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
+	}
+
+	if len(namedValues) > 1 {
+		glog.V(2).Infof("Got more than one result (%v results) when fetching metric %s for %q, using the first one with a matching name...", len(queryResults), info.String(), name)
+	}
+
+	resultValue, nameFound := namedValues[name]
+	if !nameFound {
+		glog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
+		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name)
+	}
+
 	return p.metricFor(resultValue, info.GroupResource, "", name, info.Metric)
 }
 
 func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	// construct a client to list the names of objects matching the label selector
-	// TODO: figure out version?
 	client, err := p.kubeClient.ClientForGroupVersionResource(info.GroupResource.WithVersion(""))
 	if err != nil {
 		glog.Errorf("unable to construct dynamic client to list matching resource names: %v", err)
-		// TODO: check for resource not found error?
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
 
 	// we can construct a this APIResource ourself, since the dynamic client only uses Name and Namespaced
-	// TODO: use discovery information instead
 	apiRes := &metav1.APIResource{
 		Name:       info.GroupResource.Resource,
 		Namespaced: info.Namespaced,
 	}
 
 	// actually list the objects matching the label selector
-	// TODO: work for objects not in core v1
 	matchingObjectsRaw, err := client.Resource(apiRes, namespace).
 		List(metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		glog.Errorf("unable to list matching resource names: %v", err)
-		// TODO: check for resource not found error?
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
 
 	// make sure we have a list
 	if !apimeta.IsListType(matchingObjectsRaw) {
-		// TODO: fix the error type here
-		return nil, fmt.Errorf("returned object was not a list")
+		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
 
 	// convert a list of objects into the corresponding list of names
@@ -310,18 +289,19 @@ type cachingMetricsLister struct {
 }
 
 func (l *cachingMetricsLister) Run() {
-	go wait.Forever(func() {
+	l.RunUntil(wait.NeverStop)
+}
+
+func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
+	go wait.Until(func() {
 		if err := l.updateMetrics(); err != nil {
 			utilruntime.HandleError(err)
 		}
-	}, l.updateInterval)
+	}, l.updateInterval, stopChan)
 }
 
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.updateInterval)
-
-	// TODO: figure out a good way to add all Kubernetes-related metrics at once
-	// (i.e. how do we determine if something is a Kubernetes-related metric?)
 
 	// container-specific metrics from cAdvsior have their own form, and need special handling
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
