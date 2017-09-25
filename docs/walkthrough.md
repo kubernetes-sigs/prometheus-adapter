@@ -210,13 +210,19 @@ Then, store your serving certificates in a secret:
 $ kubectl -n prom create secret tls serving-cm-adapter --cert=/path/to/cm-adapter/serving.crt --key=/path/to/cm-adapter/serving.key
 ```
 
-Finally, you'll need to make sure that the default service account for
-your namespace has permission to list resources in the cluster:
+Next, you'll need to make sure that the service account used to launch the
+Deployment has permission to list resources in the cluster:
 
 ```shell
 $ kubectl create clusterrole resource-lister --verb=list --resource="*"
 $ kubectl create clusterrolebinding cm-adapter-resource-lister --clusterrole=resource-lister -- serviceaccount=prom:prom-cm-adapter
 ```
+
+Finally, ensure the deployment has all the necessary permissions to
+delegate authentication and authorization decisions to the main API
+server.  See [Concepts: Auth and
+Certificates](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md)
+for more information.
 
 Next, amend the file above to run the adapter as well.  You may need to
 modify this part if you wish to inject the needed certificates a different
@@ -328,7 +334,7 @@ spec:
     namespace: prom
 ```
 
-<details>
+</details>
 
 Register that registration object with the aggregator:
 
