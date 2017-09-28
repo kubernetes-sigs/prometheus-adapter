@@ -28,10 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakedyn "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/pkg/api"
-
-	// install extensions so that our RESTMapper knows about it
-	_ "k8s.io/client-go/pkg/apis/extensions/install"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	pmodel "github.com/prometheus/common/model"
@@ -94,7 +90,7 @@ func setupPrometheusProvider(t *testing.T, stopCh <-chan struct{}) (provider.Cus
 	fakeProm := &fakePromClient{}
 	fakeKubeClient := &fakedyn.FakeClientPool{}
 
-	prov := NewPrometheusProvider(api.Registry.RESTMapper(), fakeKubeClient, fakeProm, fakeProviderUpdateInterval, 1*time.Minute, stopCh)
+	prov := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, fakeProviderUpdateInterval, 1*time.Minute, stopCh)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))

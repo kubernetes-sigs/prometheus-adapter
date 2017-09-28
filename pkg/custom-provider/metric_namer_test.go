@@ -24,14 +24,30 @@ import (
 	pmodel "github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	coreapi "k8s.io/api/core/v1"
+	extapi "k8s.io/api/extensions/v1beta1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/pkg/api"
-
-	// install extensions so that our RESTMapper knows about it
-	_ "k8s.io/client-go/pkg/apis/extensions/install"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
+
+// restMapper creates a RESTMapper with just the types we need for
+// these tests.
+func restMapper() apimeta.RESTMapper {
+	mapper := apimeta.NewDefaultRESTMapper([]schema.GroupVersion{coreapi.SchemeGroupVersion}, apimeta.InterfacesForUnstructured)
+
+	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Pod"), apimeta.RESTScopeNamespace)
+	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Service"), apimeta.RESTScopeNamespace)
+	mapper.Add(extapi.SchemeGroupVersion.WithKind("Ingress"), apimeta.RESTScopeNamespace)
+	mapper.Add(extapi.SchemeGroupVersion.WithKind("Deployment"), apimeta.RESTScopeNamespace)
+
+	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Node"), apimeta.RESTScopeRoot)
+	mapper.Add(coreapi.SchemeGroupVersion.WithKind("PersistentVolume"), apimeta.RESTScopeRoot)
+	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Namespace"), apimeta.RESTScopeRoot)
+
+	return mapper
+}
 
 func setupMetricNamer(t *testing.T) *metricNamer {
 	return &metricNamer{
@@ -41,7 +57,7 @@ func setupMetricNamer(t *testing.T) *metricNamer {
 				kind:       GaugeSeries,
 			},
 		},
-		mapper: api.Registry.RESTMapper(),
+		mapper: restMapper(),
 	}
 }
 

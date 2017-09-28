@@ -8,8 +8,6 @@ import:
   subpackages:
   - pkg/util/logs
 - package: k8s.io/client-go
-  repo: https://github.com/directxman12/client-go.git
-  version: feature/fake-dynamic-client
   subpackages:
   - kubernetes/typed/core/v1
   - rest
