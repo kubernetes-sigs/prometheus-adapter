@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -112,7 +112,7 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 		return fmt.Errorf("unable to construct discovery client for dynamic client: %v", err)
 	}
 
-	dynamicMapper, err := dynamicmapper.NewRESTMapper(discoveryClient, api.Registry.InterfacesFor, o.DiscoveryInterval)
+	dynamicMapper, err := dynamicmapper.NewRESTMapper(discoveryClient, apimeta.InterfacesForUnstructured, o.DiscoveryInterval)
 	if err != nil {
 		return fmt.Errorf("unable to construct dynamic discovery mapper: %v", err)
 	}
@@ -133,7 +133,7 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 
 	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.MetricsRelistInterval, o.RateInterval, stopCh)
 
-	server, err := config.Complete().New(cmProvider)
+	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider)
 	if err != nil {
 		return err
 	}

@@ -35,8 +35,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/pkg/api"
-	_ "k8s.io/client-go/pkg/api/install"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -86,7 +84,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 	}
 
 	return &custom_metrics.MetricValue{
-		DescribedObject: api.ObjectReference{
+		DescribedObject: custom_metrics.ObjectReference{
 			APIVersion: groupResource.Group + "/" + runtime.APIVersionInternal,
 			Kind:       kind.Kind,
 			Name:       name,
