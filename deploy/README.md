@@ -9,5 +9,7 @@ Example Deployment
    documentation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md)
    in the apiserver-builder repository.
 
-3. `kubectl create -f example-deployment.yaml`, modifying as necessary to
+3. `kubectl create namespace custom-metrics` to ensure the namespace we choose to install the custom metrics adapter in.
+
+4. `kubectl create -f manifests/`, modifying as necessary to
    point to your prometheus server.
