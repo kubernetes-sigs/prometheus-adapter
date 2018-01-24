@@ -39,7 +39,7 @@ docker-build: vendor
 		CGO_ENABLED=0 go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
 
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
-	sudo rm -r $(TEMP_DIR)
+	rm -rf $(TEMP_DIR)
 
 push-%:
 	$(MAKE) ARCH=$* docker-build
