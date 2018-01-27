@@ -1,6 +1,8 @@
 Kubernetes Custom Metrics Adapter for Prometheus
 ================================================
 
+[![Build Status](https://travis-ci.org/DirectXMan12/k8s-prometheus-adapter.svg?branch=master)](https://travis-ci.org/DirectXMan12/k8s-prometheus-adapter)
+
 This repository contains an implementation of the Kubernetes custom
 metrics API
 ([custom-metrics.metrics.k8s.io/v1alpha1](https://github.com/kubernetes/metrics/tree/master/pkg/apis/custom_metrics)),
