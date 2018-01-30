@@ -45,6 +45,9 @@ const (
 
 // SeriesRegistry provides conversions between Prometheus series and MetricInfo
 type SeriesRegistry interface {
+	// Selectors produces the appropriate Prometheus selectors to match all series handlable
+	// by this registry, as an optimization for SetSeries.
+	Selectors() []prom.Selector
 	// SetSeries replaces the known series in this registry
 	SetSeries(series []prom.Series) error
 	// ListAllMetrics lists all metrics known to this registry
@@ -78,12 +81,21 @@ type basicSeriesRegistry struct {
 	namer metricNamer
 }
 
+func (r *basicSeriesRegistry) Selectors() []prom.Selector {
+	// container-specific metrics from cAdvsior have their own form, and need special handling
+	// TODO: figure out how to determine which metrics on non-namespaced objects are kubernetes-related
+	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
+	namespacedSel := prom.MatchSeries("", prom.LabelNeq(r.namer.labelPrefix+"namespace", ""), prom.NameNotMatches("^container_.*"))
+
+	return []prom.Selector{containerSel, namespacedSel}
+}
+
 func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 	newInfo := make(map[provider.MetricInfo]seriesInfo)
 	for _, series := range newSeries {
 		if strings.HasPrefix(series.Name, "container_") {
 			r.namer.processContainerSeries(series, newInfo)
-		} else if namespaceLabel, hasNamespaceLabel := series.Labels["namespace"]; hasNamespaceLabel && namespaceLabel != "" {
+		} else if namespaceLabel, hasNamespaceLabel := series.Labels[pmodel.LabelName(r.namer.labelPrefix+"namespace")]; hasNamespaceLabel && namespaceLabel != "" {
 			// we also handle namespaced metrics here as part of the resource-association logic
 			if err := r.namer.processNamespacedSeries(series, newInfo); err != nil {
 				glog.Errorf("Unable to process namespaced series %q: %v", series.Name, err)
@@ -132,6 +144,7 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 		glog.Errorf("unable to normalize group resource while producing a query: %v", err)
 		return 0, "", "", false
 	}
+	resourceLbl := r.namer.labelPrefix + singularResource
 
 	// TODO: support container metrics
 	if info, found := r.info[metricInfo]; found {
@@ -148,12 +161,16 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 			groupBy = "pod_name"
 		} else {
 			// TODO: copy base series labels?
-			expressions = []string{matcher(singularResource, targetValue)}
-			groupBy = singularResource
+			expressions = []string{matcher(resourceLbl, targetValue)}
+			groupBy = resourceLbl
 		}
 
 		if metricInfo.Namespaced {
-			expressions = append(expressions, prom.LabelEq("namespace", namespace))
+			prefix := r.namer.labelPrefix
+			if info.isContainer {
+				prefix = ""
+			}
+			expressions = append(expressions, prom.LabelEq(prefix+"namespace", namespace))
 		}
 
 		return info.kind, prom.MatchSeries(info.baseSeries.Name, expressions...), groupBy, true
@@ -172,6 +189,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.MetricInfo,
 		glog.Errorf("unable to normalize group resource while matching values to names: %v", err)
 		return nil, false
 	}
+	resourceLbl := r.namer.labelPrefix + singularResource
 
 	if info, found := r.info[metricInfo]; found {
 		res := make(map[string]pmodel.SampleValue, len(values))
@@ -181,7 +199,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.MetricInfo,
 				continue
 			}
 
-			labelName := pmodel.LabelName(singularResource)
+			labelName := pmodel.LabelName(resourceLbl)
 			if info.isContainer {
 				labelName = pmodel.LabelName("pod_name")
 			}
@@ -201,6 +219,8 @@ type metricNamer struct {
 	overrides map[string]seriesSpec
 
 	mapper apimeta.RESTMapper
+
+	labelPrefix string
 }
 
 // seriesSpec specifies how to produce metric info for a particular prometheus series source
@@ -309,6 +329,10 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 func (n *metricNamer) groupResourcesFromSeries(series prom.Series) ([]schema.GroupResource, error) {
 	var res []schema.GroupResource
 	for label := range series.Labels {
+		if !strings.HasPrefix(string(label), n.labelPrefix) {
+			continue
+		}
+		label = label[len(n.labelPrefix):]
 		// TODO: figure out a way to let people specify a fully-qualified name in label-form
 		gvr, err := n.mapper.ResourceFor(schema.GroupVersionResource{Resource: string(label)})
 		if err != nil {

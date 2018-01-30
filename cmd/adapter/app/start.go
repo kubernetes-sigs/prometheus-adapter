@@ -82,6 +82,9 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 		"interval at which to refresh API discovery information")
 	flags.StringVar(&o.PrometheusURL, "prometheus-url", o.PrometheusURL,
 		"URL and configuration for connecting to Prometheus.  Query parameters are used to configure the connection")
+	flags.StringVar(&o.LabelPrefix, "label-prefix", o.LabelPrefix,
+		"Prefix to expect on labels referring to pod resources.  For example, if the prefix is "+
+			"'kube_', any series with the 'kube_pod' label would be considered a pod metric")
 
 	return cmd
 }
@@ -131,7 +134,7 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
-	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.MetricsRelistInterval, o.RateInterval, stopCh)
+	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.LabelPrefix, o.MetricsRelistInterval, o.RateInterval, stopCh)
 
 	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider)
 	if err != nil {
@@ -153,4 +156,7 @@ type PrometheusAdapterServerOptions struct {
 	DiscoveryInterval time.Duration
 	// PrometheusURL is the URL describing how to connect to Prometheus.  Query parameters configure connection options.
 	PrometheusURL string
+	// LabelPrefix is the prefix to expect on labels for Kubernetes resources
+	// (e.g. if the prefix is "kube_", we'd expect a "kube_pod" label for pod metrics).
+	LabelPrefix string
 }

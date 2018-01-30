@@ -57,7 +57,8 @@ func setupMetricNamer(t *testing.T) *metricNamer {
 				kind:       GaugeSeries,
 			},
 		},
-		mapper: restMapper(),
+		labelPrefix: "kube_",
+		mapper:      restMapper(),
 	}
 }
 
@@ -166,32 +167,32 @@ func TestSeriesRegistry(t *testing.T) {
 		// a series that should turn into multiple metrics
 		{
 			Name:   "ingress_hits_total",
-			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend1", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"kube_ingress": "someingress", "kube_service": "somesvc", "kube_pod": "backend1", "kube_namespace": "somens"},
 		},
 		{
 			Name:   "ingress_hits_total",
-			Labels: pmodel.LabelSet{"ingress": "someingress", "service": "somesvc", "pod": "backend2", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"kube_ingress": "someingress", "kube_service": "somesvc", "kube_pod": "backend2", "kube_namespace": "somens"},
 		},
 		{
 			Name:   "service_proxy_packets",
-			Labels: pmodel.LabelSet{"service": "somesvc", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"kube_service": "somesvc", "kube_namespace": "somens"},
 		},
 		{
 			Name:   "work_queue_wait_seconds_total",
-			Labels: pmodel.LabelSet{"deployment": "somedep", "namespace": "somens"},
+			Labels: pmodel.LabelSet{"kube_deployment": "somedep", "kube_namespace": "somens"},
 		},
 		// non-namespaced series
 		{
 			Name:   "node_gigawatts",
-			Labels: pmodel.LabelSet{"node": "somenode"},
+			Labels: pmodel.LabelSet{"kube_node": "somenode"},
 		},
 		{
 			Name:   "volume_claims_total",
-			Labels: pmodel.LabelSet{"persistentvolume": "somepv"},
+			Labels: pmodel.LabelSet{"kube_persistentvolume": "somepv"},
 		},
 		{
 			Name:   "node_fan_seconds_total",
-			Labels: pmodel.LabelSet{"node": "somenode"},
+			Labels: pmodel.LabelSet{"kube_node": "somenode"},
 		},
 		// unrelated series
 		{
@@ -204,7 +205,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			Name:   "admin_reddit_seconds_total",
-			Labels: pmodel.LabelSet{"admin": "some-admin"},
+			Labels: pmodel.LabelSet{"kube_admin": "some-admin"},
 		},
 	}
 
@@ -271,7 +272,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somesvc"},
 
 			expectedKind:  CounterSeries,
-			expectedQuery: "ingress_hits_total{service=\"somesvc\",namespace=\"somens\"}",
+			expectedQuery: "ingress_hits_total{kube_service=\"somesvc\",kube_namespace=\"somens\"}",
 		},
 		{
 			title:         "namespaced metrics counter / multidimensional (ingress)",
@@ -280,7 +281,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"someingress"},
 
 			expectedKind:  CounterSeries,
-			expectedQuery: "ingress_hits_total{ingress=\"someingress\",namespace=\"somens\"}",
+			expectedQuery: "ingress_hits_total{kube_ingress=\"someingress\",kube_namespace=\"somens\"}",
 		},
 		{
 			title:         "namespaced metrics counter / multidimensional (pod)",
@@ -289,7 +290,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somepod"},
 
 			expectedKind:  CounterSeries,
-			expectedQuery: "ingress_hits_total{pod=\"somepod\",namespace=\"somens\"}",
+			expectedQuery: "ingress_hits_total{kube_pod=\"somepod\",kube_namespace=\"somens\"}",
 		},
 		{
 			title:         "namespaced metrics gauge",
@@ -298,7 +299,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somesvc"},
 
 			expectedKind:  GaugeSeries,
-			expectedQuery: "service_proxy_packets{service=\"somesvc\",namespace=\"somens\"}",
+			expectedQuery: "service_proxy_packets{kube_service=\"somesvc\",kube_namespace=\"somens\"}",
 		},
 		{
 			title:         "namespaced metrics seconds counter",
@@ -307,7 +308,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somedep"},
 
 			expectedKind:  SecondsCounterSeries,
-			expectedQuery: "work_queue_wait_seconds_total{deployment=\"somedep\",namespace=\"somens\"}",
+			expectedQuery: "work_queue_wait_seconds_total{kube_deployment=\"somedep\",kube_namespace=\"somens\"}",
 		},
 		// non-namespaced series
 		{
@@ -316,7 +317,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somenode"},
 
 			expectedKind:  GaugeSeries,
-			expectedQuery: "node_gigawatts{node=\"somenode\"}",
+			expectedQuery: "node_gigawatts{kube_node=\"somenode\"}",
 		},
 		{
 			title:         "root scoped metrics counter",
@@ -324,7 +325,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somepv"},
 
 			expectedKind:  CounterSeries,
-			expectedQuery: "volume_claims_total{persistentvolume=\"somepv\"}",
+			expectedQuery: "volume_claims_total{kube_persistentvolume=\"somepv\"}",
 		},
 		{
 			title:         "root scoped metrics seconds counter",
@@ -332,7 +333,7 @@ func TestSeriesRegistry(t *testing.T) {
 			resourceNames: []string{"somenode"},
 
 			expectedKind:  SecondsCounterSeries,
-			expectedQuery: "node_fan_seconds_total{node=\"somenode\"}",
+			expectedQuery: "node_fan_seconds_total{kube_node=\"somenode\"}",
 		},
 	}
 
@@ -347,9 +348,9 @@ func TestSeriesRegistry(t *testing.T) {
 
 		expectedGroupBy := testCase.expectedGroupBy
 		if expectedGroupBy == "" {
-			expectedGroupBy = testCase.info.GroupResource.Resource
+			expectedGroupBy = registry.namer.labelPrefix + testCase.info.GroupResource.Resource
 		}
-		assert.Equal(expectedGroupBy, groupBy, "%s: metric %v should have produced the correct groupBy clause", testCase.title)
+		assert.Equal(expectedGroupBy, groupBy, "%s: metric %v should have produced the correct groupBy clause", testCase.title, testCase.info)
 	}
 
 	allMetrics := registry.ListAllMetrics()
