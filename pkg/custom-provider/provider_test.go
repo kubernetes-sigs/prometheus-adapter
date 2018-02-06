@@ -90,7 +90,7 @@ func setupPrometheusProvider(t *testing.T, stopCh <-chan struct{}) (provider.Cus
 	fakeProm := &fakePromClient{}
 	fakeKubeClient := &fakedyn.FakeClientPool{}
 
-	prov := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, fakeProviderUpdateInterval, 1*time.Minute, stopCh)
+	prov := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, "", fakeProviderUpdateInterval, 1*time.Minute, stopCh)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))

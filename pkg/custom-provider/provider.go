@@ -50,7 +50,7 @@ type prometheusProvider struct {
 	rateInterval time.Duration
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, labelPrefix string, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		promClient:     promClient,
@@ -58,8 +58,9 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientP
 		SeriesRegistry: &basicSeriesRegistry{
 			namer: metricNamer{
 				// TODO: populate the overrides list
-				overrides: nil,
-				mapper:    mapper,
+				overrides:   nil,
+				mapper:      mapper,
+				labelPrefix: labelPrefix,
 			},
 		},
 	}
@@ -301,13 +302,10 @@ func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.updateInterval)
 
-	// container-specific metrics from cAdvsior have their own form, and need special handling
-	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
-	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
-	// TODO: figure out how to determine which metrics on non-namespaced objects are kubernetes-related
+	sels := l.Selectors()
 
 	// TODO: use an actual context here
-	series, err := l.promClient.Series(context.Background(), pmodel.Interval{startTime, 0}, containerSel, namespacedSel)
+	series, err := l.promClient.Series(context.Background(), pmodel.Interval{startTime, 0}, sels...)
 	if err != nil {
 		return fmt.Errorf("unable to update list of all available metrics: %v", err)
 	}
