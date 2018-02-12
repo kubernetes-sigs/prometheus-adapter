@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/prometheus/common/model"
@@ -120,4 +121,12 @@ func (s *Series) UnmarshalJSON(data []byte) error {
 	s.Labels = model.LabelSet(rawMetric)
 
 	return nil
+}
+
+func (s *Series) String() string {
+	lblStrings := make([]string, 0, len(s.Labels))
+	for k, v := range s.Labels {
+		lblStrings = append(lblStrings, fmt.Sprintf("%s=%q", k, v))
+	}
+	return fmt.Sprintf("%s{%s}", s.Name, strings.Join(lblStrings, ","))
 }

@@ -32,6 +32,7 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
+	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/dynamicmapper"
@@ -89,6 +90,13 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 	flags.StringVar(&o.LabelPrefix, "label-prefix", o.LabelPrefix,
 		"Prefix to expect on labels referring to pod resources.  For example, if the prefix is "+
 			"'kube_', any series with the 'kube_pod' label would be considered a pod metric")
+	flags.StringVar(&o.AdapterConfigFile, "config", o.AdapterConfigFile,
+		"Configuration file containing details of how to transform between Prometheus metrics "+
+			"and custom metrics API resources")
+
+	flags.MarkDeprecated("label-prefix", "use --config instead")
+	flags.MarkDeprecated("discovery-interval", "use --config instead")
+
 	return cmd
 }
 
@@ -128,6 +136,17 @@ func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, er
 }
 
 func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
+	var metricsConfig *adaptercfg.MetricsDiscoveryConfig
+	if o.AdapterConfigFile != "" {
+		var err error
+		metricsConfig, err = adaptercfg.FromFile(o.AdapterConfigFile)
+		if err != nil {
+			return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
+		}
+	} else {
+		metricsConfig = adaptercfg.DefaultConfig(o.RateInterval, o.LabelPrefix)
+	}
+
 	config, err := o.Config()
 	if err != nil {
 		return err
@@ -176,7 +195,13 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
-	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.LabelPrefix, o.MetricsRelistInterval, o.RateInterval, stopCh)
+	namers, err := cmprov.NamersFromConfig(metricsConfig, dynamicMapper)
+	if err != nil {
+		return fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
+	}
+
+	cmProvider, runner := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, namers, o.MetricsRelistInterval)
+	runner.RunUntil(stopCh)
 
 	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider)
 	if err != nil {
@@ -205,4 +230,6 @@ type PrometheusAdapterServerOptions struct {
 	// LabelPrefix is the prefix to expect on labels for Kubernetes resources
 	// (e.g. if the prefix is "kube_", we'd expect a "kube_pod" label for pod metrics).
 	LabelPrefix string
+	// AdapterConfigFile points to the file containing the metrics discovery configuration.
+	AdapterConfigFile string
 }
