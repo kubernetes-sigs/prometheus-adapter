@@ -5,7 +5,7 @@ Kubernetes Custom Metrics Adapter for Prometheus
 
 This repository contains an implementation of the Kubernetes custom
 metrics API
-([custom-metrics.metrics.k8s.io/v1alpha1](https://github.com/kubernetes/metrics/tree/master/pkg/apis/custom_metrics)),
+([custom.metrics.k8s.io/v1beta1](https://github.com/kubernetes/metrics/tree/master/pkg/apis/custom_metrics)),
 suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in
 Kubernetes 1.6+.
 
@@ -65,7 +65,7 @@ Additionally, [@luxas](https://github.com/luxas) has an excellent example
 deployment of Prometheus, this adapter, and a demo pod which serves
 a metric `http_requests_total`, which becomes the custom metrics API
 metric `pods/http_requests`.  It also autoscales on that metric using the
-`autoscaling/v2alpha1` HorizontalPodAutoscaler.
+`autoscaling/v2beta1` HorizontalPodAutoscaler.
 
 It can be found at https://github.com/luxas/kubeadm-workshop.  Pay special
 attention to:
