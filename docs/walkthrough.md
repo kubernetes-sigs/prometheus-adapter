@@ -20,9 +20,13 @@ Detailed instructions can be found in the Kubernetes documentation under
 [Horizontal Pod
 Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-custom-metrics).
 
-Make sure that you've properly configured Heapster with the `--api-server`
-flag, otherwise enabling custom metrics autoscaling support with disable
-CPU autoscaling support.
+Make sure that you've properly configured metrics-server (as is default in
+Kubernetes 1.9+), or enabling custom metrics autoscaling support with
+disable CPU autoscaling support.
+
+Note that most of the API versions in this walkthrough target Kubernetes
+1.9.  It should still work with 1.7 and 1.8, but you might have to change
+some minor details.
 
 ### Binaries and Images ###
 
@@ -142,7 +146,7 @@ ConfigMap from above, and proceed from there:
 <summary>prom-adapter.deployment.yaml [Prometheus only]</summary>
 
 ```yaml
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
@@ -156,15 +160,13 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: prom-cm-adapter 
+      serviceAccountName: prom-cm-adapter
       containers:
-      - image: prom/prometheus:v1.6.1
+      - image: prom/prometheus:v2.2.0-rc.0
         name: prometheus
         args:
-        - -storage.local.retention=6h
-        - -storage.local.memory-chunks=500000
         # point prometheus at the configuration that you mount in below
-        - -config.file=/etc/prometheus/prometheus.yml
+        - --config.file=/etc/prometheus/prometheus.yml
         ports:
         # this port exposes the dashboard and the HTTP API
         - containerPort: 9090
@@ -289,16 +291,16 @@ $ kubectl -n prom create service clusterip prometheus --tcp=443:6443
 
 Now that you have a running deployment of Prometheus and the adapter,
 you'll need to register it as providing the
-`custom-metrics.metrics.k8s.io/v1alpha` API.
+`custom.metrics.k8s.io/v1beta1` API.
 
 For more information on how this works, see [Concepts:
 Aggregation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/aggregation.md).
 
 You'll need to create an API registration record for the
-`custom-metrics.metrics.k8s.io/v1alpha1` API.  In order to do this, you'll
-need the base64 encoded version of the CA certificate used to sign the
-serving certificates you created above.  If the CA certificate is stored
-in `/tmp/ca.crt`, you can get the base64-encoded form like this:
+`custom.metrics.k8s.io/v1beta1` API.  In order to do this, you'll need the
+base64 encoded version of the CA certificate used to sign the serving
+certificates you created above.  If the CA certificate is stored in
+`/tmp/ca.crt`, you can get the base64-encoded form like this:
 
 ```shell
 $ base64 --w 0 < /tmp/ca.crt
@@ -310,19 +312,22 @@ Take the resulting value, and place it into the following file:
 
 <summary>cm-registration.yaml</summary>
 
+*Note that apiregistration moved to stable in 1.10, so you'll need to use
+the `apiregistration.k8s.io/v1` API version there*.
+
 ```yaml
 apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:
-  name: v1alpha1.custom-metrics.metrics.k8s.io
+  name: v1beta1.custom.metrics.k8s.io
 spec:
   # this tells the aggregator how to verify that your API server is
   # actually who it claims to be
   caBundle: <base-64-value-from-above>
   # these specify which group and version you're registering the API
   # server for
-  group: custom-metrics.metrics.k8s.io
-  version: v1alpha1
+  group: custom.metrics.k8s.io
+  version: v1beta1
   # these control how the aggregator prioritizes your registration.
   # it's not particularly relevant in this case.
   groupPriorityMinimum: 1000
@@ -349,7 +354,7 @@ With that all set, your custom metrics API should show up in discovery.
 Try fetching the discovery information for it:
 
 ```shell
-$ kubectl get --raw /apis/custom-metrics.metrics.k8s.io/v1alpha1
+$ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
 ```
 
 Since you don't have any metrics collected yet, you shouldn't see any
@@ -417,7 +422,7 @@ Yor Work](#double-checking-your-work).  The cumulative Prometheus metric
 metric `pods/http_requests`.  Check out its value:
 
 ```shell
-$ kubectl get --raw "/apis/custom-metrics.metrics.k8s.io/v1alpha1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
+$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
 ```
 
 It should be zero, since you're not currently accessing it.  Now, create
@@ -451,14 +456,14 @@ Create a description for the HorizontalPodAutoscaler (HPA):
 
 ```yaml
 kind: HorizontalPodAutoscaler
-apiVersion: autoscaling/v2alpha1
+apiVersion: autoscaling/v2beta1
 metadata:
   name: sample-app
 spec:
   scaleTargetRef:
     # point the HPA at the sample application
     # you created above
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     name: sample-app
   # autoscale between 1 and 10 replicas
