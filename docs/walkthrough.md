@@ -245,8 +245,8 @@ spec:
     - --secure-port=6443
     - --logtostderr=true
     # use your serving certs
-    - --tls-cert-file=/var/run/serving-cert/tls.crt
-    - --tls-private-key-file=/var/run/serving-cert/tls.key
+    - --tls-cert-file=/var/run/serving-certs/tls.crt
+    - --tls-private-key-file=/var/run/serving-certs/tls.key
     # Prometheus is running in the same pod, so you can say your Prometheus
     # is at `localhost`
     - --prometheus-url=http://localhost:9090
