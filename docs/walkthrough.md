@@ -344,7 +344,7 @@ spec:
 Register that registration object with the aggregator:
 
 ```shell
-$ kubectl -f cm-registration.yaml
+$ kubectl create -f cm-registration.yaml
 ```
 
 ### Double-Checking Your Work ###
