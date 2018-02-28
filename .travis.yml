@@ -21,3 +21,9 @@ script: make verify
 cache:
   directories:
   - ~/.glide
+
+deploy:
+  provider: script
+  script: .travis-deploy.sh
+  on:
+    branch: master
