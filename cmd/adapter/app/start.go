@@ -81,12 +81,50 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 	flags.DurationVar(&o.DiscoveryInterval, "discovery-interval", o.DiscoveryInterval, ""+
 		"interval at which to refresh API discovery information")
 	flags.StringVar(&o.PrometheusURL, "prometheus-url", o.PrometheusURL,
-		"URL and configuration for connecting to Prometheus.  Query parameters are used to configure the connection")
+		"URL for connecting to Prometheus.  Query parameters are used to configure the connection")
+	flags.BoolVar(&o.PrometheusAuthInCluster, "prometheus-auth-incluster", o.PrometheusAuthInCluster,
+		"use auth details from the in-cluster kubeconfig when connecting to prometheus.")
+	flags.StringVar(&o.PrometheusAuthConf, "prometheus-auth-config", o.PrometheusAuthConf,
+		"kubeconfig file used to configure auth when connecting to Prometheus.")
 	flags.StringVar(&o.LabelPrefix, "label-prefix", o.LabelPrefix,
 		"Prefix to expect on labels referring to pod resources.  For example, if the prefix is "+
 			"'kube_', any series with the 'kube_pod' label would be considered a pod metric")
-
 	return cmd
+}
+
+// makeHTTPClient constructs an HTTP for connecting with the given auth options.
+func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, error) {
+	// make sure we're not trying to use two different sources of auth
+	if inClusterAuth && kubeConfigPath != "" {
+		return nil, fmt.Errorf("may not use both in-cluster auth and an explicit kubeconfig at the same time")
+	}
+
+	// return the default client if we're using no auth
+	if !inClusterAuth && kubeConfigPath == "" {
+		return http.DefaultClient, nil
+	}
+
+	var authConf *rest.Config
+	if kubeConfigPath != "" {
+		var err error
+		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath}
+		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+		authConf, err = loader.ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("unable to construct  auth configuration from %q for connecting to Prometheus: %v", kubeConfigPath, err)
+		}
+	} else {
+		var err error
+		authConf, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("unable to construct in-cluster auth configuration for connecting to Prometheus: %v", err)
+		}
+	}
+	tr, err := rest.TransportFor(authConf)
+	if err != nil {
+		return nil, fmt.Errorf("unable to construct client transport for connecting to Prometheus: %v", err)
+	}
+	return &http.Client{Transport: tr}, nil
 }
 
 func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
@@ -130,7 +168,11 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	if err != nil {
 		return fmt.Errorf("invalid Prometheus URL %q: %v", baseURL, err)
 	}
-	genericPromClient := prom.NewGenericAPIClient(http.DefaultClient, baseURL)
+	promHTTPClient, err := makeHTTPClient(o.PrometheusAuthInCluster, o.PrometheusAuthConf)
+	if err != nil {
+		return err
+	}
+	genericPromClient := prom.NewGenericAPIClient(promHTTPClient, baseURL)
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
@@ -156,6 +198,10 @@ type PrometheusAdapterServerOptions struct {
 	DiscoveryInterval time.Duration
 	// PrometheusURL is the URL describing how to connect to Prometheus.  Query parameters configure connection options.
 	PrometheusURL string
+	// PrometheusAuthInCluster enables using the auth details from the in-cluster kubeconfig to connect to Prometheus
+	PrometheusAuthInCluster bool
+	// PrometheusAuthConf is the kubeconfig file that contains auth details used to connect to Prometheus
+	PrometheusAuthConf string
 	// LabelPrefix is the prefix to expect on labels for Kubernetes resources
 	// (e.g. if the prefix is "kube_", we'd expect a "kube_pod" label for pod metrics).
 	LabelPrefix string
