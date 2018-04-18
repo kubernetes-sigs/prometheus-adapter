@@ -19,8 +19,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/golang/glog"
+	"sync"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
@@ -287,6 +289,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 
 	// don't do duplicate queries when it's just the matchers that change
 	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
+	seriesCacheByQueryLock := sync.RWMutex{}
 
 	// these can take a while on large clusters, so launch in parallel
 	// and don't duplicate
@@ -298,7 +301,9 @@ func (l *cachingMetricsLister) updateMetrics() error {
 			errs <- nil
 			continue
 		}
+		seriesCacheByQueryLock.Lock()
 		selectors[sel] = struct{}{}
+		seriesCacheByQueryLock.Unlock()
 		go func() {
 			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{startTime, 0}, sel)
 			if err != nil {
@@ -306,7 +311,9 @@ func (l *cachingMetricsLister) updateMetrics() error {
 				return
 			}
 			errs <- nil
+			seriesCacheByQueryLock.Lock()
 			seriesCacheByQuery[sel] = series
+			seriesCacheByQueryLock.Unlock()
 		}()
 	}
 
