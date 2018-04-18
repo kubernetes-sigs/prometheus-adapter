@@ -334,7 +334,7 @@ func (n *metricNamer) makeLabelForResource(resource schema.GroupResource) (pmode
 
 	singularRes, err := n.mapper.ResourceSingularizer(resource.Resource)
 	if err != nil {
-		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String, err)
+		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String(), err)
 	}
 	convResource := schema.GroupResource{
 		Group:    groupNameSanitizer.Replace(resource.Group),
