@@ -116,6 +116,18 @@ func TestMetricNamerContainerSeries(t *testing.T) {
 				isContainer: true,
 			},
 		},
+		{
+			input: prom.Series{
+				Name:   "container_some_time_seconds_total{status=\"success\"}",
+				Labels: pmodel.LabelSet{"status": "success", "pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
+			},
+			outputMetricName: "some_time",
+			outputInfo: seriesInfo{
+				baseSeries:  prom.Series{Name: "container_some_time_seconds_total"},
+				kind:        SecondsCounterSeries,
+				isContainer: true,
+			},
+		},
 	}
 
 	assert := assert.New(t)
@@ -206,6 +218,10 @@ func TestSeriesRegistry(t *testing.T) {
 		{
 			Name:   "admin_reddit_seconds_total",
 			Labels: pmodel.LabelSet{"kube_admin": "some-admin"},
+		},
+		{
+			Name:   "service_proxy_packets{protocol=\"tcp\"}",
+			Labels: pmodel.LabelSet{"protocol": "tcp", "kube_service": "somesvc", "kube_namespace": "somens"},
 		},
 	}
 
@@ -335,6 +351,15 @@ func TestSeriesRegistry(t *testing.T) {
 			expectedKind:  SecondsCounterSeries,
 			expectedQuery: "node_fan_seconds_total{kube_node=\"somenode\"}",
 		},
+		{
+			title:         "namespaced metrics gauge",
+			info:          provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
+			namespace:     "somens",
+			resourceNames: []string{"somesvc"},
+
+			expectedKind:  GaugeSeries,
+			expectedQuery: "service_proxy_packets{kube_service=\"somesvc\",kube_namespace=\"somens\"}",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -370,6 +395,8 @@ func TestSeriesRegistry(t *testing.T) {
 		{schema.GroupResource{Resource: "nodes"}, false, "node_gigawatts"},
 		{schema.GroupResource{Resource: "persistentvolumes"}, false, "volume_claims"},
 		{schema.GroupResource{Resource: "nodes"}, false, "node_fan"},
+		{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets{protocol=\"tcp\"}"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets{protocol=\"tcp\"}"},
 	}
 
 	// sort both for easy comparison
