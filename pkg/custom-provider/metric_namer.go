@@ -146,6 +146,12 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 	}
 	resourceLbl := r.namer.labelPrefix + singularResource
 
+	var expressions []string
+	if i := strings.Index(metricInfo.Metric, "{"); i > 1 && metricInfo.Metric[len(metricInfo.Metric)-1] == '}' {
+		expressions = append(expressions, metricInfo.Metric[i+1:len(metricInfo.Metric)-1])
+		metricInfo.Metric = metricInfo.Metric[:i]
+	}
+
 	// TODO: support container metrics
 	if info, found := r.info[metricInfo]; found {
 		targetValue := resourceNames[0]
@@ -155,13 +161,12 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 			matcher = prom.LabelMatches
 		}
 
-		var expressions []string
 		if info.isContainer {
-			expressions = []string{matcher("pod_name", targetValue), prom.LabelNeq("container_name", "POD")}
+			expressions = append(expressions, matcher("pod_name", targetValue), prom.LabelNeq("container_name", "POD"))
 			groupBy = "pod_name"
 		} else {
 			// TODO: copy base series labels?
-			expressions = []string{matcher(resourceLbl, targetValue)}
+			expressions = append(expressions, matcher(resourceLbl, targetValue))
 			groupBy = resourceLbl
 		}
 
@@ -190,6 +195,10 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.MetricInfo,
 		return nil, false
 	}
 	resourceLbl := r.namer.labelPrefix + singularResource
+
+	if i := strings.Index(metricInfo.Metric, "{"); i > 1 {
+		metricInfo.Metric = metricInfo.Metric[:i]
+	}
 
 	if info, found := r.info[metricInfo]; found {
 		res := make(map[string]pmodel.SampleValue, len(values))
