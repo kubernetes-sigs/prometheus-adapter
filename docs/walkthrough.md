@@ -217,7 +217,7 @@ Deployment has permission to list resources in the cluster:
 
 ```shell
 $ kubectl create clusterrole resource-lister --verb=list --resource="*"
-$ kubectl create clusterrolebinding cm-adapter-resource-lister --clusterrole=resource-lister -- serviceaccount=prom:prom-cm-adapter
+$ kubectl create clusterrolebinding cm-adapter-resource-lister --clusterrole=resource-lister --serviceaccount=prom:prom-cm-adapter
 ```
 
 Finally, ensure the deployment has all the necessary permissions to
