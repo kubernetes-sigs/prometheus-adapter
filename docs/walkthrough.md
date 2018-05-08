@@ -215,8 +215,26 @@ $ kubectl -n prom create secret tls serving-cm-adapter --cert=/path/to/cm-adapte
 Next, you'll need to make sure that the service account used to launch the
 Deployment has permission to list resources in the cluster:
 
+<details>
+<summary>resource-lister.yaml </summary>
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: resource-lister
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - '*'
+  verbs:
+  - list
+  ```
+</details>
+
 ```shell
-$ kubectl create clusterrole resource-lister --verb=list --resource="*"
+$ kubectl create -f resource-lister.yaml
 $ kubectl create clusterrolebinding cm-adapter-resource-lister --clusterrole=resource-lister -- serviceaccount=prom:prom-cm-adapter
 ```
 
