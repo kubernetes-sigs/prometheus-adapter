@@ -179,7 +179,7 @@ spec:
       volumes:
       # make your configmap available as a volume, so that you can
       # mount in the Prometheus config from earlier
-      - name: config-volume
+      - name: prom-config
         configMap:
           name: prometheus
 ```
