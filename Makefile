@@ -8,6 +8,7 @@ OUT_DIR?=./_output
 VENDOR_DOCKERIZED=0
 
 VERSION?=latest
+GOIMAGE=golang:1.8
 
 ifeq ($(ARCH),amd64)
 	BASEIMAGE?=busybox
@@ -23,6 +24,7 @@ ifeq ($(ARCH),ppc64le)
 endif
 ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
+	GOIMAGE=s390x/golang:1.8
 endif
 
 .PHONY: all build docker-build push-% push test verify-gofmt gofmt verify
@@ -35,7 +37,7 @@ docker-build: vendor
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
 
-	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) golang:1.8 /bin/bash -c "\
+	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) $(GOIMAGE) /bin/bash -c "\
 		CGO_ENABLED=0 go build -a -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
 
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
