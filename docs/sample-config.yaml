@@ -25,12 +25,12 @@ rules:
     matches: "^container_(.*)_seconds_total$"
   # specify how to construct a query to fetch samples for a given series
   # This is a Go template where the `.Series` and `.LabelMatchers` string values
-  # are available, and the delimiters are `${` and `}$` to avoid conflicts with
+  # are available, and the delimiters are `<<` and `>>` to avoid conflicts with
   # the prometheus query language
-  metricsQuery: "sum(rate(${.Series}${${.LabelMatchers}$,container_name!="POD"}[2m])) by (${.GroupBy}$)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches cumulative cAdvisor metrics not measured in seconds
-- seriesQuery: '{__name__=~"^container_.*",container_name!="POD",namespace!="",pod_name!=""}'
+- seriesQuery: '{__name__=~"^container_.*_total",container_name!="POD",namespace!="",pod_name!=""}'
   resources:
     overrides:
       namespace: {resource: "namespace"},
@@ -39,7 +39,7 @@ rules:
   # since this is a superset of the query above, we introduce an additional filter here
   - isNot: "^container_.*_seconds_total$"
   name: {matches: "^container_(.*)_total$"}
-  metricsQuery: "sum(rate(${.Series}${${.LabelMatchers}$,container_name!="POD"}[2m])) by (${.GroupBy}$)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches cumulative non-cAdvisor metrics
 - seriesQuery: '{namespace!="",__name__!="^container_.*"}'
@@ -50,9 +50,9 @@ rules:
     # and `.Resource` strings available.  It will also be used to match labels,
     # so avoid using template functions which truncate the group or resource.
     # Group will be converted to a form acceptible for use as a label automatically.
-    template: "${.Resource}$"
+    template: "<<.Resource>>"
     # if we wanted to, we could also specify overrides here
-  metricsQuery: "sum(rate(${.Series}${${.LabelMatchers}$,container_name!="POD"}[2m])) by (${.GroupBy}$)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches only a single metric, explicitly naming it something else
 # It's series query *must* return only a single metric family

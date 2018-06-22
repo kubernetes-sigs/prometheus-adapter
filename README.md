@@ -29,12 +29,13 @@ adapter talks to Prometheus and the main Kubernetes cluster:
 - `--metrics-relist-interval=<duration>`: This is the interval at which to
   update the cache of available metrics from Prometheus.
 
-- `--rate-interval=<duration>`: This is the duration used when requesting
-  rate metrics from Prometheus.  It *must* be larger than your Prometheus
-  collection interval.
-
 - `--prometheus-url=<url>`: This is the URL used to connect to Prometheus.
   It will eventually contain query parameters to configure the connection.
+
+- `--config=<yaml-file>` (`-c`): This configures how the adapter discovers available
+  Prometheus metrics and the associated Kubernetes resources, and how it presents those
+  metrics in the custom metrics API.  More information about this file can be found in
+  [docs/config.md](docs/config.md).
 
 Presentation
 ------------
@@ -43,18 +44,14 @@ The adapter gathers the names of available metrics from Prometheus
 a regular interval (see [Configuration](#configuration) above), and then
 only exposes metrics that follow specific forms.
 
-In general:
+The rules governing this discovery are specified in a [configuration file](docs/config.md).
+If you were relying on the implicit rules from the previous version of the adapter,
+you can use the included `config-gen` tool to generate a configuration that matches
+the old implicit ruleset:
 
-- Metrics must have the `namespace` label to be considered.
-
-- For each label on a metric, if that label name corresponds to
-  a Kubernetes resource (like `pod` or `service`), the metric will be
-  associated with that resource.
-
-- Metrics ending in `_total` are assumed to be cumulative, and will be
-  exposed without the suffix as a rate metric.
-
-Detailed information can be found under [docs/format.md](docs/format.md).
+```shell
+$ go run cmd/config-gen main.go [--rate-interval=<duration>] [--label-prefix=<prefix>]
+```
 
 Example
 -------
@@ -65,7 +62,8 @@ Additionally, [@luxas](https://github.com/luxas) has an excellent example
 deployment of Prometheus, this adapter, and a demo pod which serves
 a metric `http_requests_total`, which becomes the custom metrics API
 metric `pods/http_requests`.  It also autoscales on that metric using the
-`autoscaling/v2beta1` HorizontalPodAutoscaler.
+`autoscaling/v2beta1` HorizontalPodAutoscaler.  Note that @luxas's tutorial
+uses a slightly older version of the adapter.
 
 It can be found at https://github.com/luxas/kubeadm-workshop.  Pay special
 attention to:
