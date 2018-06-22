@@ -1,16 +1,17 @@
-package config
+package utils
 
 import (
 	"fmt"
 	"time"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	. "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	pmodel "github.com/prometheus/common/model"
 )
 
 // DefaultConfig returns a configuration equivalent to the former
 // pre-advanced-config settings.  This means that "normal" series labels
-// will be of the form `<prefix>${.Resource}$`, cadvisor series will be
+// will be of the form `<prefix><<.Resource>>`, cadvisor series will be
 // of the form `container_`, and have the label `pod_name`.  Any series ending
 // in total will be treated as a rate metric.
 func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDiscoveryConfig {
@@ -26,7 +27,7 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)_seconds_total$"},
-				MetricsQuery: fmt.Sprintf(`sum(rate(${.Series}${${.LabelMatchers}$,container_name!="POD"}[%s])) by (${.GroupBy}$)`, pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
 			},
 
 			// container rate metrics
@@ -40,7 +41,7 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)_total$"},
-				MetricsQuery: fmt.Sprintf(`sum(rate(${.Series}${${.LabelMatchers}$,container_name!="POD"}[%s])) by (${.GroupBy}$)`, pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
 			},
 
 			// container non-cumulative metrics
@@ -54,7 +55,7 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)$"},
-				MetricsQuery: `sum(${.Series}${${.LabelMatchers}$,container_name!="POD"}) by (${.GroupBy}$)`,
+				MetricsQuery: `sum(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}) by (<<.GroupBy>>)`,
 			},
 
 			// normal non-cumulative metrics
@@ -62,9 +63,9 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				SeriesQuery:   string(prom.MatchSeries("", prom.LabelNeq(fmt.Sprintf("%snamespace", labelPrefix), ""), prom.NameNotMatches("^container_.*"))),
 				SeriesFilters: []RegexFilter{{IsNot: ".*_total$"}},
 				Resources: ResourceMapping{
-					Template: fmt.Sprintf("%s${.Resource}$", labelPrefix),
+					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
 				},
-				MetricsQuery: "sum(${.Series}${${.LabelMatchers}$}) by (${.GroupBy}$)",
+				MetricsQuery: "sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)",
 			},
 
 			// normal rate metrics
@@ -73,9 +74,9 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				SeriesFilters: []RegexFilter{{IsNot: ".*_seconds_total"}},
 				Name:          NameMapping{Matches: "^(.*)_total$"},
 				Resources: ResourceMapping{
-					Template: fmt.Sprintf("%s${.Resource}$", labelPrefix),
+					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
 				},
-				MetricsQuery: fmt.Sprintf("sum(rate(${.Series}${${.LabelMatchers}$}[%s])) by (${.GroupBy}$)", pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf("sum(rate(<<.Series>>{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 			},
 
 			// seconds rate metrics
@@ -83,9 +84,9 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				SeriesQuery: string(prom.MatchSeries("", prom.LabelNeq(fmt.Sprintf("%snamespace", labelPrefix), ""), prom.NameNotMatches("^container_.*"))),
 				Name:        NameMapping{Matches: "^(.*)_seconds_total$"},
 				Resources: ResourceMapping{
-					Template: fmt.Sprintf("%s${.Resource}$", labelPrefix),
+					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
 				},
-				MetricsQuery: fmt.Sprintf("sum(rate(${.Series}${${.LabelMatchers}$}[%s])) by (${.GroupBy}$)", pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf("sum(rate(<<.Series>>{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 			},
 		},
 	}

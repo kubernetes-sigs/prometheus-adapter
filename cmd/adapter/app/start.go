@@ -44,9 +44,7 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 	o := PrometheusAdapterServerOptions{
 		CustomMetricsAdapterServerOptions: baseOpts,
 		MetricsRelistInterval:             10 * time.Minute,
-		RateInterval:                      5 * time.Minute,
 		PrometheusURL:                     "https://localhost",
-		DiscoveryInterval:                 10 * time.Minute,
 	}
 
 	cmd := &cobra.Command{
@@ -77,25 +75,19 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 		"any described objets")
 	flags.DurationVar(&o.MetricsRelistInterval, "metrics-relist-interval", o.MetricsRelistInterval, ""+
 		"interval at which to re-list the set of all available metrics from Prometheus")
-	flags.DurationVar(&o.RateInterval, "rate-interval", o.RateInterval, ""+
-		"period of time used to calculate rate metrics from cumulative metrics")
 	flags.DurationVar(&o.DiscoveryInterval, "discovery-interval", o.DiscoveryInterval, ""+
 		"interval at which to refresh API discovery information")
 	flags.StringVar(&o.PrometheusURL, "prometheus-url", o.PrometheusURL,
-		"URL for connecting to Prometheus.  Query parameters are used to configure the connection")
+		"URL for connecting to Prometheus.")
 	flags.BoolVar(&o.PrometheusAuthInCluster, "prometheus-auth-incluster", o.PrometheusAuthInCluster,
 		"use auth details from the in-cluster kubeconfig when connecting to prometheus.")
 	flags.StringVar(&o.PrometheusAuthConf, "prometheus-auth-config", o.PrometheusAuthConf,
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
-	flags.StringVar(&o.LabelPrefix, "label-prefix", o.LabelPrefix,
-		"Prefix to expect on labels referring to pod resources.  For example, if the prefix is "+
-			"'kube_', any series with the 'kube_pod' label would be considered a pod metric")
 	flags.StringVar(&o.AdapterConfigFile, "config", o.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
 
-	flags.MarkDeprecated("label-prefix", "use --config instead")
-	flags.MarkDeprecated("discovery-interval", "use --config instead")
+	cmd.MarkFlagRequired("config")
 
 	return cmd
 }
@@ -136,15 +128,13 @@ func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, er
 }
 
 func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
-	var metricsConfig *adaptercfg.MetricsDiscoveryConfig
-	if o.AdapterConfigFile != "" {
-		var err error
-		metricsConfig, err = adaptercfg.FromFile(o.AdapterConfigFile)
-		if err != nil {
-			return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
-		}
-	} else {
-		metricsConfig = adaptercfg.DefaultConfig(o.RateInterval, o.LabelPrefix)
+	if o.AdapterConfigFile == "" {
+		return fmt.Errorf("no discovery configuration file specified")
+	}
+
+	metricsConfig, err := adaptercfg.FromFile(o.AdapterConfigFile)
+	if err != nil {
+		return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
 	}
 
 	config, err := o.Config()
@@ -217,8 +207,6 @@ type PrometheusAdapterServerOptions struct {
 	RemoteKubeConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
 	MetricsRelistInterval time.Duration
-	// RateInterval is the period of time used to calculate rate metrics
-	RateInterval time.Duration
 	// DiscoveryInterval is the interval at which discovery information is refreshed
 	DiscoveryInterval time.Duration
 	// PrometheusURL is the URL describing how to connect to Prometheus.  Query parameters configure connection options.
@@ -227,9 +215,6 @@ type PrometheusAdapterServerOptions struct {
 	PrometheusAuthInCluster bool
 	// PrometheusAuthConf is the kubeconfig file that contains auth details used to connect to Prometheus
 	PrometheusAuthConf string
-	// LabelPrefix is the prefix to expect on labels for Kubernetes resources
-	// (e.g. if the prefix is "kube_", we'd expect a "kube_pod" label for pod metrics).
-	LabelPrefix string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
 	AdapterConfigFile string
 }

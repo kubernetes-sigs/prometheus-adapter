@@ -19,7 +19,7 @@ type DiscoveryRule struct {
 	// that can't be represented in the SeriesQuery (e.g. series matching `container_.+`
 	// not matching `container_.+_total`.  A filter will be automatically appended to
 	// match the form specified in Name.
-	SeriesFilters []RegexFilter `yaml:"seriesFilter"`
+	SeriesFilters []RegexFilter `yaml:"seriesFilters"`
 	// Resources specifies how associated Kubernetes resources should be discovered for
 	// the given metrics.
 	Resources ResourceMapping `yaml:"resources"`
