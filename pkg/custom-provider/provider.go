@@ -19,15 +19,16 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/golang/glog"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -92,8 +93,8 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 			Namespace:  namespace,
 		},
 		MetricName: metricName,
-		Timestamp:  metav1.Time{time.Now()},
-		Value:      *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI),
+		Timestamp:  metaV1.Time{time.Now()},
+		Value:      *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI).ToDec(),
 	}, nil
 }
 
@@ -207,14 +208,14 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 	}
 
 	// we can construct a this APIResource ourself, since the dynamic client only uses Name and Namespaced
-	apiRes := &metav1.APIResource{
+	apiRes := &metaV1.APIResource{
 		Name:       info.GroupResource.Resource,
 		Namespaced: info.Namespaced,
 	}
 
 	// actually list the objects matching the label selector
 	matchingObjectsRaw, err := client.Resource(apiRes, namespace).
-		List(metav1.ListOptions{LabelSelector: selector.String()})
+		List(metaV1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		glog.Errorf("unable to list matching resource names: %v", err)
 		// don't leak implementation details to the user
