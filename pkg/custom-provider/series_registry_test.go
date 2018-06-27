@@ -37,7 +37,7 @@ import (
 // restMapper creates a RESTMapper with just the types we need for
 // these tests.
 func restMapper() apimeta.RESTMapper {
-	mapper := apimeta.NewDefaultRESTMapper([]schema.GroupVersion{coreapi.SchemeGroupVersion}, apimeta.InterfacesForUnstructured)
+	mapper := apimeta.NewDefaultRESTMapper([]schema.GroupVersion{coreapi.SchemeGroupVersion})
 
 	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Pod"), apimeta.RESTScopeNamespace)
 	mapper.Add(coreapi.SchemeGroupVersion.WithKind("Service"), apimeta.RESTScopeNamespace)
@@ -132,7 +132,7 @@ func TestSeriesRegistry(t *testing.T) {
 	// make sure each metric got registered and can form queries
 	testCases := []struct {
 		title         string
-		info          provider.MetricInfo
+		info          provider.CustomMetricInfo
 		namespace     string
 		resourceNames []string
 
@@ -141,7 +141,7 @@ func TestSeriesRegistry(t *testing.T) {
 		// container metrics
 		{
 			title:         "container metrics gauge / multiple resource names",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
 			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
@@ -149,7 +149,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "container metrics counter",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
 			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
@@ -157,7 +157,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "container metrics seconds counter",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
 			namespace:     "somens",
 			resourceNames: []string{"somepod1", "somepod2"},
 
@@ -166,7 +166,7 @@ func TestSeriesRegistry(t *testing.T) {
 		// namespaced metrics
 		{
 			title:         "namespaced metrics counter / multidimensional (service)",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
 			namespace:     "somens",
 			resourceNames: []string{"somesvc"},
 
@@ -174,7 +174,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "namespaced metrics counter / multidimensional (ingress)",
-			info:          provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingress"}, true, "ingress_hits"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingress"}, true, "ingress_hits"},
 			namespace:     "somens",
 			resourceNames: []string{"someingress"},
 
@@ -182,7 +182,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "namespaced metrics counter / multidimensional (pod)",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "pod"}, true, "ingress_hits"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "pod"}, true, "ingress_hits"},
 			namespace:     "somens",
 			resourceNames: []string{"somepod"},
 
@@ -190,7 +190,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "namespaced metrics gauge",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
 			namespace:     "somens",
 			resourceNames: []string{"somesvc"},
 
@@ -198,7 +198,7 @@ func TestSeriesRegistry(t *testing.T) {
 		},
 		{
 			title:         "namespaced metrics seconds counter",
-			info:          provider.MetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployment"}, true, "work_queue_wait"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployment"}, true, "work_queue_wait"},
 			namespace:     "somens",
 			resourceNames: []string{"somedep"},
 
@@ -207,21 +207,21 @@ func TestSeriesRegistry(t *testing.T) {
 		// non-namespaced series
 		{
 			title:         "root scoped metrics gauge",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_gigawatts"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "node"}, false, "node_gigawatts"},
 			resourceNames: []string{"somenode"},
 
 			expectedQuery: "sum(node_gigawatts{kube_node=\"somenode\"}) by (kube_node)",
 		},
 		{
 			title:         "root scoped metrics counter",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "persistentvolume"}, false, "volume_claims"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "persistentvolume"}, false, "volume_claims"},
 			resourceNames: []string{"somepv"},
 
 			expectedQuery: "sum(rate(volume_claims_total{kube_persistentvolume=\"somepv\"}[1m])) by (kube_persistentvolume)",
 		},
 		{
 			title:         "root scoped metrics seconds counter",
-			info:          provider.MetricInfo{schema.GroupResource{Resource: "node"}, false, "node_fan"},
+			info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "node"}, false, "node_fan"},
 			resourceNames: []string{"somenode"},
 
 			expectedQuery: "sum(rate(node_fan_seconds_total{kube_node=\"somenode\"}[1m])) by (kube_node)",
@@ -238,7 +238,7 @@ func TestSeriesRegistry(t *testing.T) {
 	}
 
 	allMetrics := registry.ListAllMetrics()
-	expectedMetrics := []provider.MetricInfo{
+	expectedMetrics := []provider.CustomMetricInfo{
 		{schema.GroupResource{Resource: "pods"}, true, "some_count"},
 		{schema.GroupResource{Resource: "namespaces"}, false, "some_count"},
 		{schema.GroupResource{Resource: "pods"}, true, "some_time"},
@@ -289,8 +289,8 @@ func BenchmarkSetSeries(b *testing.B) {
 	}
 }
 
-// metricInfoSorter is a sort.Interface for sorting provider.MetricInfos
-type metricInfoSorter []provider.MetricInfo
+// metricInfoSorter is a sort.Interface for sorting provider.CustomMetricInfos
+type metricInfoSorter []provider.CustomMetricInfo
 
 func (s metricInfoSorter) Len() int {
 	return len(s)

@@ -8,7 +8,7 @@ OUT_DIR?=./_output
 VENDOR_DOCKERIZED=0
 
 VERSION?=latest
-GOIMAGE=golang:1.8
+GOIMAGE=golang:1.10
 
 ifeq ($(ARCH),amd64)
 	BASEIMAGE?=busybox
@@ -24,7 +24,7 @@ ifeq ($(ARCH),ppc64le)
 endif
 ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
-	GOIMAGE=s390x/golang:1.8
+	GOIMAGE=s390x/golang:1.10
 endif
 
 .PHONY: all docker-build push-% push test verify-gofmt gofmt verify build-local-image

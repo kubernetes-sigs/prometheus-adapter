@@ -273,7 +273,7 @@ func (n *metricNamer) ResourcesForSeries(series prom.Series) ([]schema.GroupReso
 				// if not, check if it matches the form we expect, and if so,
 				// convert to a group-resource.
 				if groupRes, ok = n.labelResExtractor.GroupResourceForLabel(lbl); ok {
-					info, _, err := provider.MetricInfo{GroupResource: groupRes}.Normalized(n.mapper)
+					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(n.mapper)
 					if err != nil {
 						glog.Errorf("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
 						continue
@@ -452,7 +452,7 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 
 		// invert the structure for consistency with the template
 		for lbl, groupRes := range rule.Resources.Overrides {
-			infoRaw := provider.MetricInfo{
+			infoRaw := provider.CustomMetricInfo{
 				GroupResource: schema.GroupResource{
 					Group:    groupRes.Group,
 					Resource: groupRes.Resource,

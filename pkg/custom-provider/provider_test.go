@@ -89,7 +89,7 @@ func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.
 
 func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fakePromClient) {
 	fakeProm := &fakePromClient{}
-	fakeKubeClient := &fakedyn.FakeClientPool{}
+	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
 	cfg := config.DefaultConfig(1*time.Minute, "")
 	namers, err := NamersFromConfig(cfg, restMapper())
@@ -148,7 +148,7 @@ func TestListAllMetrics(t *testing.T) {
 	actualMetrics := prov.ListAllMetrics()
 	sort.Sort(metricInfoSorter(actualMetrics))
 
-	expectedMetrics := []provider.MetricInfo{
+	expectedMetrics := []provider.CustomMetricInfo{
 		{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
 		{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
 		{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
