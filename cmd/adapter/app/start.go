@@ -176,7 +176,7 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
-	cmProvider := cmprov.NewPrometheusProvider(dynamicMapper, clientPool, promClient, o.LabelPrefix, o.MetricsRelistInterval, o.RateInterval, stopCh)
+	cmProvider := cmprov.NewCustomPrometheusProvider(dynamicMapper, clientPool, promClient, o.LabelPrefix, o.MetricsRelistInterval, o.RateInterval, stopCh)
 
 	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider)
 	if err != nil {
