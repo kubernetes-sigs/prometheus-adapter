@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakedyn "k8s.io/client-go/dynamic/fake"
 
+	config "github.com/directxman12/k8s-prometheus-adapter/cmd/config-gen/utils"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	pmodel "github.com/prometheus/common/model"
 )
@@ -86,20 +87,20 @@ func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.
 	return prom.QueryResult{}, nil
 }
 
-func setupPrometheusProvider(t *testing.T, stopCh <-chan struct{}) (provider.CustomMetricsProvider, *fakePromClient) {
+func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fakePromClient) {
 	fakeProm := &fakePromClient{}
-	fakeKubeClient := &fakedyn.FakeClientPool{}
+	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
-	prov := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, "", fakeProviderUpdateInterval, 1*time.Minute, stopCh)
+	cfg := config.DefaultConfig(1*time.Minute, "")
+	namers, err := NamersFromConfig(cfg, restMapper())
+	require.NoError(t, err)
+
+	prov, _ := NewCustomPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
 	fakeProm.series = map[prom.Selector][]prom.Series{
 		containerSel: {
-			{
-				Name:   "container_actually_gauge_seconds_total",
-				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
-			},
 			{
 				Name:   "container_some_usage",
 				Labels: pmodel.LabelSet{"pod_name": "somepod", "namespace": "somens", "container_name": "somecont"},
@@ -130,28 +131,24 @@ func setupPrometheusProvider(t *testing.T, stopCh <-chan struct{}) (provider.Cus
 
 func TestListAllMetrics(t *testing.T) {
 	// setup
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	prov, fakeProm := setupPrometheusProvider(t, stopCh)
+	prov, fakeProm := setupPrometheusProvider(t)
 
 	// assume we have no updates
 	require.Len(t, prov.ListAllMetrics(), 0, "assume: should have no metrics updates at the start")
 
 	// set the acceptible interval (now until the next update, with a bit of wiggle room)
-	startTime := pmodel.Now()
-	endTime := startTime.Add(fakeProviderUpdateInterval + fakeProviderUpdateInterval/10)
-	fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: endTime}
+	startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
+	fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
 
-	// wait one update interval (with a bit of wiggle room)
-	time.Sleep(fakeProviderUpdateInterval + fakeProviderUpdateInterval/10)
+	// update the metrics (without actually calling RunUntil, so we can avoid timing issues)
+	lister := prov.(*customPrometheusProvider).SeriesRegistry.(*cachingMetricsLister)
+	require.NoError(t, lister.updateMetrics())
 
 	// list/sort the metrics
 	actualMetrics := prov.ListAllMetrics()
 	sort.Sort(metricInfoSorter(actualMetrics))
 
-	expectedMetrics := []provider.MetricInfo{
-		{schema.GroupResource{Resource: "pods"}, true, "actually_gauge"},
-		{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+	expectedMetrics := []provider.CustomMetricInfo{
 		{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
 		{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
 		{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
@@ -160,6 +157,8 @@ func TestListAllMetrics(t *testing.T) {
 		{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
 		{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
 		{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
+		{schema.GroupResource{Resource: "namespaces"}, false, "some_usage"},
+		{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
 	}
 	sort.Sort(metricInfoSorter(expectedMetrics))
 

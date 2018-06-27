@@ -10,23 +10,26 @@
 [[projects]]
   name = "github.com/NYTimes/gziphandler"
   packages = ["."]
-  revision = "56545f4a5d46df9a6648819d1664c3a03a13ffdb"
+  revision = "2600fb119af974220d3916a5916d6e31176aac1b"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
-  revision = "8a290539e2e8629dbc4e6bad948158f790ec31f4"
-  version = "v1.0.0"
+  revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
+  version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/PuerkitoBio/urlesc"
   packages = ["."]
-  revision = "5bd2802263f21d8788851d5305584c82a5c75d7e"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  branch = "master"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
-  revision = "3ac7bf7a47d159a033b107610db8a1b6575507a4"
+  revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
   name = "github.com/coreos/etcd"
@@ -37,28 +40,27 @@
     "etcdserver/api/v3rpc/rpctypes",
     "etcdserver/etcdserverpb",
     "mvcc/mvccpb",
-    "pkg/fileutil",
     "pkg/pathutil",
+    "pkg/srv",
     "pkg/tlsutil",
     "pkg/transport",
-    "pkg/types"
+    "pkg/types",
+    "version"
   ]
-  revision = "0520cb9304cb2385f7e72b8bc02d6e4d3257158a"
-  version = "v3.1.10"
+  revision = "33245c6b5b49130ca99280408fadfab01aac0e48"
+  version = "v3.3.8"
+
+[[projects]]
+  name = "github.com/coreos/go-semver"
+  packages = ["semver"]
+  revision = "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
+  version = "v0.2.0"
 
 [[projects]]
   name = "github.com/coreos/go-systemd"
-  packages = [
-    "daemon",
-    "journal"
-  ]
-  revision = "48702e0da86bd25e76cfef347e2adeb434a0d0a6"
-  version = "v14"
-
-[[projects]]
-  name = "github.com/coreos/pkg"
-  packages = ["capnslog"]
-  revision = "fa29b1d70f0beaddd4c7021607cc3c3be8ce94b8"
+  packages = ["daemon"]
+  revision = "39ca1b05acc7ad1220e09f133283b8859a8b71ab"
+  version = "v17"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -67,20 +69,23 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/directxman12/k8s-prometheus-adapter"
   packages = [
     "cmd/adapter/app",
+    "cmd/config-gen/utils",
     "pkg/client",
     "pkg/client/metrics",
+    "pkg/config",
     "pkg/custom-provider"
   ]
-  revision = "8dd527d821f46b9e3961f3f7e5fdf5131d95681c"
-  version = "v0.2.0"
+  revision = "7b606a79fc2fdc4246e455e8f28503e0b4807a92"
 
 [[projects]]
   name = "github.com/elazarl/go-bindata-assetfs"
   packages = ["."]
-  revision = "3dcc96556217539f50599357fb481ac0dc7439b9"
+  revision = "30f82fa23fd844bd5bb1e5f216db87fd77b5eb43"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/emicklei/go-restful"
@@ -88,7 +93,8 @@
     ".",
     "log"
   ]
-  revision = "ff4f55a206334ef123e4f79bbf348980da81ca46"
+  revision = "3658237ded108b4134956c1b3050349d93e7b895"
+  version = "v2.7.1"
 
 [[projects]]
   name = "github.com/emicklei/go-restful-swagger12"
@@ -99,67 +105,79 @@
 [[projects]]
   name = "github.com/evanphx/json-patch"
   packages = ["."]
-  revision = "944e07253867aacae43c04b2e6a239005443f33a"
+  revision = "afac545df32f2287a079e2dfb7ba2745a643747e"
+  version = "v3.0.0"
 
 [[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
-  revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
-  revision = "46af16f9f7b149af66e5d1bd010e3574dc06de98"
+  revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
-  revision = "13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272"
+  revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "6aced65f8501fe1217321abf0749d354824ba2ff"
+  revision = "bcff419492eeeb01f76e77d2ebc714dc97b607f5"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "1d0bd113de87027671077d3c71eb3ac5d7dbba72"
+  revision = "811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
   packages = [
+    "gogoproto",
     "proto",
+    "protoc-gen-gogo/descriptor",
     "sortkeys"
   ]
-  revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/glog"
   packages = ["."]
-  revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = [
-    "jsonpb",
     "proto",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "4bd1920723d7b7c925de087aa32e2187708897f7"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
-  revision = "7d79101e329e5a3adf994758c578dab82b90c017"
+  revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
 
 [[projects]]
+  branch = "master"
   name = "github.com/google/gofuzz"
   packages = ["."]
-  revision = "44d81051d367757e1c7c6a5a86423ece9afcf63c"
+  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
   name = "github.com/googleapis/gnostic"
@@ -168,48 +186,32 @@
     "compiler",
     "extensions"
   ]
-  revision = "0c5108395e2debce0d731cf0287ddf7242066aba"
+  revision = "7c663266750e7d82587642f65e60bc4083f1f84e"
+  version = "v0.2.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gregjones/httpcache"
   packages = [
     ".",
     "diskcache"
   ]
-  revision = "787624de3eb7bd915c329cba748687a3b22666a6"
+  revision = "9cad4c3443a7200dd6400aef47183728de563a38"
 
 [[projects]]
-  name = "github.com/grpc-ecosystem/go-grpc-prometheus"
-  packages = ["."]
-  revision = "2500245aa6110c562d17020fb31a2c133d737799"
-
-[[projects]]
-  name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = [
-    "runtime",
-    "runtime/internal",
-    "utilities"
-  ]
-  revision = "84398b94e188ee336f307779b57b3aa91af7063c"
-
-[[projects]]
+  branch = "master"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru"
   ]
-  revision = "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/howeyc/gopass"
-  packages = ["."]
-  revision = "bf9dde6d0d2c004a008c27aaee91170c786f6db8"
+  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
 
 [[projects]]
   name = "github.com/imdario/mergo"
   packages = ["."]
-  revision = "6633656539c1639d9d78127b7d47c622b5d7b6dc"
+  revision = "9316a62528ac99aaecb4e47eadd6dc8aa6533d58"
+  version = "v0.3.5"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -220,16 +222,11 @@
 [[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "36b14963da70d11297d313183d7e6388c8510e1e"
-  version = "1.0.0"
+  revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
+  version = "1.1.3"
 
 [[projects]]
-  name = "github.com/juju/ratelimit"
-  packages = ["."]
-  revision = "5b9ff866471762aa2ab2dced63c9fb6f53921342"
-  version = "1.0"
-
-[[projects]]
+  branch = "master"
   name = "github.com/kubernetes-incubator/custom-metrics-apiserver"
   packages = [
     "pkg/apiserver",
@@ -240,32 +237,41 @@
     "pkg/registry/custom_metrics",
     "pkg/registry/external_metrics"
   ]
-  revision = "e61f72fec56ab519d74ebd396cd3fcf31b084558"
+  revision = "d8f23423aa1d0ff2bc9656da863d721725b3c68a"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mailru/easyjson"
   packages = [
     "buffer",
     "jlexer",
     "jwriter"
   ]
-  revision = "d5b7844b561a7bc640052f1b935f7b800330d7e0"
+  revision = "3fdea8d05856a0c8df22ed4bc71b3219245e4485"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
-  revision = "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/mxk/go-flowrate"
-  packages = ["flowrate"]
-  revision = "cca7078d478f8520f85629ad7c68962d31ed7682"
+  name = "github.com/modern-go/concurrent"
+  packages = ["."]
+  revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
+  version = "1.0.3"
+
+[[projects]]
+  name = "github.com/modern-go/reflect2"
+  packages = ["."]
+  revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/pborman/uuid"
   packages = ["."]
-  revision = "ca53cad383cad2479bbba7f7a1a05797ec1386e4"
+  revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
+  version = "v1.1"
 
 [[projects]]
   branch = "master"
@@ -280,11 +286,6 @@
   version = "v2.0.1"
 
 [[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "a22138067af1c4942683050411a841ade67fe1eb"
-
-[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -293,39 +294,47 @@
 [[projects]]
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
-  revision = "e7e903064f5e9eb5da98208bae10b475d4db0f8c"
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/client_model"
   packages = ["go"]
-  revision = "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
+  revision = "99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
     "model"
   ]
-  revision = "13ba4ddd0caa9c28ca7b7bffe1dfa9ed8d5ef207"
+  revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
+    "internal/util",
+    "nfs",
     "xfs"
   ]
-  revision = "65c1f6f8f0fc1e2185eb9863a3bc751496404259"
+  revision = "7d6f385de8bea29190f15ba9931442a0eaef9af7"
 
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "f62e98d28ab7ad31d707ba837a966378465c7b57"
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "9ff6c6923cfffbcd502984b8e0c80539a94968b7"
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/stretchr/testify"
@@ -339,50 +348,51 @@
 [[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
+  revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
+  version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "81e90905daefcd6fd217b62423c0908922eadb30"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
-    "html",
-    "html/atom",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "lex/httplex",
     "trace",
     "websocket"
   ]
-  revision = "1c05540f6879653db88113bc4a2b70aec4bd491f"
+  revision = "afe8f62b1d6bbd81f31868121a50b06d8188e1f9"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows"
   ]
-  revision = "7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce"
+  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
 
 [[projects]]
   name = "golang.org/x/text"
   packages = [
-    "cases",
-    "internal",
+    "collate",
+    "collate/build",
+    "internal/colltab",
     "internal/gen",
     "internal/tag",
     "internal/triegen",
     "internal/ucd",
     "language",
-    "runes",
     "secure/bidirule",
-    "secure/precis",
     "transform",
     "unicode/bidi",
     "unicode/cldr",
@@ -390,54 +400,79 @@
     "unicode/rangetable",
     "width"
   ]
-  revision = "b19bf474d317b857955b12035d2c5acb57ce8b01"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
+[[projects]]
+  branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "09f6ed296fc66555a25fe4ce95173148778dfa85"
+  revision = "80063a038e333bbe006c878e4c5ce4c74d055498"
 
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [
     ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
     "codes",
+    "connectivity",
     "credentials",
-    "grpclb/grpc_lb_v1",
+    "encoding",
+    "encoding/proto",
     "grpclog",
+    "health/grpc_health_v1",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/grpcrand",
     "keepalive",
     "metadata",
     "naming",
     "peer",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
     "stats",
     "status",
     "tap",
     "transport"
   ]
-  revision = "d2e1b51f33ff8c5e4a15560ff049d200e83726c5"
-  version = "v1.3.0"
+  revision = "168a6198bcb0ef175f7dacec0b8691fc141dc9b8"
+  version = "v1.13.0"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
-  revision = "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
-  version = "v0.9.0"
+  revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
+  version = "v0.9.1"
 
 [[projects]]
   name = "gopkg.in/natefinch/lumberjack.v2"
   packages = ["."]
-  revision = "20b71e5b60d756d3d2f80def009790325acc2b23"
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "53feefa2559fb8dfa8d81baad31be332c97d6c77"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [[projects]]
   name = "k8s.io/api"
   packages = [
+    "admission/v1beta1",
     "admissionregistration/v1alpha1",
+    "admissionregistration/v1beta1",
+    "apps/v1",
     "apps/v1beta1",
     "apps/v1beta2",
     "authentication/v1",
@@ -451,6 +486,7 @@
     "batch/v2alpha1",
     "certificates/v1beta1",
     "core/v1",
+    "events/v1beta1",
     "extensions/v1beta1",
     "networking/v1",
     "policy/v1beta1",
@@ -458,11 +494,14 @@
     "rbac/v1alpha1",
     "rbac/v1beta1",
     "scheduling/v1alpha1",
+    "scheduling/v1beta1",
     "settings/v1alpha1",
     "storage/v1",
+    "storage/v1alpha1",
     "storage/v1beta1"
   ]
-  revision = "cadaf100c0a3dd6b254f320d6d651df079ec8e0a"
+  revision = "91b2d7a92a8930454bf5020e0595b8ea0f2a5047"
+  version = "kubernetes-1.11.0-rc.1"
 
 [[projects]]
   name = "k8s.io/apimachinery"
@@ -473,17 +512,13 @@
     "pkg/api/resource",
     "pkg/api/validation",
     "pkg/api/validation/path",
-    "pkg/apimachinery",
-    "pkg/apimachinery/announced",
-    "pkg/apimachinery/registered",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
     "pkg/apis/meta/v1/validation",
-    "pkg/apis/meta/v1alpha1",
+    "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
-    "pkg/conversion/unstructured",
     "pkg/fields",
     "pkg/labels",
     "pkg/runtime",
@@ -501,12 +536,10 @@
     "pkg/util/diff",
     "pkg/util/errors",
     "pkg/util/framer",
-    "pkg/util/httpstream",
     "pkg/util/intstr",
     "pkg/util/json",
     "pkg/util/mergepatch",
     "pkg/util/net",
-    "pkg/util/proxy",
     "pkg/util/rand",
     "pkg/util/runtime",
     "pkg/util/sets",
@@ -515,22 +548,35 @@
     "pkg/util/validation",
     "pkg/util/validation/field",
     "pkg/util/wait",
+    "pkg/util/waitgroup",
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
     "third_party/forked/golang/json",
-    "third_party/forked/golang/netutil",
     "third_party/forked/golang/reflect"
   ]
-  revision = "3b05bbfa0a45413bfa184edbf9af617e277962fb"
-  version = "kubernetes-1.9.0-alpha.1"
+  revision = "fda675fbe85280c4550452dae2a5ebf74e4a59b7"
+  version = "kubernetes-1.11.0-rc.1"
 
 [[projects]]
   name = "k8s.io/apiserver"
   packages = [
     "pkg/admission",
+    "pkg/admission/configuration",
     "pkg/admission/initializer",
+    "pkg/admission/metrics",
+    "pkg/admission/plugin/initialization",
     "pkg/admission/plugin/namespace/lifecycle",
+    "pkg/admission/plugin/webhook/config",
+    "pkg/admission/plugin/webhook/config/apis/webhookadmission",
+    "pkg/admission/plugin/webhook/config/apis/webhookadmission/v1alpha1",
+    "pkg/admission/plugin/webhook/errors",
+    "pkg/admission/plugin/webhook/generic",
+    "pkg/admission/plugin/webhook/mutating",
+    "pkg/admission/plugin/webhook/namespace",
+    "pkg/admission/plugin/webhook/request",
+    "pkg/admission/plugin/webhook/rules",
+    "pkg/admission/plugin/webhook/validating",
     "pkg/apis/apiserver",
     "pkg/apis/apiserver/install",
     "pkg/apis/apiserver/v1alpha1",
@@ -575,6 +621,7 @@
     "pkg/server/httplog",
     "pkg/server/mux",
     "pkg/server/options",
+    "pkg/server/resourceconfig",
     "pkg/server/routes",
     "pkg/server/routes/data/swagger",
     "pkg/server/storage",
@@ -593,16 +640,19 @@
     "pkg/util/flag",
     "pkg/util/flushwriter",
     "pkg/util/logs",
+    "pkg/util/openapi",
     "pkg/util/trace",
     "pkg/util/webhook",
     "pkg/util/wsstream",
+    "plugin/pkg/audit/buffered",
     "plugin/pkg/audit/log",
+    "plugin/pkg/audit/truncate",
     "plugin/pkg/audit/webhook",
     "plugin/pkg/authenticator/token/webhook",
     "plugin/pkg/authorizer/webhook"
   ]
-  revision = "c1e53d745d0fe45bf7d5d44697e6eface25fceca"
-  version = "kubernetes-1.9.0-alpha.1"
+  revision = "44b612291bb7545430c499a3882c610c727f37b0"
+  version = "kubernetes-1.11.0-rc.1"
 
 [[projects]]
   name = "k8s.io/client-go"
@@ -613,7 +663,9 @@
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1alpha1",
+    "informers/admissionregistration/v1beta1",
     "informers/apps",
+    "informers/apps/v1",
     "informers/apps/v1beta1",
     "informers/apps/v1beta2",
     "informers/autoscaling",
@@ -627,6 +679,8 @@
     "informers/certificates/v1beta1",
     "informers/core",
     "informers/core/v1",
+    "informers/events",
+    "informers/events/v1beta1",
     "informers/extensions",
     "informers/extensions/v1beta1",
     "informers/internalinterfaces",
@@ -640,14 +694,18 @@
     "informers/rbac/v1beta1",
     "informers/scheduling",
     "informers/scheduling/v1alpha1",
+    "informers/scheduling/v1beta1",
     "informers/settings",
     "informers/settings/v1alpha1",
     "informers/storage",
     "informers/storage/v1",
+    "informers/storage/v1alpha1",
     "informers/storage/v1beta1",
     "kubernetes",
     "kubernetes/scheme",
     "kubernetes/typed/admissionregistration/v1alpha1",
+    "kubernetes/typed/admissionregistration/v1beta1",
+    "kubernetes/typed/apps/v1",
     "kubernetes/typed/apps/v1beta1",
     "kubernetes/typed/apps/v1beta2",
     "kubernetes/typed/authentication/v1",
@@ -661,6 +719,7 @@
     "kubernetes/typed/batch/v2alpha1",
     "kubernetes/typed/certificates/v1beta1",
     "kubernetes/typed/core/v1",
+    "kubernetes/typed/events/v1beta1",
     "kubernetes/typed/extensions/v1beta1",
     "kubernetes/typed/networking/v1",
     "kubernetes/typed/policy/v1beta1",
@@ -668,10 +727,14 @@
     "kubernetes/typed/rbac/v1alpha1",
     "kubernetes/typed/rbac/v1beta1",
     "kubernetes/typed/scheduling/v1alpha1",
+    "kubernetes/typed/scheduling/v1beta1",
     "kubernetes/typed/settings/v1alpha1",
     "kubernetes/typed/storage/v1",
+    "kubernetes/typed/storage/v1alpha1",
     "kubernetes/typed/storage/v1beta1",
     "listers/admissionregistration/v1alpha1",
+    "listers/admissionregistration/v1beta1",
+    "listers/apps/v1",
     "listers/apps/v1beta1",
     "listers/apps/v1beta2",
     "listers/autoscaling/v1",
@@ -681,6 +744,7 @@
     "listers/batch/v2alpha1",
     "listers/certificates/v1beta1",
     "listers/core/v1",
+    "listers/events/v1beta1",
     "listers/extensions/v1beta1",
     "listers/networking/v1",
     "listers/policy/v1beta1",
@@ -688,12 +752,19 @@
     "listers/rbac/v1alpha1",
     "listers/rbac/v1beta1",
     "listers/scheduling/v1alpha1",
+    "listers/scheduling/v1beta1",
     "listers/settings/v1alpha1",
     "listers/storage/v1",
+    "listers/storage/v1alpha1",
     "listers/storage/v1beta1",
+    "pkg/apis/clientauthentication",
+    "pkg/apis/clientauthentication/v1alpha1",
+    "pkg/apis/clientauthentication/v1beta1",
     "pkg/version",
+    "plugin/pkg/client/auth/exec",
     "rest",
     "rest/watch",
+    "restmapper",
     "testing",
     "tools/auth",
     "tools/cache",
@@ -705,26 +776,30 @@
     "tools/pager",
     "tools/reference",
     "transport",
+    "util/buffer",
     "util/cert",
+    "util/connrotation",
     "util/flowcontrol",
     "util/homedir",
-    "util/integer"
+    "util/integer",
+    "util/retry"
   ]
-  revision = "82aa063804cf055e16e8911250f888bc216e8b61"
-  version = "kubernetes-1.9.0-alpha.1"
+  revision = "4cacfee698b01630072bc41e3384280562a97d95"
+  version = "kubernetes-1.11.0-rc.1"
 
 [[projects]]
+  branch = "master"
   name = "k8s.io/kube-openapi"
   packages = [
     "pkg/builder",
     "pkg/common",
     "pkg/handler",
-    "pkg/util"
+    "pkg/util",
+    "pkg/util/proto"
   ]
-  revision = "868f2f29720b192240e18284659231b440f9cda5"
+  revision = "91cfa479c814065e420cee7ed227db0f63a5854e"
 
 [[projects]]
-  branch = "master"
   name = "k8s.io/metrics"
   packages = [
     "pkg/apis/custom_metrics",
@@ -734,11 +809,12 @@
     "pkg/apis/external_metrics/install",
     "pkg/apis/external_metrics/v1beta1"
   ]
-  revision = "baa04983db4e01d02a16d9c9fe32dd5b478b3248"
+  revision = "89f8a18a5efb0c0162a32c75db752bc53ed7f8ee"
+  version = "kubernetes-1.11.0-rc.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ffa0ef091b3683f02efac4dc0a1a071ab5a0ff9741346b1532be064fb6c176c4"
+  inputs-digest = "66b8ba4b829725e88ff6ba39c022bdf9670bdffa53ef9f8094c84e0c1447d2db"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -33,30 +33,22 @@ import (
 
 type externalPrometheusProvider struct {
 	mapper     apimeta.RESTMapper
-	kubeClient dynamic.ClientPool
+	kubeClient dynamic.Interface
 	promClient prom.Client
 
 	SeriesRegistry
-
-	rateInterval time.Duration
 }
 
-func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, labelPrefix string, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.ExternalMetricsProvider {
+func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		promClient:     promClient,
+		namers:         namers,
 
 		SeriesRegistry: &basicSeriesRegistry{
-			namer: metricNamer{
-				// TODO: populate the overrides list
-				overrides:   nil,
-				mapper:      mapper,
-				labelPrefix: labelPrefix,
-			},
+			mapper: mapper,
 		},
 	}
-
-	lister.RunUntil(stopChan)
 
 	return &externalPrometheusProvider{
 		mapper:     mapper,
@@ -64,9 +56,7 @@ func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic
 		promClient: promClient,
 
 		SeriesRegistry: lister,
-
-		rateInterval: rateInterval,
-	}
+	}, lister
 }
 
 func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricName string, metricSelector labels.Selector) (*external_metrics.ExternalMetricValueList, error) {
