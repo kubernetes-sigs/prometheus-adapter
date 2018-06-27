@@ -24,27 +24,10 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  name = "github.com/stretchr/testify"
-  version = "1.1.4"
-
-[[constraint]]
-  name = "k8s.io/apimachinery"
-  version = "kubernetes-1.9.0-alpha.1"
-
-[[constraint]]
-  name = "k8s.io/apiserver"
-  version = "kubernetes-1.9.0-alpha.1"
-
-[[constraint]]
-  name = "k8s.io/client-go"
-  version = "kubernetes-1.9.0-alpha.1"
-
-[[constraint]]
-  name = "k8s.io/metrics"
-  version = "kubernetes-1.9.0-alpha.1"
-
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/kubernetes-incubator/custom-metrics-apiserver"
+  revision = "e61f72fec56ab519d74ebd396cd3fcf31b084558"

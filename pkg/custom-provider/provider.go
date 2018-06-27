@@ -51,6 +51,9 @@ type prometheusProvider struct {
 	rateInterval time.Duration
 }
 
+type DoubleMetricProvider interface {
+}
+
 func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, labelPrefix string, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
@@ -98,7 +101,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 	}, nil
 }
 
-func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.MetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
+func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.CustomMetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
 	if !apimeta.IsListType(list) {
 		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
@@ -132,7 +135,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 	}, nil
 }
 
-func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
+func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
 	kind, baseQuery, groupBy, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
@@ -170,7 +173,7 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 	return *queryResults.Vector, nil
 }
 
-func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name string) (*custom_metrics.MetricValue, error) {
+func (p *prometheusProvider) getSingle(info provider.CustomMetricInfo, namespace, name string) (*custom_metrics.MetricValue, error) {
 	queryResults, err := p.buildQuery(info, namespace, name)
 	if err != nil {
 		return nil, err
@@ -198,7 +201,7 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	return p.metricFor(resultValue, info.GroupResource, "", name, info.Metric)
 }
 
-func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
+func (p *prometheusProvider) getMultiple(info provider.CustomMetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	// construct a client to list the names of objects matching the label selector
 	client, err := p.kubeClient.ClientForGroupVersionResource(info.GroupResource.WithVersion(""))
 	if err != nil {
@@ -244,7 +247,7 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 }
 
 func (p *prometheusProvider) GetRootScopedMetricByName(groupResource schema.GroupResource, name string, metricName string) (*custom_metrics.MetricValue, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    false,
@@ -254,7 +257,7 @@ func (p *prometheusProvider) GetRootScopedMetricByName(groupResource schema.Grou
 }
 
 func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.GroupResource, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    false,
@@ -263,7 +266,7 @@ func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.
 }
 
 func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    true,
@@ -273,7 +276,7 @@ func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.Grou
 }
 
 func (p *prometheusProvider) GetNamespacedMetricBySelector(groupResource schema.GroupResource, namespace string, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    true,

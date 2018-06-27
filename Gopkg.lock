@@ -67,6 +67,17 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/directxman12/k8s-prometheus-adapter"
+  packages = [
+    "cmd/adapter/app",
+    "pkg/client",
+    "pkg/client/metrics",
+    "pkg/custom-provider"
+  ]
+  revision = "8dd527d821f46b9e3961f3f7e5fdf5131d95681c"
+  version = "v0.2.0"
+
+[[projects]]
   name = "github.com/elazarl/go-bindata-assetfs"
   packages = ["."]
   revision = "3dcc96556217539f50599357fb481ac0dc7439b9"
@@ -226,9 +237,10 @@
     "pkg/cmd/server",
     "pkg/dynamicmapper",
     "pkg/provider",
-    "pkg/registry/custom_metrics"
+    "pkg/registry/custom_metrics",
+    "pkg/registry/external_metrics"
   ]
-  revision = "fae01650d93f5de6151a024e36323344e14427aa"
+  revision = "e61f72fec56ab519d74ebd396cd3fcf31b084558"
 
 [[projects]]
   name = "github.com/mailru/easyjson"
@@ -712,18 +724,21 @@
   revision = "868f2f29720b192240e18284659231b440f9cda5"
 
 [[projects]]
+  branch = "master"
   name = "k8s.io/metrics"
   packages = [
     "pkg/apis/custom_metrics",
     "pkg/apis/custom_metrics/install",
-    "pkg/apis/custom_metrics/v1beta1"
+    "pkg/apis/custom_metrics/v1beta1",
+    "pkg/apis/external_metrics",
+    "pkg/apis/external_metrics/install",
+    "pkg/apis/external_metrics/v1beta1"
   ]
-  revision = "4c7ac522b9daf7beeb53f6766722ba78b7e5712d"
-  version = "kubernetes-1.9.0-alpha.1"
+  revision = "baa04983db4e01d02a16d9c9fe32dd5b478b3248"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ee877002d2906b3baa3f7fb1a786646ecb3a6da62559ea479288058c11de2780"
+  inputs-digest = "ffa0ef091b3683f02efac4dc0a1a071ab5a0ff9741346b1532be064fb6c176c4"
   solver-name = "gps-cdcl"
   solver-version = 1
