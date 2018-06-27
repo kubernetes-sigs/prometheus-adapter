@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -32,6 +31,7 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
+	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/dynamicmapper"
@@ -43,9 +43,7 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 	o := PrometheusAdapterServerOptions{
 		CustomMetricsAdapterServerOptions: baseOpts,
 		MetricsRelistInterval:             10 * time.Minute,
-		RateInterval:                      5 * time.Minute,
 		PrometheusURL:                     "https://localhost",
-		DiscoveryInterval:                 10 * time.Minute,
 	}
 
 	cmd := &cobra.Command{
@@ -76,19 +74,20 @@ func NewCommandStartPrometheusAdapterServer(out, errOut io.Writer, stopCh <-chan
 		"any described objets")
 	flags.DurationVar(&o.MetricsRelistInterval, "metrics-relist-interval", o.MetricsRelistInterval, ""+
 		"interval at which to re-list the set of all available metrics from Prometheus")
-	flags.DurationVar(&o.RateInterval, "rate-interval", o.RateInterval, ""+
-		"period of time used to calculate rate metrics from cumulative metrics")
 	flags.DurationVar(&o.DiscoveryInterval, "discovery-interval", o.DiscoveryInterval, ""+
 		"interval at which to refresh API discovery information")
 	flags.StringVar(&o.PrometheusURL, "prometheus-url", o.PrometheusURL,
-		"URL for connecting to Prometheus.  Query parameters are used to configure the connection")
+		"URL for connecting to Prometheus.")
 	flags.BoolVar(&o.PrometheusAuthInCluster, "prometheus-auth-incluster", o.PrometheusAuthInCluster,
 		"use auth details from the in-cluster kubeconfig when connecting to prometheus.")
 	flags.StringVar(&o.PrometheusAuthConf, "prometheus-auth-config", o.PrometheusAuthConf,
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
-	flags.StringVar(&o.LabelPrefix, "label-prefix", o.LabelPrefix,
-		"Prefix to expect on labels referring to pod resources.  For example, if the prefix is "+
-			"'kube_', any series with the 'kube_pod' label would be considered a pod metric")
+	flags.StringVar(&o.AdapterConfigFile, "config", o.AdapterConfigFile,
+		"Configuration file containing details of how to transform between Prometheus metrics "+
+			"and custom metrics API resources")
+
+	cmd.MarkFlagRequired("config")
+
 	return cmd
 }
 
@@ -128,6 +127,15 @@ func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, er
 }
 
 func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-chan struct{}) error {
+	if o.AdapterConfigFile == "" {
+		return fmt.Errorf("no discovery configuration file specified")
+	}
+
+	metricsConfig, err := adaptercfg.FromFile(o.AdapterConfigFile)
+	if err != nil {
+		return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
+	}
+
 	config, err := o.Config()
 	if err != nil {
 		return err
@@ -153,12 +161,12 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 		return fmt.Errorf("unable to construct discovery client for dynamic client: %v", err)
 	}
 
-	dynamicMapper, err := dynamicmapper.NewRESTMapper(discoveryClient, apimeta.InterfacesForUnstructured, o.DiscoveryInterval)
+	dynamicMapper, err := dynamicmapper.NewRESTMapper(discoveryClient, o.DiscoveryInterval)
 	if err != nil {
 		return fmt.Errorf("unable to construct dynamic discovery mapper: %v", err)
 	}
 
-	clientPool := dynamic.NewClientPool(clientConfig, dynamicMapper, dynamic.LegacyAPIPathResolverFunc)
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
 	if err != nil {
 		return fmt.Errorf("unable to construct lister client to initialize provider: %v", err)
 	}
@@ -176,9 +184,15 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
-	cmProvider := cmprov.NewCustomPrometheusProvider(dynamicMapper, clientPool, promClient, o.LabelPrefix, o.MetricsRelistInterval, o.RateInterval, stopCh)
+	namers, err := cmprov.NamersFromConfig(metricsConfig, dynamicMapper)
+	if err != nil {
+		return fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
+	}
 
-	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider)
+	cmProvider, runner := cmprov.NewCustomPrometheusProvider(dynamicMapper, dynamicClient, promClient, namers, o.MetricsRelistInterval)
+	runner.RunUntil(stopCh)
+
+	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider, nil)
 	if err != nil {
 		return err
 	}
@@ -192,8 +206,6 @@ type PrometheusAdapterServerOptions struct {
 	RemoteKubeConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
 	MetricsRelistInterval time.Duration
-	// RateInterval is the period of time used to calculate rate metrics
-	RateInterval time.Duration
 	// DiscoveryInterval is the interval at which discovery information is refreshed
 	DiscoveryInterval time.Duration
 	// PrometheusURL is the URL describing how to connect to Prometheus.  Query parameters configure connection options.
@@ -202,7 +214,6 @@ type PrometheusAdapterServerOptions struct {
 	PrometheusAuthInCluster bool
 	// PrometheusAuthConf is the kubeconfig file that contains auth details used to connect to Prometheus
 	PrometheusAuthConf string
-	// LabelPrefix is the prefix to expect on labels for Kubernetes resources
-	// (e.g. if the prefix is "kube_", we'd expect a "kube_pod" label for pod metrics).
-	LabelPrefix string
+	// AdapterConfigFile points to the file containing the metrics discovery configuration.
+	AdapterConfigFile string
 }

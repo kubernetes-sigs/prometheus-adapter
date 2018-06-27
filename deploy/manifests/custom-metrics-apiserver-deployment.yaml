@@ -28,15 +28,21 @@ spec:
         - --logtostderr=true
         - --prometheus-url=http://prometheus.prom.svc:9090/
         - --metrics-relist-interval=30s
-        - --rate-interval=5m
         - --v=10
+        - --config=/default-config.yaml
         ports:
         - containerPort: 6443
         volumeMounts:
         - mountPath: /var/run/serving-cert
           name: volume-serving-cert
           readOnly: true
+        - mountPath: /etc/adapter/
+          name: config
+          readOnly: true
       volumes:
       - name: volume-serving-cert
         secret:
           secretName: cm-adapter-serving-certs
+      - name: config
+        configMap:
+          name: adapter-config
