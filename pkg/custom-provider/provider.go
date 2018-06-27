@@ -19,9 +19,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/golang/glog"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -40,32 +40,32 @@ import (
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
 
+// Runnable represents something that can be run until told to stop.
+type Runnable interface {
+	// Run runs the runnable forever.
+	Run()
+	// RunUntil runs the runnable until the given channel is closed.
+	RunUntil(stopChan <-chan struct{})
+}
+
 type prometheusProvider struct {
 	mapper     apimeta.RESTMapper
-	kubeClient dynamic.ClientPool
+	kubeClient dynamic.Interface
 	promClient prom.Client
 
 	SeriesRegistry
-
-	rateInterval time.Duration
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientPool, promClient prom.Client, labelPrefix string, updateInterval time.Duration, rateInterval time.Duration, stopChan <-chan struct{}) provider.CustomMetricsProvider {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		promClient:     promClient,
+		namers:         namers,
 
 		SeriesRegistry: &basicSeriesRegistry{
-			namer: metricNamer{
-				// TODO: populate the overrides list
-				overrides:   nil,
-				mapper:      mapper,
-				labelPrefix: labelPrefix,
-			},
+			mapper: mapper,
 		},
 	}
-
-	lister.RunUntil(stopChan)
 
 	return &prometheusProvider{
 		mapper:     mapper,
@@ -73,9 +73,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.ClientP
 		promClient: promClient,
 
 		SeriesRegistry: lister,
-
-		rateInterval: rateInterval,
-	}
+	}, lister
 }
 
 func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error) {
@@ -97,7 +95,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource s
 	}, nil
 }
 
-func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.MetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
+func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.CustomMetricInfo, list runtime.Object) (*custom_metrics.MetricValueList, error) {
 	if !apimeta.IsListType(list) {
 		return nil, apierr.NewInternalError(fmt.Errorf("result of label selector list operation was not a list"))
 	}
@@ -131,30 +129,14 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Me
 	}, nil
 }
 
-func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
-	kind, baseQuery, groupBy, found := p.QueryForMetric(info, namespace, names...)
+func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
+	query, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
-	fullQuery := baseQuery
-	switch kind {
-	case CounterSeries:
-		fullQuery = prom.Selector(fmt.Sprintf("rate(%s[%s])", baseQuery, pmodel.Duration(p.rateInterval).String()))
-	case SecondsCounterSeries:
-		// TODO: futher modify for seconds?
-		fullQuery = prom.Selector(prom.Selector(fmt.Sprintf("rate(%s[%s])", baseQuery, pmodel.Duration(p.rateInterval).String())))
-	}
-
-	// NB: too small of a rate interval will return no results...
-
-	// sum over all other dimensions of this query (e.g. if we select on route, sum across all pods,
-	// but if we select on pods, sum across all routes), and split by the dimension of our resource
-	// TODO: return/populate the by list in SeriesForMetric
-	fullQuery = prom.Selector(fmt.Sprintf("sum(%s) by (%s)", fullQuery, groupBy))
-
 	// TODO: use an actual context
-	queryResults, err := p.promClient.Query(context.Background(), pmodel.Now(), fullQuery)
+	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), query)
 	if err != nil {
 		glog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
@@ -169,7 +151,7 @@ func (p *prometheusProvider) buildQuery(info provider.MetricInfo, namespace stri
 	return *queryResults.Vector, nil
 }
 
-func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name string) (*custom_metrics.MetricValue, error) {
+func (p *prometheusProvider) getSingle(info provider.CustomMetricInfo, namespace, name string) (*custom_metrics.MetricValue, error) {
 	queryResults, err := p.buildQuery(info, namespace, name)
 	if err != nil {
 		return nil, err
@@ -197,24 +179,25 @@ func (p *prometheusProvider) getSingle(info provider.MetricInfo, namespace, name
 	return p.metricFor(resultValue, info.GroupResource, "", name, info.Metric)
 }
 
-func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	// construct a client to list the names of objects matching the label selector
-	client, err := p.kubeClient.ClientForGroupVersionResource(info.GroupResource.WithVersion(""))
+func (p *prometheusProvider) getMultiple(info provider.CustomMetricInfo, namespace string, selector labels.Selector) (*custom_metrics.MetricValueList, error) {
+	fullResources, err := p.mapper.ResourcesFor(info.GroupResource.WithVersion(""))
+	if err == nil && len(fullResources) == 0 {
+		err = fmt.Errorf("no fully versioned resources known for group-resource %v", info.GroupResource)
+	}
 	if err != nil {
-		glog.Errorf("unable to construct dynamic client to list matching resource names: %v", err)
+		glog.Errorf("unable to find preferred version to list matching resource names: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
-
-	// we can construct a this APIResource ourself, since the dynamic client only uses Name and Namespaced
-	apiRes := &metav1.APIResource{
-		Name:       info.GroupResource.Resource,
-		Namespaced: info.Namespaced,
+	var client dynamic.ResourceInterface
+	if namespace != "" {
+		client = p.kubeClient.Resource(fullResources[0]).Namespace(namespace)
+	} else {
+		client = p.kubeClient.Resource(fullResources[0])
 	}
 
 	// actually list the objects matching the label selector
-	matchingObjectsRaw, err := client.Resource(apiRes, namespace).
-		List(metav1.ListOptions{LabelSelector: selector.String()})
+	matchingObjectsRaw, err := client.List(metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		glog.Errorf("unable to list matching resource names: %v", err)
 		// don't leak implementation details to the user
@@ -243,7 +226,7 @@ func (p *prometheusProvider) getMultiple(info provider.MetricInfo, namespace str
 }
 
 func (p *prometheusProvider) GetRootScopedMetricByName(groupResource schema.GroupResource, name string, metricName string) (*custom_metrics.MetricValue, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    false,
@@ -253,7 +236,7 @@ func (p *prometheusProvider) GetRootScopedMetricByName(groupResource schema.Grou
 }
 
 func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.GroupResource, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    false,
@@ -262,7 +245,7 @@ func (p *prometheusProvider) GetRootScopedMetricBySelector(groupResource schema.
 }
 
 func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    true,
@@ -272,7 +255,7 @@ func (p *prometheusProvider) GetNamespacedMetricByName(groupResource schema.Grou
 }
 
 func (p *prometheusProvider) GetNamespacedMetricBySelector(groupResource schema.GroupResource, namespace string, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: groupResource,
 		Metric:        metricName,
 		Namespaced:    true,
@@ -285,6 +268,7 @@ type cachingMetricsLister struct {
 
 	promClient     prom.Client
 	updateInterval time.Duration
+	namers         []MetricNamer
 }
 
 func (l *cachingMetricsLister) Run() {
@@ -299,20 +283,65 @@ func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
 	}, l.updateInterval, stopChan)
 }
 
+type selectorSeries struct {
+	selector prom.Selector
+	series   []prom.Series
+}
+
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.updateInterval)
 
-	sels := l.Selectors()
+	// don't do duplicate queries when it's just the matchers that change
+	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
 
-	// TODO: use an actual context here
-	series, err := l.promClient.Series(context.Background(), pmodel.Interval{startTime, 0}, sels...)
-	if err != nil {
-		return fmt.Errorf("unable to update list of all available metrics: %v", err)
+	// these can take a while on large clusters, so launch in parallel
+	// and don't duplicate
+	selectors := make(map[prom.Selector]struct{})
+	selectorSeriesChan := make(chan selectorSeries, len(l.namers))
+	errs := make(chan error, len(l.namers))
+	for _, namer := range l.namers {
+		sel := namer.Selector()
+		if _, ok := selectors[sel]; ok {
+			errs <- nil
+			selectorSeriesChan <- selectorSeries{}
+			continue
+		}
+		selectors[sel] = struct{}{}
+		go func() {
+			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{startTime, 0}, sel)
+			if err != nil {
+				errs <- fmt.Errorf("unable to fetch metrics for query %q: %v", sel, err)
+				return
+			}
+			errs <- nil
+			selectorSeriesChan <- selectorSeries{
+				selector: sel,
+				series:   series,
+			}
+		}()
 	}
 
-	glog.V(10).Infof("Set available metric list from Prometheus to: %v", series)
+	// iterate through, blocking until we've got all results
+	for range l.namers {
+		if err := <-errs; err != nil {
+			return fmt.Errorf("unable to update list of all metrics: %v", err)
+		}
+		if ss := <-selectorSeriesChan; ss.series != nil {
+			seriesCacheByQuery[ss.selector] = ss.series
+		}
+	}
+	close(errs)
 
-	l.SetSeries(series)
+	newSeries := make([][]prom.Series, len(l.namers))
+	for i, namer := range l.namers {
+		series, cached := seriesCacheByQuery[namer.Selector()]
+		if !cached {
+			return fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", namer.Selector())
+		}
+		newSeries[i] = namer.FilterSeries(series)
+	}
 
-	return nil
+	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
+
+	return l.SetSeries(newSeries, l.namers)
 }

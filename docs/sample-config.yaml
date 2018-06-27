@@ -1,0 +1,69 @@
+rules:
+# Each rule represents a some naming and discovery logic.
+# Each rule is executed independently of the others, so
+# take care to avoid overlap.  As an optimization, rules
+# with the same `seriesQuery` but different
+# `name` or `seriesFilters` will use only one query to
+# Prometheus for discovery.
+
+# some of these rules are taken from the "default" configuration, which
+# can be found in pkg/config/default.go
+
+# this rule matches cumulative cAdvisor metrics measured in seconds
+- seriesQuery: '{__name__=~"^container_.*",container_name!="POD",namespace!="",pod_name!=""}'
+  resources:
+    # skip specifying generic resource<->label mappings, and just
+    # attach only pod and namespace resources by mapping label names to group-resources
+    overrides:
+      namespace: {resource: "namespace"},
+      pod_name: {resource: "pod"},
+  # specify that the `container_` and `_seconds_total` suffixes should be removed.
+  # this also introduces an implicit filter on metric family names
+  name: 
+    # we use the value of the capture group implicitly as the API name
+    # we could also explicitly write `as: "$1"`
+    matches: "^container_(.*)_seconds_total$"
+  # specify how to construct a query to fetch samples for a given series
+  # This is a Go template where the `.Series` and `.LabelMatchers` string values
+  # are available, and the delimiters are `<<` and `>>` to avoid conflicts with
+  # the prometheus query language
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+
+# this rule matches cumulative cAdvisor metrics not measured in seconds
+- seriesQuery: '{__name__=~"^container_.*_total",container_name!="POD",namespace!="",pod_name!=""}'
+  resources:
+    overrides:
+      namespace: {resource: "namespace"},
+      pod_name: {resource: "pod"},
+  seriesFilters:
+  # since this is a superset of the query above, we introduce an additional filter here
+  - isNot: "^container_.*_seconds_total$"
+  name: {matches: "^container_(.*)_total$"}
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+
+# this rule matches cumulative non-cAdvisor metrics
+- seriesQuery: '{namespace!="",__name__!="^container_.*"}'
+  name: {matches: "^(.*)_total$"}
+  resources:
+    # specify an a generic mapping between resources and labels.  This
+    # is a template, like the `metricsQuery` template, except with the `.Group`
+    # and `.Resource` strings available.  It will also be used to match labels,
+    # so avoid using template functions which truncate the group or resource.
+    # Group will be converted to a form acceptible for use as a label automatically.
+    template: "<<.Resource>>"
+    # if we wanted to, we could also specify overrides here
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+
+# this rule matches only a single metric, explicitly naming it something else
+# It's series query *must* return only a single metric family
+- seriesQuery: 'cheddar{sharp="true"}'
+  # this metric will appear as "cheesy_goodness" in the custom metrics API
+  name: {as: "cheesy_goodness"}
+  resources:
+    overrides:
+      # this should still resolve in our cluster
+      brand: {group: "cheese.io", resource: "brand"}
+  metricQuery: 'count(cheddar{sharp="true"})'
+
+# TODO: should we be able to map to a constant instance of a resource
+# (e.g. `resources: {constant: [{resource: "namespace", name: "kube-system"}}]`)?
