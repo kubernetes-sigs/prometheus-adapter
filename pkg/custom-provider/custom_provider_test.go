@@ -95,7 +95,7 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 	namers, err := NamersFromConfig(cfg, restMapper())
 	require.NoError(t, err)
 
-	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
+	prov, _ := NewCustomPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
@@ -141,7 +141,7 @@ func TestListAllMetrics(t *testing.T) {
 	fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
 
 	// update the metrics (without actually calling RunUntil, so we can avoid timing issues)
-	lister := prov.(*prometheusProvider).SeriesRegistry.(*cachingMetricsLister)
+	lister := prov.(*customPrometheusProvider).SeriesRegistry.(*cachingMetricsLister)
 	require.NoError(t, lister.updateMetrics())
 
 	// list/sort the metrics

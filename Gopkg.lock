@@ -69,6 +69,19 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/directxman12/k8s-prometheus-adapter"
+  packages = [
+    "cmd/adapter/app",
+    "cmd/config-gen/utils",
+    "pkg/client",
+    "pkg/client/metrics",
+    "pkg/config",
+    "pkg/custom-provider"
+  ]
+  revision = "7b606a79fc2fdc4246e455e8f28503e0b4807a92"
+
+[[projects]]
   name = "github.com/elazarl/go-bindata-assetfs"
   packages = ["."]
   revision = "30f82fa23fd844bd5bb1e5f216db87fd77b5eb43"
@@ -802,6 +815,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "922da691d7be0fa3bde2ab628c629fea6718792cb234a2e5c661a193f0545d6f"
+  inputs-digest = "66b8ba4b829725e88ff6ba39c022bdf9670bdffa53ef9f8094c84e0c1447d2db"
   solver-name = "gps-cdcl"
   solver-version = 1
