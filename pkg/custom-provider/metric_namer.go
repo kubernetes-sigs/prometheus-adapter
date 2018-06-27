@@ -51,12 +51,12 @@ type SeriesRegistry interface {
 	// SetSeries replaces the known series in this registry
 	SetSeries(series []prom.Series) error
 	// ListAllMetrics lists all metrics known to this registry
-	ListAllMetrics() []provider.MetricInfo
+	ListAllMetrics() []provider.CustomMetricInfo
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
-	QueryForMetric(info provider.MetricInfo, namespace string, resourceNames ...string) (kind SeriesType, query prom.Selector, groupBy string, found bool)
+	QueryForMetric(info provider.CustomMetricInfo, namespace string, resourceNames ...string) (kind SeriesType, query prom.Selector, groupBy string, found bool)
 	// MatchValuesToNames matches result values to resource names for the given metric and value set
-	MatchValuesToNames(metricInfo provider.MetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool)
+	MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool)
 }
 
 type seriesInfo struct {
@@ -73,9 +73,9 @@ type basicSeriesRegistry struct {
 	mu sync.RWMutex
 
 	// info maps metric info to information about the corresponding series
-	info map[provider.MetricInfo]seriesInfo
+	info map[provider.CustomMetricInfo]seriesInfo
 	// metrics is the list of all known metrics
-	metrics []provider.MetricInfo
+	metrics []provider.CustomMetricInfo
 
 	// namer is the metricNamer responsible for converting series to metric names and information
 	namer metricNamer
@@ -91,7 +91,7 @@ func (r *basicSeriesRegistry) Selectors() []prom.Selector {
 }
 
 func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
-	newInfo := make(map[provider.MetricInfo]seriesInfo)
+	newInfo := make(map[provider.CustomMetricInfo]seriesInfo)
 	for _, series := range newSeries {
 		if strings.HasPrefix(series.Name, "container_") {
 			r.namer.processContainerSeries(series, newInfo)
@@ -109,7 +109,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 		}
 	}
 
-	newMetrics := make([]provider.MetricInfo, 0, len(newInfo))
+	newMetrics := make([]provider.CustomMetricInfo, 0, len(newInfo))
 	for info := range newInfo {
 		newMetrics = append(newMetrics, info)
 	}
@@ -123,14 +123,14 @@ func (r *basicSeriesRegistry) SetSeries(newSeries []prom.Series) error {
 	return nil
 }
 
-func (r *basicSeriesRegistry) ListAllMetrics() []provider.MetricInfo {
+func (r *basicSeriesRegistry) ListAllMetrics() []provider.CustomMetricInfo {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	return r.metrics
 }
 
-func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, namespace string, resourceNames ...string) (kind SeriesType, query prom.Selector, groupBy string, found bool) {
+func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInfo, namespace string, resourceNames ...string) (kind SeriesType, query prom.Selector, groupBy string, found bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -180,7 +180,7 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.MetricInfo, nam
 	return 0, "", "", false
 }
 
-func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.MetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool) {
+func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -234,7 +234,7 @@ type seriesSpec struct {
 
 // processContainerSeries performs special work to extract metric definitions
 // from cAdvisor-sourced container metrics, which don't particularly follow any useful conventions consistently.
-func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provider.MetricInfo]seriesInfo) {
+func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provider.CustomMetricInfo]seriesInfo) {
 
 	originalName := series.Name
 
@@ -249,7 +249,7 @@ func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provi
 		name, metricKind = n.metricNameFromSeries(series)
 	}
 
-	info := provider.MetricInfo{
+	info := provider.CustomMetricInfo{
 		GroupResource: schema.GroupResource{Resource: "pods"},
 		Namespaced:    true,
 		Metric:        name,
@@ -264,7 +264,7 @@ func (n *metricNamer) processContainerSeries(series prom.Series, infos map[provi
 
 // processNamespacedSeries adds the metric info for the given generic namespaced series to
 // the map of metric info.
-func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[provider.MetricInfo]seriesInfo) error {
+func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[provider.CustomMetricInfo]seriesInfo) error {
 	// NB: all errors must occur *before* we save the series info
 	name, metricKind := n.metricNameFromSeries(series)
 	resources, err := n.groupResourcesFromSeries(series)
@@ -274,7 +274,7 @@ func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[prov
 
 	// we add one metric for each resource that this could describe
 	for _, resource := range resources {
-		info := provider.MetricInfo{
+		info := provider.CustomMetricInfo{
 			GroupResource: resource,
 			Namespaced:    true,
 			Metric:        name,
@@ -296,7 +296,7 @@ func (n *metricNamer) processNamespacedSeries(series prom.Series, infos map[prov
 
 // processesRootScopedSeries adds the metric info for the given generic namespaced series to
 // the map of metric info.
-func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[provider.MetricInfo]seriesInfo) error {
+func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[provider.CustomMetricInfo]seriesInfo) error {
 	// NB: all errors must occur *before* we save the series info
 	name, metricKind := n.metricNameFromSeries(series)
 	resources, err := n.groupResourcesFromSeries(series)
@@ -306,7 +306,7 @@ func (n *metricNamer) processRootScopedSeries(series prom.Series, infos map[prov
 
 	// we add one metric for each resource that this could describe
 	for _, resource := range resources {
-		info := provider.MetricInfo{
+		info := provider.CustomMetricInfo{
 			GroupResource: resource,
 			Namespaced:    false,
 			Metric:        name,
