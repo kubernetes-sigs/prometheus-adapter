@@ -47,7 +47,7 @@ type externalPrometheusProvider struct {
 }
 
 //TODO: It probably makes more sense to, once this is functional and complete, roll the
-//customPrometheusProvider and externalPrometheusProvider up into a single type
+//prometheusProvider and externalPrometheusProvider up into a single type
 //that implements both interfaces or provide a thin wrapper that composes them.
 //Just glancing at start.go looks like it would be much more straightforward
 //to do one of those two things instead of trying to run the two providers
