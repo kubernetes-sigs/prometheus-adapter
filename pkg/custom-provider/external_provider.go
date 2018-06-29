@@ -66,7 +66,14 @@ func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic
 }
 
 func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricName string, metricSelector labels.Selector) (*external_metrics.ExternalMetricValueList, error) {
-	query := p.queryBuilder.BuildPrometheusQuery(namespace, metricName, metricSelector)
+	//TODO: Get the appropriate time window and aggregation type from somewhere
+	//based on the metric being selected. Does SeriesRegistry have the metric type cached?
+	queryMetadata := conv.QueryMetadata{
+		MetricName:      metricName,
+		WindowInSeconds: 120,
+		Aggregation:     "rate",
+	}
+	query := p.queryBuilder.BuildPrometheusQuery(namespace, metricName, metricSelector, queryMetadata)
 	selector := prom.Selector(query)
 
 	//TODO: I don't yet know what a context is, but apparently I should use a real one.
@@ -78,10 +85,6 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricN
 		return nil, err
 	}
 
-	queryMetadata := conv.QueryMetadata{
-		MetricName:      metricName,
-		WindowInSeconds: 0,
-	}
 	return p.metricConverter.Convert(queryMetadata, queryResults)
 }
 

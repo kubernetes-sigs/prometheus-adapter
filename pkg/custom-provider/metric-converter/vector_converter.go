@@ -5,18 +5,19 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/prometheus/common/model"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
 
 type vectorConverter struct {
+	SampleConverter SampleConverter
 }
 
 //NewVectorConverter creates a VectorConverter capable of converting
 //vector Prometheus query results into external metric types.
-func NewVectorConverter() MetricConverter {
-	return &vectorConverter{}
+func NewVectorConverter(sampleConverter *SampleConverter) MetricConverter {
+	return &vectorConverter{
+		SampleConverter: *sampleConverter,
+	}
 }
 
 func (c *vectorConverter) Convert(metadata QueryMetadata, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
@@ -45,20 +46,13 @@ func (c *vectorConverter) convert(metadata QueryMetadata, result model.Vector) (
 	}
 
 	for _, val := range result {
-		singleMetric := external_metrics.ExternalMetricValue{
-			MetricName: string(val.Metric[model.LabelName("__name__")]),
-			Timestamp: metav1.Time{
-				val.Timestamp.Time(),
-			},
-			WindowSeconds: &metadata.WindowInSeconds,
-			//TODO: I'm not so sure about this type/conversions.
-			//This can't possibly be the right way to convert this.
-			//Also, does K8S only deal win integer metrics?
-			Value: *resource.NewQuantity(int64(float64(val.Value)), resource.DecimalSI),
-		}
-
-		items = append(items, singleMetric)
+		//TODO: Care about potential errors here.
+		singleMetric, _ := c.SampleConverter.Convert(metadata, val)
+		items = append(items, *singleMetric)
 	}
 
+	metricValueList = external_metrics.ExternalMetricValueList{
+		Items: items,
+	}
 	return &metricValueList, nil
 }

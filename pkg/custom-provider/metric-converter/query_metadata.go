@@ -8,4 +8,6 @@ package provider
 type QueryMetadata struct {
 	MetricName      string
 	WindowInSeconds int64
+	//TODO: Type this?
+	Aggregation string
 }

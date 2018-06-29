@@ -33,5 +33,5 @@ func (c *matrixConverter) Convert(metadata QueryMetadata, queryResult prom.Query
 
 func (c *matrixConverter) convert(result *model.Matrix) (*external_metrics.ExternalMetricValueList, error) {
 	//TODO: Implementation.
-	return nil, nil
+	return nil, errors.New("converting Matrix results is not yet supported")
 }
