@@ -40,7 +40,7 @@ func (p *externalMetricQueryBuilder) BuildPrometheusQuery(namespace string, metr
 	//I'm guessing that SeriesRegistry might store the metric type, but I haven't looked yet.
 	aggregation := queryMetadata.Aggregation
 	window := queryMetadata.WindowInSeconds
-	return fmt.Sprintf("%s(%s{%s}[%ss])", aggregation, metricName, joinedLabels, window)
+	return fmt.Sprintf("%s(%s{%s}[%ds])", aggregation, metricName, joinedLabels, window)
 }
 
 func (p *externalMetricQueryBuilder) makeLabelFilter(labelName string, operator string, targetValue string) string {
