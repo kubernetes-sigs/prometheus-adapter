@@ -17,7 +17,7 @@ func NewMatrixConverter() MetricConverter {
 	return &matrixConverter{}
 }
 
-func (c *matrixConverter) Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *matrixConverter) Convert(metadata QueryMetadata, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type != model.ValMatrix {
 		return nil, errors.New("matrixConverter can only convert scalar query results")
 	}

@@ -19,7 +19,7 @@ func NewScalarConverter() MetricConverter {
 	return &scalarConverter{}
 }
 
-func (c *scalarConverter) Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *scalarConverter) Convert(metadata QueryMetadata, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type != model.ValScalar {
 		return nil, errors.New("scalarConverter can only convert scalar query results")
 	}
@@ -30,37 +30,26 @@ func (c *scalarConverter) Convert(queryResult prom.QueryResult) (*external_metri
 		return nil, errors.New("the provided input did not contain scalar query results")
 	}
 
-	return c.convert(toConvert)
+	return c.convert(metadata, toConvert)
 }
 
-func (c *scalarConverter) convert(input *model.Scalar) (*external_metrics.ExternalMetricValueList, error) {
-	tempWindow := int64(0)
+func (c *scalarConverter) convert(metadata QueryMetadata, input *model.Scalar) (*external_metrics.ExternalMetricValueList, error) {
 	result := external_metrics.ExternalMetricValueList{
-		//TODO: Where should all of these values come from?
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "?",
-			APIVersion: "?",
-		},
-		ListMeta: metav1.ListMeta{
-			SelfLink:        "?",
-			ResourceVersion: "?",
-			Continue:        "?",
-		},
+		//Using prometheusProvider.metricsFor(...) as an example,
+		//it seems that I don't need to provide values for
+		//TypeMeta and ListMeta.
+		//TODO: Get some confirmation on this.
 		Items: []external_metrics.ExternalMetricValue{
 			external_metrics.ExternalMetricValue{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "?",
-					APIVersion: "?",
-				},
-				//TODO: Carry forward the metric name so we can set it here.
-				MetricName: "?",
+				MetricName: metadata.MetricName,
 				Timestamp: metav1.Time{
 					input.Timestamp.Time(),
 				},
-				//TODO: Carry forward some information about our configuration so we can provide it here.
-				WindowSeconds: &tempWindow,
-				//TODO: Jump through the necessary hoops to convert our number into the proper type.
-				Value: resource.Quantity{},
+				WindowSeconds: &metadata.WindowInSeconds,
+				//TODO: I'm not so sure about this type/conversions.
+				//Is there a meaningful loss of precision here?
+				//Does K8S only deal win integer metrics?
+				Value: *resource.NewQuantity(int64(input.Value), resource.DecimalSI),
 			},
 		},
 	}

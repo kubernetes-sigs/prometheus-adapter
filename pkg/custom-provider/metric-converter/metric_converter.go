@@ -11,7 +11,7 @@ import (
 //MetricConverter provides a unified interface for converting the results of
 //Prometheus queries into external metric types.
 type MetricConverter interface {
-	Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error)
+	Convert(metadata QueryMetadata, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error)
 }
 
 type metricConverter struct {
@@ -30,17 +30,17 @@ func NewMetricConverter(scalar MetricConverter, vector MetricConverter, matrix M
 	}
 }
 
-func (c *metricConverter) Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *metricConverter) Convert(metadata QueryMetadata, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type == model.ValScalar {
-		return c.scalarConverter.Convert(queryResult)
+		return c.scalarConverter.Convert(metadata, queryResult)
 	}
 
 	if queryResult.Type == model.ValVector {
-		return c.vectorConverter.Convert(queryResult)
+		return c.vectorConverter.Convert(metadata, queryResult)
 	}
 
 	if queryResult.Type == model.ValMatrix {
-		return c.matrixConverter.Convert(queryResult)
+		return c.matrixConverter.Convert(metadata, queryResult)
 	}
 
 	return nil, errors.New("encountered an unexpected query result type")

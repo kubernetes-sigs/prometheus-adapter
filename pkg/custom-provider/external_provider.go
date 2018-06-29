@@ -78,7 +78,11 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricN
 		return nil, err
 	}
 
-	return p.metricConverter.Convert(queryResults)
+	queryMetadata := conv.QueryMetadata{
+		MetricName:      metricName,
+		WindowInSeconds: 0,
+	}
+	return p.metricConverter.Convert(queryMetadata, queryResults)
 }
 
 func (p *externalPrometheusProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
