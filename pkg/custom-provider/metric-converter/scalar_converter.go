@@ -40,7 +40,7 @@ func (c *scalarConverter) convert(metadata QueryMetadata, input *model.Scalar) (
 		//TypeMeta and ListMeta.
 		//TODO: Get some confirmation on this.
 		Items: []external_metrics.ExternalMetricValue{
-			external_metrics.ExternalMetricValue{
+			{
 				MetricName: metadata.MetricName,
 				Timestamp: metav1.Time{
 					input.Timestamp.Time(),
