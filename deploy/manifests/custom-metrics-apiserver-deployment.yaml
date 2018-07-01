@@ -39,6 +39,8 @@ spec:
         - mountPath: /etc/adapter/
           name: config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp-vol
       volumes:
       - name: volume-serving-cert
         secret:
@@ -46,3 +48,5 @@ spec:
       - name: config
         configMap:
           name: adapter-config
+      - name: tmp-vol
+        emptyDir: {}
