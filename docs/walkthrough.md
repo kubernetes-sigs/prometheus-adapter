@@ -21,20 +21,24 @@ Detailed instructions can be found in the Kubernetes documentation under
 Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-custom-metrics).
 
 Make sure that you've properly configured metrics-server (as is default in
-Kubernetes 1.9+), or enabling custom metrics autoscaling support with
+Kubernetes 1.9+), or enabling custom metrics autoscaling support will
 disable CPU autoscaling support.
 
 Note that most of the API versions in this walkthrough target Kubernetes
-1.9.  It should still work with 1.7 and 1.8, but you might have to change
-some minor details.
+1.9+.  Note that current versions of the adapter *only* work with
+Kubernetes 1.8+.  Version 0.1.0 works with Kubernetes 1.7, but is
+significantly different.
 
 ### Binaries and Images ###
 
 In order to follow this walkthrough, you'll need container images for
 Prometheus and the custom metrics adapter.
 
-Both can be found on Dockerhub under `prom/prometheus` and
-`directxman12/k8s-prometheus-adapter`, respectively.
+Prometheus can be found at `prom/prometheus` on Dockerhub.  The adapter
+has different images for each arch, and can be found at
+`directxman12/k8s-prometheus-adapter-${ARCH}`.  For instance, if you're on
+an x86_64 machine, use the `directxman12/k8s-prometheus-adapter-amd64`
+image.
 
 If you're feeling adventurous, you can build the latest version of the
 custom metrics adapter by running `make docker-build`.
@@ -50,12 +54,19 @@ in for `prom` when it appears.
 
 ### Prometheus Configuration ###
 
-If you've never deployed Prometheus before, you'll need an appropriate
-Prometheus configuration.  There's a extensive sample Prometheus
-configuration in the Prometheus repository
-[here](https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml).
-Be sure to also read the Prometheus documentation on [configuring
-Prometheus](https://prometheus.io/docs/operating/configuration/).
+It's reccomended to use the [Prometheus
+Operator](https://coreos.com/operators/prometheus/docs/latest/) to deploy
+Prometheus.  It's a lot easier than configuring Prometheus by hand.  Note
+that the Prometheus operator rules rename some labels if they conflict
+with its automatic labels, so you may have to tweak the adapter
+configuration slightly.
+
+If you don't want to use the Prometheus Operator, you'll have to deploy
+Prometheus with a hand-written configuration.  Below, you can find the
+relevant parts of the configuration that are expected for this
+walkthrough.  See the Prometheus documentation on [configuring
+Prometheus](https://prometheus.io/docs/operating/configuration/) for more
+information.
 
 For the purposes of this walkthrough, you'll need the following
 configuration options to be set:
@@ -116,254 +127,58 @@ scrape_configs:
 
 </details>
 
-Place your full configuration (it might just be the above) in a file (call
-it `prom-cfg.yaml`, for example), and then create a ConfigMap containing
-it:
+Ensure that your Prometheus is up and running by accessing the Prometheus
+dashboard, and checking on the labels on those metrics.  You'll need the
+label names for configuring the adapter.
 
-```shell
-$ kubectl -n prom create configmap prometheus --from-file=prometheus.yml=prom-cfg.yaml
-```
+### Creating the Resources and Launching the Deployment ###
 
-You'll be using this later when you launch Prometheus.
+The [deploy/manifests](deploy/manifests) directory contains the
+appropriate files for creating the Kubernetes objects to deploy the
+adapter.
 
-### Launching the Deployment ###
+See the [deployment README](deploy/README.md) for more information about
+the steps to deploy the adapter.  Note that if you're deploying on
+a non-x86_64 (amd64) platform, you'll need to change the `image` field in
+the Deployment to be the appropriate image for your platform.
 
-It's generally easiest to launch the adapter and Prometheus as two
-containers in the same pod.  You can use a deployment to manage your
-adapter and Prometheus instance.
+You may also need to modify the ConfigMap containing the metrics discovery
+configuration.  If you're using the Prometheus configuration described
+above, it should work out of the box in common cases.  Otherwise, read the
+[configuration documentation](docs/config.md) to learn how to configure
+the adapter for your particular metrics and labels.
 
-First, we'll create a ServiceAccount for the deployment to run as:
+### The Registered API ###
 
-```yaml
-$ kubectl -n prom create serviceaccount prom-cm-adapter
-```
+As part of the creation of the adapter Deployment and associated objects
+(performed above), we registered the API with the API aggregator (part of
+the main Kubernetes API server).
 
-Start out with a fairly straightforward Prometheus deployment using the
-ConfigMap from above, and proceed from there:
-
-<details>
-
-<summary>prom-adapter.deployment.yaml [Prometheus only]</summary>
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: prometheus
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: prometheus
-  template:
-    metadata:
-      labels:
-        app: prometheus
-    spec:
-      serviceAccountName: prom-cm-adapter
-      containers:
-      - image: prom/prometheus:v2.2.0-rc.0
-        name: prometheus
-        args:
-        # point prometheus at the configuration that you mount in below
-        - --config.file=/etc/prometheus/prometheus.yml
-        ports:
-        # this port exposes the dashboard and the HTTP API
-        - containerPort: 9090
-          name: prom-web
-          protocol: TCP
-        volumeMounts:
-        # you'll mount your ConfigMap volume at /etc/prometheus
-        - mountPath: /etc/prometheus
-          name: prom-config
-      volumes:
-      # make your configmap available as a volume, so that you can
-      # mount in the Prometheus config from earlier
-      - name: prom-config
-        configMap:
-          name: prometheus
-```
-
-</details>
-
-Save this file (for example, as `prom-adapter.deployment.yaml`).  Now,
-you'll need to modify the deployment to include the adapter.
-
-The adapter has several options, most of which it shares with any other
-standard Kubernetes addon API server.  This means that you'll need proper
-API server certificates for it to function properly.  To learn more about
-which certificates are needed, and what they mean, see [Concepts: Auth and
-Certificates](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md).
-
-Once you've generated the necessary certificates, you'll need to place
-them in a secret.  This walkthrough assumes that you've set up your
-cluster to automatically inject client certificates and CA certificates
-(see the above concepts documentation).  Make sure you've granted the
-default service account for your namespace permission to fetch the
-authentication CA ConfigMap:
-
-```shell
-$ kubectl create rolebinding prom-ext-auth-reader --role="extension-apiserver-authentication-reader" --serviceaccount=prom:prom-cm-adapter
-```
-
-Then, store your serving certificates in a secret:
-
-```shell
-$ kubectl -n prom create secret tls serving-cm-adapter --cert=/path/to/cm-adapter/serving.crt --key=/path/to/cm-adapter/serving.key
-```
-
-Next, you'll need to make sure that the service account used to launch the
-Deployment has permission to list resources in the cluster:
-
-<details>
-<summary>resource-lister.yaml </summary>
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: resource-lister
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - '*'
-  verbs:
-  - list
-  ```
-</details>
-
-```shell
-$ kubectl create -f resource-lister.yaml
-$ kubectl create clusterrolebinding cm-adapter-resource-lister --clusterrole=resource-lister -- serviceaccount=prom:prom-cm-adapter
-```
-
-Finally, ensure the deployment has all the necessary permissions to
-delegate authentication and authorization decisions to the main API
-server.  See [Concepts: Auth and
-Certificates](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/auth.md)
-for more information.
-
-Next, amend the file above to run the adapter as well.  You may need to
-modify this part if you wish to inject the needed certificates a different
-way.
-
-<details>
-
-<summary>prom-adapter.deployment.yaml [Adapter & Prometheus]</summary>
-
-```yaml
-...
-spec:
-  containers:
-  ...
-  - image: directxman12/k8s-prometheus-adapter
-    name: cm-adapter
-    args:
-    - --secure-port=6443
-    - --logtostderr=true
-    # use your serving certs
-    - --tls-cert-file=/var/run/serving-certs/tls.crt
-    - --tls-private-key-file=/var/run/serving-certs/tls.key
-    # Prometheus is running in the same pod, so you can say your Prometheus
-    # is at `localhost`
-    - --prometheus-url=http://localhost:9090
-    # relist available Prometheus metrics every 1m
-    - --metrics-relist-interval=1m
-    # calculate rates for cumulative metrics over 30s periods.  This should be *at least*
-    # as much as your collection interval for Prometheus.
-    - --rate-interval=30s
-    # re-discover new available resource names every 10m.  You probably
-    # won't need to have this be particularly often, but if you add
-    # additional addons to your cluster, the adapter will discover there
-    # existance at this interval
-    - --discovery-interval=10m
-    - --v=4
-    ports:
-    # this port exposes the custom metrics API
-    - containerPort: 6443
-      name: https
-      protocol: TCP
-    volumeMounts:
-    - mountPath: /var/run/serving-certs
-      name: serving-certs
-      readOnly: true
-  volumes:
-  ...
-  - name: serving-certs
-    secret:
-      secretName: serving-cm-adapter
-```
-
-</details>
-
-Next, create the deployment and expose it as a service, mapping port 443
-to your pod's port 443, on which you've exposed the custom metrics API:
-
-```shell
-$ kubectl -n prom create -f prom-adapter.deployment.yaml
-$ kubectl -n prom create service clusterip prometheus --tcp=443:6443
-```
-
-### Registering the API ###
-
-Now that you have a running deployment of Prometheus and the adapter,
-you'll need to register it as providing the
-`custom.metrics.k8s.io/v1beta1` API.
-
-For more information on how this works, see [Concepts:
+The API is registered as `custom.metrics.k8s.io/v1beta1`, and you can find
+more information about aggregation at [Concepts:
 Aggregation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/aggregation.md).
 
-You'll need to create an API registration record for the
-`custom.metrics.k8s.io/v1beta1` API.  In order to do this, you'll need the
-base64 encoded version of the CA certificate used to sign the serving
-certificates you created above.  If the CA certificate is stored in
-`/tmp/ca.crt`, you can get the base64-encoded form like this:
+If you're deploying into production, you'll probably want to modify the
+APIService object to contain the CA used to sign your serving
+certificates.
+
+To do this, first base64-encode the CA (assuming it's stored in
+/tmp/ca.crt):
 
 ```shell
-$ base64 --w 0 < /tmp/ca.crt
+$ base64 -w 0 < /tmp/ca.crt
 ```
 
-Take the resulting value, and place it into the following file:
-
-<details>
-
-<summary>cm-registration.yaml</summary>
-
-*Note that apiregistration moved to stable in 1.10, so you'll need to use
-the `apiregistration.k8s.io/v1` API version there*.
-
-```yaml
-apiVersion: apiregistration.k8s.io/v1beta1
-kind: APIService
-metadata:
-  name: v1beta1.custom.metrics.k8s.io
-spec:
-  # this tells the aggregator how to verify that your API server is
-  # actually who it claims to be
-  caBundle: <base-64-value-from-above>
-  # these specify which group and version you're registering the API
-  # server for
-  group: custom.metrics.k8s.io
-  version: v1beta1
-  # these control how the aggregator prioritizes your registration.
-  # it's not particularly relevant in this case.
-  groupPriorityMinimum: 1000
-  versionPriority: 10
-  # finally, this points the aggregator at the service for your
-  # API server that you created
-  service:
-    name: prometheus
-    namespace: prom
-```
-
-</details>
-
-Register that registration object with the aggregator:
+Then, edit the APIService and place the encoded contents into the
+`caBundle` field under `spec`, and removing the `insecureSkipTLSVerify`
+field in the same location:
 
 ```shell
-$ kubectl create -f cm-registration.yaml
+$ kubectl edit apiservice v1beta1.custom.metrics.k8s.io
 ```
+
+This ensures that the API aggregator checks that the API is being served
+by the server that you expect, by verifying the certificates.
 
 ### Double-Checking Your Work ###
 
@@ -408,14 +223,15 @@ spec:
       labels:
         app: sample-app
       annotations:
-        # based on your Prometheus config above, this tells prometheus
-        # to scrape this pod for metrics on port 8080 at "/metrics"
+        # if you're not using the Operator, you'll need these annotations
+        # otherwise, configure the operator to collect metrics from
+        # the sample-app service on port 80 at /metrics
         prometheus.io/scrape: true
         prometheus.io/port: 8080
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - image: luxas/autoscale-demo
+      - image: luxas/autoscale-demo:v0.1.2
         name: metrics-provider
       ports:
       - name: http
@@ -453,6 +269,18 @@ $ curl http://$(kubectl get service sample-app -o jsonpath='{ .spec.clusterIP }'
 Try fetching the metrics again.  You should see an increase in the rate
 after the collection interval specified in your Prometheus configuration
 has elapsed.  If you leave it for a bit, the rate will go back down again.
+
+### Troubleshooting Missing Metrics
+
+If the metric does not appear, or is not registered with the right
+resources, you might need to modify your [metrics discovery
+configuration](docs/config.md), as mentioned above.  Check your labels via
+the Prometheus dashboard, and then modify the configuration appropriately.
+
+As noted in the main [README](README.md), you'll need to also make sure
+your metrics relist interval is at least your Prometheus scrape interval.
+If it's less that that, you'll see metrics periodically appear and
+disappear from the adapter.
 
 Autoscaling
 -----------
@@ -533,4 +361,5 @@ scaling on application on a metric provided by another application by
 setting different labels or using the `Object` metric source type.
 
 For more information on how metrics are exposed by the Prometheus adapter,
-see the [format documentation](./format.md).
+see [config documentation](docs/config.md), and check the [default
+configuration](deploy/manifests/custom-metrics-config-map.yaml).
