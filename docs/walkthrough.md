@@ -133,11 +133,11 @@ label names for configuring the adapter.
 
 ### Creating the Resources and Launching the Deployment ###
 
-The [deploy/manifests](deploy/manifests) directory contains the
+The [deploy/manifests](/deploy/manifests) directory contains the
 appropriate files for creating the Kubernetes objects to deploy the
 adapter.
 
-See the [deployment README](deploy/README.md) for more information about
+See the [deployment README](/deploy/README.md) for more information about
 the steps to deploy the adapter.  Note that if you're deploying on
 a non-x86_64 (amd64) platform, you'll need to change the `image` field in
 the Deployment to be the appropriate image for your platform.
@@ -145,7 +145,7 @@ the Deployment to be the appropriate image for your platform.
 You may also need to modify the ConfigMap containing the metrics discovery
 configuration.  If you're using the Prometheus configuration described
 above, it should work out of the box in common cases.  Otherwise, read the
-[configuration documentation](docs/config.md) to learn how to configure
+[configuration documentation](/docs/config.md) to learn how to configure
 the adapter for your particular metrics and labels.
 
 ### The Registered API ###
@@ -274,7 +274,7 @@ has elapsed.  If you leave it for a bit, the rate will go back down again.
 
 If the metric does not appear, or is not registered with the right
 resources, you might need to modify your [metrics discovery
-configuration](docs/config.md), as mentioned above.  Check your labels via
+configuration](/docs/config.md), as mentioned above.  Check your labels via
 the Prometheus dashboard, and then modify the configuration appropriately.
 
 As noted in the main [README](README.md), you'll need to also make sure
@@ -361,5 +361,5 @@ scaling on application on a metric provided by another application by
 setting different labels or using the `Object` metric source type.
 
 For more information on how metrics are exposed by the Prometheus adapter,
-see [config documentation](docs/config.md), and check the [default
-configuration](deploy/manifests/custom-metrics-config-map.yaml).
+see [config documentation](/docs/config.md), and check the [default
+configuration](/deploy/manifests/custom-metrics-config-map.yaml).
