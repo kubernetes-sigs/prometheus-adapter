@@ -277,7 +277,7 @@ resources, you might need to modify your [metrics discovery
 configuration](/docs/config.md), as mentioned above.  Check your labels via
 the Prometheus dashboard, and then modify the configuration appropriately.
 
-As noted in the main [README](README.md), you'll need to also make sure
+As noted in the main [README](/README.md), you'll need to also make sure
 your metrics relist interval is at least your Prometheus scrape interval.
 If it's less that that, you'll see metrics periodically appear and
 disappear from the adapter.
