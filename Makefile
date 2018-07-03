@@ -69,7 +69,7 @@ ifeq ($(VENDOR_DOCKERIZED),1)
 		curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh \
 		&& dep ensure -vendor-only"
 else
-	dep ensure -vendor-only
+	dep ensure -vendor-only -v
 endif
 
 test: vendor
