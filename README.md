@@ -29,8 +29,8 @@ adapter talks to Prometheus and the main Kubernetes cluster:
 - `--metrics-relist-interval=<duration>`: This is the interval at which to
   update the cache of available metrics from Prometheus.  Since the adapter
   only lists metrics during discovery that exist between the current time and
-  the last discovery query, it's necessary to set your relist interval to
-  *at least* your Prometheus scrape interval, otherwise your metrics will
+  the last discovery query, your relist interval should be equal to or larger
+  than your Prometheus scrape interval, otherwise your metrics will
   occaisonally disappear from the adapter.
 
 - `--prometheus-url=<url>`: This is the URL used to connect to Prometheus.
