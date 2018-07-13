@@ -1,5 +1,4 @@
 *.swp
 *~
-vendor
 _output
 deploy/adapter
