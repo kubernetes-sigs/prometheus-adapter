@@ -24,7 +24,11 @@ services:
 - docker
 
 deploy:
-  provider: script
+- provider: script
   script: bash .travis-deploy.sh
   on:
     branch: master
+- provider: script
+  script: bash .travis-deploy.sh
+  on:
+    tags: true
