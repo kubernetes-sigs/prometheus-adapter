@@ -32,6 +32,9 @@ type DiscoveryRule struct {
 	// `.GroupBy` is the comma-separated expected group-by label names. The delimeters
 	// are `<<` and `>>`.
 	MetricsQuery string `yaml:"metricsQuery,omitempty"`
+	// MetricType identifies whether the metrics derived from this rule should be classified
+	// as external or custom metrics.
+	MetricType MetricType `yaml:"metricType"`
 }
 
 // RegexFilter is a filter that matches positively or negatively against a regex.
@@ -73,3 +76,6 @@ type NameMapping struct {
 	// if only one is present, and will error if multiple are.
 	As string `yaml:"as"`
 }
+
+//MetricType identifies whether a given metric should be handled and interpreted as a Custom or External metric.
+type MetricType string

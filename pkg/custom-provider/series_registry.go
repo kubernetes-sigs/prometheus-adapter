@@ -17,11 +17,11 @@ limitations under the License.
 package provider
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/golang/glog"
@@ -43,14 +43,13 @@ const (
 
 // SeriesRegistry provides conversions between Prometheus series and MetricInfo
 type SeriesRegistry interface {
-	// SetSeries replaces the known series in this registry.
-	// Each slice in series should correspond to a MetricNamer in namers.
-	SetSeries(series [][]prom.Series, namers []MetricNamer) error
 	// ListAllMetrics lists all metrics known to this registry
 	ListAllMetrics() []provider.CustomMetricInfo
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
 	QueryForMetric(info provider.CustomMetricInfo, namespace string, resourceNames ...string) (query prom.Selector, found bool)
+	// TODO: Don't house the external metric stuff side-by-side with the custom metric stuff.
+	QueryForExternalMetric(info provider.ExternalMetricInfo, metricSelector labels.Selector) (query prom.Selector, found bool)
 	// MatchValuesToNames matches result values to resource names for the given metric and value set
 	MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool)
 }
@@ -68,17 +67,34 @@ type basicSeriesRegistry struct {
 	mu sync.RWMutex
 
 	// info maps metric info to information about the corresponding series
-	info map[provider.CustomMetricInfo]seriesInfo
+	info         map[provider.CustomMetricInfo]seriesInfo
+	externalInfo map[string]seriesInfo
 	// metrics is the list of all known metrics
 	metrics []provider.CustomMetricInfo
 
 	mapper apimeta.RESTMapper
+
+	metricLister MetricListerWithNotification
 }
 
-func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers []MetricNamer) error {
-	if len(newSeriesSlices) != len(namers) {
-		return fmt.Errorf("need one set of series per namer")
+func NewBasicSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) SeriesRegistry {
+	var registry = basicSeriesRegistry{
+		mapper:       mapper,
+		metricLister: lister,
 	}
+
+	lister.SetNotificationReceiver(registry.onNewDataAvailable)
+
+	return &registry
+}
+
+func (r basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
+	newSeriesSlices := result.series
+	namers := result.namers
+
+	// if len(newSeriesSlices) != len(namers) {
+	// 	return fmt.Errorf("need one set of series per namer")
+	// }
 
 	newInfo := make(map[provider.CustomMetricInfo]seriesInfo)
 	for i, newSeries := range newSeriesSlices {
@@ -123,8 +139,6 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 
 	r.info = newInfo
 	r.metrics = newMetrics
-
-	return nil
 }
 
 func (r *basicSeriesRegistry) ListAllMetrics() []provider.CustomMetricInfo {
@@ -158,6 +172,29 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 	query, err := info.namer.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, resourceNames...)
 	if err != nil {
 		glog.Errorf("unable to construct query for metric %s: %v", metricInfo.String(), err)
+		return "", false
+	}
+
+	return query, true
+}
+
+func (r *basicSeriesRegistry) QueryForExternalMetric(metricInfo provider.ExternalMetricInfo, metricSelector labels.Selector) (query prom.Selector, found bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	info, infoFound := r.info[metricInfo]
+	if !infoFound {
+		//TODO: Weird that it switches between types here.
+		glog.V(10).Infof("metric %v not registered", metricInfo)
+		return "", false
+	}
+
+	query, err := info.namer.QueryForExternalSeries(info.seriesName, metricSelector)
+	if err != nil {
+		//TODO: See what was being .String() and implement that for ExternalMetricInfo.
+		// errorVal := metricInfo.String()
+		errorVal := "something"
+		glog.Errorf("unable to construct query for metric %s: %v", errorVal, err)
 		return "", false
 	}
 

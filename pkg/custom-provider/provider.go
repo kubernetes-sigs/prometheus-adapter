@@ -32,21 +32,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
-
-// Runnable represents something that can be run until told to stop.
-type Runnable interface {
-	// Run runs the runnable forever.
-	Run()
-	// RunUntil runs the runnable until the given channel is closed.
-	RunUntil(stopChan <-chan struct{})
-}
 
 type prometheusProvider struct {
 	mapper     apimeta.RESTMapper
@@ -57,23 +47,18 @@ type prometheusProvider struct {
 }
 
 func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
-	lister := &cachingMetricsLister{
-		updateInterval: updateInterval,
-		promClient:     promClient,
-		namers:         namers,
+	basicLister := NewBasicMetricLister(promClient, namers, updateInterval)
+	periodicLister, periodicRunnable := NewPeriodicMetricLister(basicLister, updateInterval)
 
-		SeriesRegistry: &basicSeriesRegistry{
-			mapper: mapper,
-		},
-	}
+	seriesRegistry := NewBasicSeriesRegistry(periodicLister, mapper)
 
 	return &prometheusProvider{
 		mapper:     mapper,
 		kubeClient: kubeClient,
 		promClient: promClient,
 
-		SeriesRegistry: lister,
-	}, lister
+		SeriesRegistry: seriesRegistry,
+	}, periodicLister
 }
 
 func (p *prometheusProvider) metricFor(value pmodel.SampleValue, groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error) {
@@ -261,87 +246,4 @@ func (p *prometheusProvider) GetNamespacedMetricBySelector(groupResource schema.
 		Namespaced:    true,
 	}
 	return p.getMultiple(info, namespace, selector)
-}
-
-type cachingMetricsLister struct {
-	SeriesRegistry
-
-	promClient     prom.Client
-	updateInterval time.Duration
-	namers         []MetricNamer
-}
-
-func (l *cachingMetricsLister) Run() {
-	l.RunUntil(wait.NeverStop)
-}
-
-func (l *cachingMetricsLister) RunUntil(stopChan <-chan struct{}) {
-	go wait.Until(func() {
-		if err := l.updateMetrics(); err != nil {
-			utilruntime.HandleError(err)
-		}
-	}, l.updateInterval, stopChan)
-}
-
-type selectorSeries struct {
-	selector prom.Selector
-	series   []prom.Series
-}
-
-func (l *cachingMetricsLister) updateMetrics() error {
-	startTime := pmodel.Now().Add(-1 * l.updateInterval)
-
-	// don't do duplicate queries when it's just the matchers that change
-	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
-
-	// these can take a while on large clusters, so launch in parallel
-	// and don't duplicate
-	selectors := make(map[prom.Selector]struct{})
-	selectorSeriesChan := make(chan selectorSeries, len(l.namers))
-	errs := make(chan error, len(l.namers))
-	for _, namer := range l.namers {
-		sel := namer.Selector()
-		if _, ok := selectors[sel]; ok {
-			errs <- nil
-			selectorSeriesChan <- selectorSeries{}
-			continue
-		}
-		selectors[sel] = struct{}{}
-		go func() {
-			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{startTime, 0}, sel)
-			if err != nil {
-				errs <- fmt.Errorf("unable to fetch metrics for query %q: %v", sel, err)
-				return
-			}
-			errs <- nil
-			selectorSeriesChan <- selectorSeries{
-				selector: sel,
-				series:   series,
-			}
-		}()
-	}
-
-	// iterate through, blocking until we've got all results
-	for range l.namers {
-		if err := <-errs; err != nil {
-			return fmt.Errorf("unable to update list of all metrics: %v", err)
-		}
-		if ss := <-selectorSeriesChan; ss.series != nil {
-			seriesCacheByQuery[ss.selector] = ss.series
-		}
-	}
-	close(errs)
-
-	newSeries := make([][]prom.Series, len(l.namers))
-	for i, namer := range l.namers {
-		series, cached := seriesCacheByQuery[namer.Selector()]
-		if !cached {
-			return fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", namer.Selector())
-		}
-		newSeries[i] = namer.FilterSeries(series)
-	}
-
-	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
-
-	return l.SetSeries(newSeries, l.namers)
 }

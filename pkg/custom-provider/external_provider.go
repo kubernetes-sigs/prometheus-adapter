@@ -6,7 +6,6 @@ import (
 
 	pmodel "github.com/prometheus/common/model"
 
-	conv "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider/metric-converter"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -34,7 +33,7 @@ type externalPrometheusProvider struct {
 	queryBuilder    ExternalMetricQueryBuilder
 	metricConverter conv.MetricConverter
 
-	SeriesRegistry
+	seriesRegistry SeriesRegistry
 }
 
 //TODO: It probably makes more sense to, once this is functional and complete, roll the
@@ -44,37 +43,26 @@ type externalPrometheusProvider struct {
 //to do one of those two things instead of trying to run the two providers
 //independently.
 
-func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration, queryBuilder ExternalMetricQueryBuilder, metricConverter conv.MetricConverter) (provider.ExternalMetricsProvider, Runnable) {
-	lister := &cachingMetricsLister{
-		updateInterval: updateInterval,
-		promClient:     promClient,
-		namers:         namers,
-
-		SeriesRegistry: &basicSeriesRegistry{
-			mapper: mapper,
-		},
-	}
+func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration, metricConverter conv.MetricConverter, seriesRegistry SeriesRegistry) (provider.ExternalMetricsProvider, Runnable) {
 
 	return &externalPrometheusProvider{
 		mapper:          mapper,
 		kubeClient:      kubeClient,
 		promClient:      promClient,
 		metricConverter: metricConverter,
-
-		SeriesRegistry: lister,
+		seriesRegistry:  seriesRegistry,
 	}, lister
 }
 
 func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricName string, metricSelector labels.Selector) (*external_metrics.ExternalMetricValueList, error) {
-	//TODO: Get the appropriate time window and aggregation type from somewhere
-	//based on the metric being selected. Does SeriesRegistry have the metric type cached?
-	queryMetadata := conv.QueryMetadata{
-		MetricName:      metricName,
-		WindowInSeconds: 120,
-		Aggregation:     "rate",
+	selector, found := p.seriesRegistry.QueryForExternalMetric(metricInfo, metricSelector)
+
+	if !found {
+		return &external_metrics.ExternalMetricValueList{
+			Items: []external_metrics.ExternalMetricValue{},
+		}, nil
 	}
-	query := p.queryBuilder.BuildPrometheusQuery(namespace, metricName, metricSelector, queryMetadata)
-	selector := prom.Selector(query)
+	// query := p.queryBuilder.BuildPrometheusQuery(namespace, metricName, metricSelector, queryMetadata)
 
 	//TODO: I don't yet know what a context is, but apparently I should use a real one.
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), selector)
@@ -89,6 +77,5 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricN
 }
 
 func (p *externalPrometheusProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
-	//TODO: Provide a real response.
-	return nil
+	return p.seriesRegistry.ListAllExternalMetrics()
 }

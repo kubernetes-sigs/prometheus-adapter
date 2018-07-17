@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -44,6 +45,7 @@ type MetricNamer interface {
 	// QueryForSeries returns the query for a given series (not API metric name), with
 	// the given namespace name (if relevant), resource, and resource names.
 	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
+	QueryForExternalSeries(series string, metricSelector labels.Selector) (prom.Selector, error)
 }
 
 // labelGroupResExtractor extracts schema.GroupResources from series labels.
@@ -172,6 +174,8 @@ type metricNamer struct {
 	labelToResource map[pmodel.LabelName]schema.GroupResource
 	resourceToLabel map[schema.GroupResource]pmodel.LabelName
 	mapper          apimeta.RESTMapper
+
+	metricType config.MetricType
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -202,39 +206,142 @@ SeriesLoop:
 	return finalSeries
 }
 
-func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error) {
-	var exprs []string
-	valuesByName := map[string][]string{}
+func (n *metricNamer) createQueryPartsFromSelector(metricSelector labels.Selector) []queryPart {
+	requirements, _ := metricSelector.Requirements()
 
+	selectors := []queryPart{}
+	for i := 0; i < len(requirements); i++ {
+		selector := n.convertRequirement(requirements[i])
+
+		selectors = append(selectors, selector)
+	}
+
+	return selectors
+}
+
+func (n *metricNamer) convertRequirement(requirement labels.Requirement) queryPart {
+	labelName := requirement.Key()
+	values := requirement.Values().List()
+
+	return queryPart{
+		labelName: labelName,
+		values:    values,
+	}
+}
+
+type queryPart struct {
+	labelName string
+	values    []string
+}
+
+func (n *metricNamer) buildNamespaceQueryPartForSeries(namespace string) (queryPart, error) {
+	result := queryPart{}
+
+	//If we've been given a namespace, then we need to set up
+	//the label requirements to target that namespace.
 	if namespace != "" {
 		namespaceLbl, err := n.LabelForResource(nsGroupResource)
 		if err != nil {
-			return "", err
+			return result, err
 		}
-		exprs = append(exprs, prom.LabelEq(string(namespaceLbl), namespace))
-		valuesByName[string(namespaceLbl)] = []string{namespace}
+
+		values := []string{namespace}
+
+		result = queryPart{
+			values:    values,
+			labelName: string(namespaceLbl),
+		}
 	}
 
+	return result, nil
+}
+
+func (n *metricNamer) buildResourceQueryPartForSeries(resource schema.GroupResource, names ...string) (queryPart, error) {
+	result := queryPart{}
+
+	//If we've been given a resource, then we need to set up
+	//the label requirements to target that resource.
 	resourceLbl, err := n.LabelForResource(resource)
+	if err != nil {
+		return result, err
+	}
+
+	result = queryPart{
+		labelName: string(resourceLbl),
+		values:    names,
+	}
+
+	return result, nil
+}
+
+func (n *metricNamer) processQueryParts(queryParts []queryPart) ([]string, map[string][]string) {
+	//Contains the expressions that we want to include as part of the query to Prometheus.
+	//e.g. "namespace=my-namespace"
+	//e.g. "some_label=some-value"
+	var exprs []string
+
+	//Contains the list of label values we're targeting, by namespace.
+	//e.g. "some_label" => ["value-one", "value-two"]
+	valuesByName := map[string][]string{}
+
+	//Convert our query parts into template arguments.
+	for _, qPart := range queryParts {
+		targetValue := qPart.values[0]
+		matcher := prom.LabelEq
+
+		if len(qPart.values) > 1 {
+			targetValue = strings.Join(qPart.values, "|")
+			matcher = prom.LabelMatches
+		}
+
+		expression := matcher(qPart.labelName, targetValue)
+		exprs = append(exprs, expression)
+		valuesByName[qPart.labelName] = qPart.values
+	}
+
+	return exprs, valuesByName
+}
+
+func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error) {
+	queryParts := []queryPart{}
+
+	//Build up the namespace part of the query.
+	namespaceQueryPart, err := n.buildNamespaceQueryPartForSeries(namespace)
 	if err != nil {
 		return "", err
 	}
-	matcher := prom.LabelEq
-	targetValue := names[0]
-	if len(names) > 1 {
-		matcher = prom.LabelMatches
-		targetValue = strings.Join(names, "|")
+
+	queryParts = append(queryParts, namespaceQueryPart)
+
+	//Build up the resource part of the query.
+	resourceQueryPart, err := n.buildResourceQueryPartForSeries(resource, names...)
+	if err != nil {
+		return "", err
 	}
-	exprs = append(exprs, matcher(string(resourceLbl), targetValue))
-	valuesByName[string(resourceLbl)] = names
+
+	queryParts = append(queryParts, resourceQueryPart)
+
+	//Convert our query parts into the types we need for our template.
+	exprs, valuesByName := n.processQueryParts(queryParts)
 
 	args := queryTemplateArgs{
 		Series:            series,
 		LabelMatchers:     strings.Join(exprs, ","),
 		LabelValuesByName: valuesByName,
-		GroupBy:           string(resourceLbl),
-		GroupBySlice:      []string{string(resourceLbl)},
+		GroupBy:           resourceQueryPart.labelName,
+		GroupBySlice:      []string{resourceQueryPart.labelName},
 	}
+
+	selector, err := n.createSelectorFromTemplateArgs(args)
+	if err != nil {
+		return "", err
+	}
+
+	return selector, nil
+}
+
+func (n *metricNamer) createSelectorFromTemplateArgs(args queryTemplateArgs) (prom.Selector, error) {
+	//Turn our template arguments into a Selector.
 	queryBuff := new(bytes.Buffer)
 	if err := n.metricsQueryTemplate.Execute(queryBuff, args); err != nil {
 		return "", err
@@ -448,6 +555,8 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 
 			labelToResource: make(map[pmodel.LabelName]schema.GroupResource),
 			resourceToLabel: make(map[schema.GroupResource]pmodel.LabelName),
+
+			metricType: rule.MetricType,
 		}
 
 		// invert the structure for consistency with the template
@@ -471,4 +580,23 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	}
 
 	return namers, nil
+}
+
+func (n *metricNamer) QueryForExternalSeries(series string, metricSelector labels.Selector) (prom.Selector, error) {
+	queryParts := n.createQueryPartsFromSelector(metricSelector)
+
+	exprs, valuesByName := n.processQueryParts(queryParts)
+
+	args := queryTemplateArgs{
+		Series:            series,
+		LabelMatchers:     strings.Join(exprs, ","),
+		LabelValuesByName: valuesByName,
+	}
+
+	selector, err := n.createSelectorFromTemplateArgs(args)
+	if err != nil {
+		return "", err
+	}
+
+	return selector, nil
 }
