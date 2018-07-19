@@ -71,7 +71,9 @@ func (l *periodicMetricLister) updateMetrics() error {
 	//Cache the result.
 	l.mostRecentResult = result
 	//Let our listener know we've got new data ready for them.
-	l.callback(result)
+	if l.callback != nil {
+		l.callback(result)
+	}
 	return nil
 }
 
