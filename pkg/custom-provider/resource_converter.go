@@ -75,11 +75,11 @@ func NewResourceConverter(resourceTemplate string, overrides map[string]config.G
 	return converter, nil
 }
 
-func (n *resourceConverter) LabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
-	n.labelResourceMu.RLock()
+func (r *resourceConverter) LabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
+	r.labelResourceMu.RLock()
 	// check if we have a cached copy or override
-	lbl, ok := n.resourceToLabel[resource]
-	n.labelResourceMu.RUnlock() // release before we call makeLabelForResource
+	lbl, ok := r.resourceToLabel[resource]
+	r.labelResourceMu.RUnlock() // release before we call makeLabelForResource
 	if ok {
 		return lbl, nil
 	}
@@ -89,7 +89,7 @@ func (n *resourceConverter) LabelForResource(resource schema.GroupResource) (pmo
 	// it, as long as we're correct.
 
 	// otherwise, use the template and save the result
-	lbl, err := n.makeLabelForResource(resource)
+	lbl, err := r.makeLabelForResource(resource)
 	if err != nil {
 		return "", fmt.Errorf("unable to convert resource %s into label: %v", resource.String(), err)
 	}
@@ -100,13 +100,13 @@ var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
 
 // makeLabelForResource constructs a label name for the given resource, and saves the result.
 // It must *not* be called under an existing lock.
-func (n *resourceConverter) makeLabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
-	if n.labelTemplate == nil {
+func (r *resourceConverter) makeLabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
+	if r.labelTemplate == nil {
 		return "", fmt.Errorf("no generic resource label form specified for this metric")
 	}
 	buff := new(bytes.Buffer)
 
-	singularRes, err := n.mapper.ResourceSingularizer(resource.Resource)
+	singularRes, err := r.mapper.ResourceSingularizer(resource.Resource)
 	if err != nil {
 		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String(), err)
 	}
@@ -115,7 +115,7 @@ func (n *resourceConverter) makeLabelForResource(resource schema.GroupResource) 
 		Resource: singularRes,
 	}
 
-	if err := n.labelTemplate.Execute(buff, convResource); err != nil {
+	if err := r.labelTemplate.Execute(buff, convResource); err != nil {
 		return "", err
 	}
 	if buff.Len() == 0 {
@@ -123,15 +123,15 @@ func (n *resourceConverter) makeLabelForResource(resource schema.GroupResource) 
 	}
 	lbl := pmodel.LabelName(buff.String())
 
-	n.labelResourceMu.Lock()
-	defer n.labelResourceMu.Unlock()
+	r.labelResourceMu.Lock()
+	defer r.labelResourceMu.Unlock()
 
-	n.resourceToLabel[resource] = lbl
-	n.labelToResource[lbl] = resource
+	r.resourceToLabel[resource] = lbl
+	r.labelToResource[lbl] = resource
 	return lbl, nil
 }
 
-func (n *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.GroupResource, bool) {
+func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.GroupResource, bool) {
 	// use an updates map to avoid having to drop the read lock to update the cache
 	// until the end.  Since we'll probably have few updates after the first run,
 	// this should mean that we rarely have to hold the write lock.
@@ -141,23 +141,23 @@ func (n *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 
 	// use an anon func to get the right defer behavior
 	func() {
-		n.labelResourceMu.RLock()
-		defer n.labelResourceMu.RUnlock()
+		r.labelResourceMu.RLock()
+		defer r.labelResourceMu.RUnlock()
 
 		for lbl := range series.Labels {
 			var groupRes schema.GroupResource
 			var ok bool
 
 			// check if we have an override
-			if groupRes, ok = n.labelToResource[lbl]; ok {
+			if groupRes, ok = r.labelToResource[lbl]; ok {
 				resources = append(resources, groupRes)
 			} else if groupRes, ok = updates[lbl]; ok {
 				resources = append(resources, groupRes)
-			} else if n.labelResExtractor != nil {
+			} else if r.labelResExtractor != nil {
 				// if not, check if it matches the form we expect, and if so,
 				// convert to a group-resource.
-				if groupRes, ok = n.labelResExtractor.GroupResourceForLabel(lbl); ok {
-					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(n.mapper)
+				if groupRes, ok = r.labelResExtractor.GroupResourceForLabel(lbl); ok {
+					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(r.mapper)
 					if err != nil {
 						glog.Errorf("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
 						continue
@@ -180,11 +180,11 @@ func (n *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 	// (plus, we don't care if someone else updates the cache first, since the results
 	// are necessarily the same, so at most we've done extra work).
 	if len(updates) > 0 {
-		n.labelResourceMu.Lock()
-		defer n.labelResourceMu.Unlock()
+		r.labelResourceMu.Lock()
+		defer r.labelResourceMu.Unlock()
 
 		for lbl, groupRes := range updates {
-			n.labelToResource[lbl] = groupRes
+			r.labelToResource[lbl] = groupRes
 		}
 	}
 
