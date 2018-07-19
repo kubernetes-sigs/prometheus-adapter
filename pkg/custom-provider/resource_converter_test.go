@@ -96,12 +96,13 @@ func TestDetectsNonNamespaceResourcesFromOverrides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []schema.GroupResource{
 		schema.GroupResource{
+			Group:    "",
+			Resource: "pods",
+		},
+		schema.GroupResource{
 			Group:    "extensions",
 			Resource: "deployments",
 		},
-		schema.GroupResource{
-			Group:    "",
-			Resource: "pods",
-		}}, resource)
+	}, resource)
 	require.Equal(t, false, namespaced)
 }
