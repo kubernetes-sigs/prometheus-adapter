@@ -117,17 +117,60 @@ var seriesRegistryTestSeries = [][]prom.Series{
 	},
 }
 
+type myType struct {
+	a int
+	b string
+	m map[string]int
+}
+
+type mapWrapper struct {
+	item map[string]int
+}
+
+func (o *myType) Mutate(newMap mapWrapper) {
+	o.a = 2
+	o.b = "two"
+	o.m = newMap.item
+}
+
+func TestWeirdStuff(t *testing.T) {
+	o := myType{
+		a: 1,
+		b: "one",
+		m: map[string]int{
+			"one": 1,
+		},
+	}
+
+	oldMap := o.m
+	newMap := map[string]int{
+		"two": 2,
+	}
+	newWrapper := mapWrapper{
+		item: newMap,
+	}
+	oldWrapper := mapWrapper{
+		item: oldMap,
+	}
+	o.Mutate(newWrapper)
+	o.Mutate(oldWrapper)
+}
+
 func TestSeriesRegistry(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
 
 	namers := setupMetricNamer(t)
 	registry := &basicSeriesRegistry{
 		mapper: restMapper(),
 	}
 
+	updateResult := metricUpdateResult{
+		series: seriesRegistryTestSeries,
+		namers: namers,
+	}
+
 	// set up the registry
-	require.NoError(registry.SetSeries(seriesRegistryTestSeries, namers))
+	registry.onNewDataAvailable(updateResult)
 
 	// make sure each metric got registered and can form queries
 	testCases := []struct {
@@ -285,7 +328,11 @@ func BenchmarkSetSeries(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		registry.SetSeries(newSeriesSlices, namers)
+		updateResult := metricUpdateResult{
+			series: newSeriesSlices,
+			namers: namers,
+		}
+		registry.onNewDataAvailable(updateResult)
 	}
 }
 

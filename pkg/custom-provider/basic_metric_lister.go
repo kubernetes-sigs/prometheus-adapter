@@ -105,6 +105,7 @@ func (l *basicMetricLister) ListAllMetrics() (metricUpdateResult, error) {
 				return
 			}
 			errs <- nil
+			//Push into the channel: "this selector produced these series"
 			selectorSeriesChan <- selectorSeries{
 				selector: sel,
 				series:   series,
@@ -116,23 +117,32 @@ func (l *basicMetricLister) ListAllMetrics() (metricUpdateResult, error) {
 	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
 
 	// iterate through, blocking until we've got all results
+	// We know that, from above, we should have pushed one item into the channel
+	// for each namer. So here, we'll assume that we should receive one item per namer.
 	for range l.namers {
 		if err := <-errs; err != nil {
 			return result, fmt.Errorf("unable to update list of all metrics: %v", err)
 		}
+		//Receive from the channel: "this selector produced these series"
+		//We stuff that into this map so that we can collect the data as it arrives
+		//and then, once we've received it all, we can process it below.
 		if ss := <-selectorSeriesChan; ss.series != nil {
 			seriesCacheByQuery[ss.selector] = ss.series
 		}
 	}
 	close(errs)
 
+	//Now that we've collected all of the results into `seriesCacheByQuery`
+	//we can start processing them.
 	newSeries := make([][]prom.Series, len(l.namers))
 	for i, namer := range l.namers {
 		series, cached := seriesCacheByQuery[namer.Selector()]
 		if !cached {
 			return result, fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", namer.Selector())
 		}
-		newSeries[i] = namer.FilterSeries(series)
+		//Because namers provide a "post-filtering" option, it's not enough to
+		//simply take all the series that were produced. We need to further filter them.
+		newSeries[i] = namer.SeriesFilterer().FilterSeries(series)
 	}
 
 	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)

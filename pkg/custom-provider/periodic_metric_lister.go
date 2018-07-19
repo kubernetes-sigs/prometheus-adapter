@@ -55,12 +55,24 @@ func (l *periodicMetricLister) Run() {
 
 func (l *periodicMetricLister) RunUntil(stopChan <-chan struct{}) {
 	go wait.Until(func() {
-		if result, err := l.realLister.ListAllMetrics(); err != nil {
+		if err := l.updateMetrics(); err != nil {
 			utilruntime.HandleError(err)
-		} else {
-			l.mostRecentResult = result
 		}
 	}, l.updateInterval, stopChan)
+}
+
+func (l *periodicMetricLister) updateMetrics() error {
+	result, err := l.realLister.ListAllMetrics()
+
+	if err != nil {
+		return err
+	}
+
+	//Cache the result.
+	l.mostRecentResult = result
+	//Let our listener know we've got new data ready for them.
+	l.callback(result)
+	return nil
 }
 
 // func (l *periodicMetricLister) updateMetrics() (metricUpdateResult, error) {

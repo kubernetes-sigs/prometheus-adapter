@@ -48,7 +48,9 @@ type prometheusProvider struct {
 
 func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
 	basicLister := NewBasicMetricLister(promClient, namers, updateInterval)
-	periodicLister, periodicRunnable := NewPeriodicMetricLister(basicLister, updateInterval)
+	//TODO: Be sure to run this runnable.
+	// periodicLister, periodicRunnable := NewPeriodicMetricLister(basicLister, updateInterval)
+	periodicLister, _ := NewPeriodicMetricLister(basicLister, updateInterval)
 
 	seriesRegistry := NewBasicSeriesRegistry(periodicLister, mapper)
 

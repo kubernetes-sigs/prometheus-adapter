@@ -88,7 +88,7 @@ func NewBasicSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.
 	return &registry
 }
 
-func (r basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
+func (r *basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
 	newSeriesSlices := result.series
 	namers := result.namers
 
@@ -100,13 +100,18 @@ func (r basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
 	for i, newSeries := range newSeriesSlices {
 		namer := namers[i]
 		for _, series := range newSeries {
-			// TODO: warn if it doesn't match any resources
-			resources, namespaced := namer.ResourcesForSeries(series)
-			name, err := namer.MetricNameForSeries(series)
+			identity, err := namer.IdentifySeries(series)
+
 			if err != nil {
 				glog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
 				continue
 			}
+
+			// TODO: warn if it doesn't match any resources
+			resources := identity.resources
+			namespaced := identity.namespaced
+			name := identity.name
+
 			for _, resource := range resources {
 				info := provider.CustomMetricInfo{
 					GroupResource: resource,
@@ -181,24 +186,25 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 func (r *basicSeriesRegistry) QueryForExternalMetric(metricInfo provider.ExternalMetricInfo, metricSelector labels.Selector) (query prom.Selector, found bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	//TODO: Implementation
+	return "", false
+	// info, infoFound := r.info[metricInfo]
+	// if !infoFound {
+	// 	//TODO: Weird that it switches between types here.
+	// 	glog.V(10).Infof("metric %v not registered", metricInfo)
+	// 	return "", false
+	// }
 
-	info, infoFound := r.info[metricInfo]
-	if !infoFound {
-		//TODO: Weird that it switches between types here.
-		glog.V(10).Infof("metric %v not registered", metricInfo)
-		return "", false
-	}
+	// query, err := info.namer.QueryForExternalSeries(info.seriesName, metricSelector)
+	// if err != nil {
+	// 	//TODO: See what was being .String() and implement that for ExternalMetricInfo.
+	// 	// errorVal := metricInfo.String()
+	// 	errorVal := "something"
+	// 	glog.Errorf("unable to construct query for metric %s: %v", errorVal, err)
+	// 	return "", false
+	// }
 
-	query, err := info.namer.QueryForExternalSeries(info.seriesName, metricSelector)
-	if err != nil {
-		//TODO: See what was being .String() and implement that for ExternalMetricInfo.
-		// errorVal := metricInfo.String()
-		errorVal := "something"
-		glog.Errorf("unable to construct query for metric %s: %v", errorVal, err)
-		return "", false
-	}
-
-	return query, true
+	// return query, true
 }
 
 func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool) {
@@ -216,7 +222,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetri
 		return nil, false
 	}
 
-	resourceLbl, err := info.namer.LabelForResource(metricInfo.GroupResource)
+	resourceLbl, err := info.namer.ResourceConverter().LabelForResource(metricInfo.GroupResource)
 	if err != nil {
 		glog.Errorf("unable to construct resource label for metric %s: %v", metricInfo.String(), err)
 		return nil, false

@@ -141,7 +141,9 @@ func TestListAllMetrics(t *testing.T) {
 	fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
 
 	// update the metrics (without actually calling RunUntil, so we can avoid timing issues)
-	lister := prov.(*prometheusProvider).SeriesRegistry.(*cachingMetricsLister)
+	lister := prov.(*prometheusProvider).SeriesRegistry.(*basicSeriesRegistry).metricLister.(*periodicMetricLister)
+
+	// lister := prov.(*prometheusProvider).SeriesRegistry.(*basicSeriesRegistry).metricLister.(*periodicMetricLister).realLister.(*basicMetricLister)
 	require.NoError(t, lister.updateMetrics())
 
 	// list/sort the metrics

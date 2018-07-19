@@ -1,0 +1,192 @@
+package provider
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+	"sync"
+	"text/template"
+
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
+	"github.com/golang/glog"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	pmodel "github.com/prometheus/common/model"
+)
+
+type ResourceConverter interface {
+	// ResourcesForSeries returns the group-resources associated with the given series,
+	// as well as whether or not the given series has the "namespace" resource).
+	ResourcesForSeries(series prom.Series) (res []schema.GroupResource, namespaced bool)
+	// LabelForResource returns the appropriate label for the given resource.
+	LabelForResource(resource schema.GroupResource) (pmodel.LabelName, error)
+}
+
+type resourceConverter struct {
+	labelResourceMu   sync.RWMutex
+	labelToResource   map[pmodel.LabelName]schema.GroupResource
+	resourceToLabel   map[schema.GroupResource]pmodel.LabelName
+	labelResExtractor *labelGroupResExtractor
+	mapper            apimeta.RESTMapper
+	labelTemplate     *template.Template
+}
+
+func NewResourceConverter(resourceTemplate string, overrides map[string]config.GroupResource, mapper apimeta.RESTMapper) (ResourceConverter, error) {
+	converter := &resourceConverter{
+		labelToResource: make(map[pmodel.LabelName]schema.GroupResource),
+		resourceToLabel: make(map[schema.GroupResource]pmodel.LabelName),
+		mapper:          mapper,
+	}
+
+	if resourceTemplate != "" {
+		labelTemplate, err := template.New("resource-label").Delims("<<", ">>").Parse(resourceTemplate)
+		if err != nil {
+			return converter, fmt.Errorf("unable to parse label template %q: %v", resourceTemplate, err)
+		}
+		converter.labelTemplate = labelTemplate
+
+		labelResExtractor, err := newLabelGroupResExtractor(labelTemplate)
+		if err != nil {
+			return converter, fmt.Errorf("unable to generate label format from template %q: %v", resourceTemplate, err)
+		}
+		converter.labelResExtractor = labelResExtractor
+	}
+
+	// invert the structure for consistency with the template
+	for lbl, groupRes := range overrides {
+		infoRaw := provider.CustomMetricInfo{
+			GroupResource: schema.GroupResource{
+				Group:    groupRes.Group,
+				Resource: groupRes.Resource,
+			},
+		}
+		info, _, err := infoRaw.Normalized(converter.mapper)
+		if err != nil {
+			return nil, fmt.Errorf("unable to normalize group-resource %v: %v", groupRes, err)
+		}
+
+		converter.labelToResource[pmodel.LabelName(lbl)] = info.GroupResource
+		converter.resourceToLabel[info.GroupResource] = pmodel.LabelName(lbl)
+	}
+
+	return converter, nil
+}
+
+func (n *resourceConverter) LabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
+	n.labelResourceMu.RLock()
+	// check if we have a cached copy or override
+	lbl, ok := n.resourceToLabel[resource]
+	n.labelResourceMu.RUnlock() // release before we call makeLabelForResource
+	if ok {
+		return lbl, nil
+	}
+
+	// NB: we don't actually care about the gap between releasing read lock
+	// and acquiring the write lock -- if we do duplicate work sometimes, so be
+	// it, as long as we're correct.
+
+	// otherwise, use the template and save the result
+	lbl, err := n.makeLabelForResource(resource)
+	if err != nil {
+		return "", fmt.Errorf("unable to convert resource %s into label: %v", resource.String(), err)
+	}
+	return lbl, nil
+}
+
+var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
+
+// makeLabelForResource constructs a label name for the given resource, and saves the result.
+// It must *not* be called under an existing lock.
+func (n *resourceConverter) makeLabelForResource(resource schema.GroupResource) (pmodel.LabelName, error) {
+	if n.labelTemplate == nil {
+		return "", fmt.Errorf("no generic resource label form specified for this metric")
+	}
+	buff := new(bytes.Buffer)
+
+	singularRes, err := n.mapper.ResourceSingularizer(resource.Resource)
+	if err != nil {
+		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String(), err)
+	}
+	convResource := schema.GroupResource{
+		Group:    groupNameSanitizer.Replace(resource.Group),
+		Resource: singularRes,
+	}
+
+	if err := n.labelTemplate.Execute(buff, convResource); err != nil {
+		return "", err
+	}
+	if buff.Len() == 0 {
+		return "", fmt.Errorf("empty label produced by label template")
+	}
+	lbl := pmodel.LabelName(buff.String())
+
+	n.labelResourceMu.Lock()
+	defer n.labelResourceMu.Unlock()
+
+	n.resourceToLabel[resource] = lbl
+	n.labelToResource[lbl] = resource
+	return lbl, nil
+}
+
+func (n *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.GroupResource, bool) {
+	// use an updates map to avoid having to drop the read lock to update the cache
+	// until the end.  Since we'll probably have few updates after the first run,
+	// this should mean that we rarely have to hold the write lock.
+	var resources []schema.GroupResource
+	updates := make(map[pmodel.LabelName]schema.GroupResource)
+	namespaced := false
+
+	// use an anon func to get the right defer behavior
+	func() {
+		n.labelResourceMu.RLock()
+		defer n.labelResourceMu.RUnlock()
+
+		for lbl := range series.Labels {
+			var groupRes schema.GroupResource
+			var ok bool
+
+			// check if we have an override
+			if groupRes, ok = n.labelToResource[lbl]; ok {
+				resources = append(resources, groupRes)
+			} else if groupRes, ok = updates[lbl]; ok {
+				resources = append(resources, groupRes)
+			} else if n.labelResExtractor != nil {
+				// if not, check if it matches the form we expect, and if so,
+				// convert to a group-resource.
+				if groupRes, ok = n.labelResExtractor.GroupResourceForLabel(lbl); ok {
+					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(n.mapper)
+					if err != nil {
+						glog.Errorf("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
+						continue
+					}
+
+					groupRes = info.GroupResource
+					resources = append(resources, groupRes)
+					updates[lbl] = groupRes
+				}
+			}
+
+			if groupRes == nsGroupResource {
+				namespaced = true
+			}
+		}
+	}()
+
+	// update the cache for next time.  This should only be called by discovery,
+	// so we don't really have to worry about the gap between read and write locks
+	// (plus, we don't care if someone else updates the cache first, since the results
+	// are necessarily the same, so at most we've done extra work).
+	if len(updates) > 0 {
+		n.labelResourceMu.Lock()
+		defer n.labelResourceMu.Unlock()
+
+		for lbl, groupRes := range updates {
+			n.labelToResource[lbl] = groupRes
+		}
+	}
+
+	return resources, namespaced
+}
