@@ -7,6 +7,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBadQueryPartsDontError(t *testing.T) {
+	builder, _ := NewQueryBuilder("rate(<<.Series>>{<<.LabelMatchers>>}[2m])")
+	selector, err := builder.BuildSelector("my_series", "", []string{}, []queryPart{
+		queryPart{
+			labelName: "",
+			values:    nil,
+		},
+		queryPart{
+			labelName: "",
+			values:    []string{},
+		},
+	})
+
+	expectation := client.Selector("rate(my_series{}[2m])")
+	require.NoError(t, err)
+	require.Equal(t, selector, expectation)
+}
+
 func TestSimpleQuery(t *testing.T) {
 	builder, _ := NewQueryBuilder("rate(<<.Series>>{<<.LabelMatchers>>}[2m])")
 
