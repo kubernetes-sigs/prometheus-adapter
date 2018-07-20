@@ -27,7 +27,7 @@ type periodicMetricLister struct {
 	realLister       MetricLister
 	updateInterval   time.Duration
 	mostRecentResult metricUpdateResult
-	callback         func(metricUpdateResult)
+	callbacks        []func(metricUpdateResult)
 }
 
 //NewPeriodicMetricLister creates a MetricLister that periodically pulls the list of available metrics
@@ -36,13 +36,14 @@ func NewPeriodicMetricLister(realLister MetricLister, updateInterval time.Durati
 	lister := periodicMetricLister{
 		updateInterval: updateInterval,
 		realLister:     realLister,
+		callbacks:      make([]func(metricUpdateResult), 0),
 	}
 
 	return &lister, &lister
 }
 
-func (l *periodicMetricLister) SetNotificationReceiver(callback func(metricUpdateResult)) {
-	l.callback = callback
+func (l *periodicMetricLister) AddNotificationReceiver(callback func(metricUpdateResult)) {
+	l.callbacks = append(l.callbacks, callback)
 }
 
 func (l *periodicMetricLister) ListAllMetrics() (metricUpdateResult, error) {
@@ -70,11 +71,21 @@ func (l *periodicMetricLister) updateMetrics() error {
 
 	//Cache the result.
 	l.mostRecentResult = result
-	//Let our listener know we've got new data ready for them.
-	if l.callback != nil {
-		l.callback(result)
-	}
+	//Let our listeners know we've got new data ready for them.
+	l.notifyListeners()
 	return nil
+}
+
+func (l *periodicMetricLister) notifyListeners() {
+	for _, listener := range l.callbacks {
+		if listener != nil {
+			listener(l.mostRecentResult)
+		}
+	}
+}
+
+func (l *periodicMetricLister) UpdateNow() {
+	l.updateMetrics()
 }
 
 // func (l *periodicMetricLister) updateMetrics() (metricUpdateResult, error) {

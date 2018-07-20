@@ -36,6 +36,7 @@ type MetricNamer interface {
 	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
 	QueryForExternalSeries(series string, metricSelector labels.Selector) (prom.Selector, error)
 	IdentifySeries(series prom.Series) (seriesIdentity, error)
+	MetricType() config.MetricType
 }
 
 type seriesIdentity struct {
@@ -67,6 +68,10 @@ type queryTemplateArgs struct {
 	LabelValuesByName map[string][]string
 	GroupBy           string
 	GroupBySlice      []string
+}
+
+func (n *metricNamer) MetricType() config.MetricType {
+	return n.metricType
 }
 
 func (n *metricNamer) IdentifySeries(series prom.Series) (seriesIdentity, error) {

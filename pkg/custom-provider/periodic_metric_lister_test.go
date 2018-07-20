@@ -36,7 +36,7 @@ func TestWhenNewMetricsAvailableCallbackIsInvoked(t *testing.T) {
 		callbackInvoked = true
 	}
 
-	periodicLister.SetNotificationReceiver(callback)
+	periodicLister.AddNotificationReceiver(callback)
 	err := periodicLister.updateMetrics()
 	require.NoError(t, err)
 	require.True(t, callbackInvoked)

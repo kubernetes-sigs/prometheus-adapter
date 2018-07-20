@@ -54,7 +54,8 @@ type MetricListerWithNotification interface {
 	//Because it periodically pulls metrics, it needs to be Runnable.
 	Runnable
 	//It provides notifications when it has new data to supply.
-	SetNotificationReceiver(func(metricUpdateResult))
+	AddNotificationReceiver(func(metricUpdateResult))
+	UpdateNow()
 }
 
 type basicMetricLister struct {
@@ -67,6 +68,7 @@ func NewBasicMetricLister(promClient prom.Client, namers []MetricNamer, lookback
 	lister := basicMetricLister{
 		promClient: promClient,
 		namers:     namers,
+		lookback:   lookback,
 	}
 
 	return &lister

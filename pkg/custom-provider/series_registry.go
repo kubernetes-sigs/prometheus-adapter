@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
 )
@@ -83,12 +84,33 @@ func NewBasicSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.
 		metricLister: lister,
 	}
 
-	lister.SetNotificationReceiver(registry.onNewDataAvailable)
+	lister.AddNotificationReceiver(registry.onNewDataAvailable)
 
 	return &registry
 }
 
+func (r *basicSeriesRegistry) filterMetrics(result metricUpdateResult) metricUpdateResult {
+	namers := make([]MetricNamer, 0)
+	series := make([][]prom.Series, 0)
+
+	targetType := config.MetricType("Custom")
+
+	for i, namer := range result.namers {
+		if namer.MetricType() == targetType {
+			namers = append(namers, namer)
+			series = append(series, result.series[i])
+		}
+	}
+
+	return metricUpdateResult{
+		namers: namers,
+		series: series,
+	}
+}
+
 func (r *basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
+	result = r.filterMetrics(result)
+
 	newSeriesSlices := result.series
 	namers := result.namers
 
