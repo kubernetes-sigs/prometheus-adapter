@@ -48,13 +48,15 @@ type MetricLister interface {
 	ListAllMetrics() (metricUpdateResult, error)
 }
 
+//A MetricListerWithNotification is a MetricLister that has the ability to notify listeners
+//when new metric data is available.
 type MetricListerWithNotification interface {
-	//It can list metrics, just like a normal MetricLister.
 	MetricLister
-	//Because it periodically pulls metrics, it needs to be Runnable.
 	Runnable
-	//It provides notifications when it has new data to supply.
+
+	//AddNotificationReceiver registers a callback to be invoked when new metric data is available.
 	AddNotificationReceiver(func(metricUpdateResult))
+	//UpdateNow forces an immediate refresh from the source data. Primarily for test purposes.
 	UpdateNow()
 }
 
@@ -64,6 +66,7 @@ type basicMetricLister struct {
 	lookback   time.Duration
 }
 
+//NewBasicMetricLister creates a MetricLister that is capable of interactly directly with Prometheus to list metrics.
 func NewBasicMetricLister(promClient prom.Client, namers []MetricNamer, lookback time.Duration) MetricLister {
 	lister := basicMetricLister{
 		promClient: promClient,

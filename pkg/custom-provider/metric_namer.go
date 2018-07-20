@@ -34,9 +34,10 @@ type MetricNamer interface {
 	// QueryForSeries returns the query for a given series (not API metric name), with
 	// the given namespace name (if relevant), resource, and resource names.
 	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
-	QueryForExternalSeries(series string, metricSelector labels.Selector) (prom.Selector, error)
+	QueryForExternalSeries(namespace string, series string, metricSelector labels.Selector) (prom.Selector, error)
 	IdentifySeries(series prom.Series) (seriesIdentity, error)
 	MetricType() config.MetricType
+	ExternalMetricNamespaceLabelName() string
 }
 
 type seriesIdentity struct {
@@ -58,7 +59,8 @@ type metricNamer struct {
 	metricNameConverter MetricNameConverter
 	mapper              apimeta.RESTMapper
 
-	metricType config.MetricType
+	metricType                   config.MetricType
+	externalMetricNamespaceLabel string
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -72,6 +74,10 @@ type queryTemplateArgs struct {
 
 func (n *metricNamer) MetricType() config.MetricType {
 	return n.metricType
+}
+
+func (n *metricNamer) ExternalMetricNamespaceLabelName() string {
+	return n.externalMetricNamespaceLabel
 }
 
 func (n *metricNamer) IdentifySeries(series prom.Series) (seriesIdentity, error) {
@@ -219,15 +225,26 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 			return nil, fmt.Errorf("unable to create a MetricNameConverter associated with series query %q: %v", rule.SeriesQuery, err)
 		}
 
+		namespaceLabel := ""
+		if rule.MetricType == config.External {
+			namespaceLabel = rule.ExternalMetricNamespaceLabelName
+		}
+
+		metricType := rule.MetricType
+		if metricType == config.MetricType("") {
+			metricType = config.Custom
+		}
+
 		namer := &metricNamer{
 			seriesQuery: prom.Selector(rule.SeriesQuery),
 			mapper:      mapper,
 
-			resourceConverter:   resourceConverter,
-			queryBuilder:        queryBuilder,
-			seriesFilterer:      seriesFilterer,
-			metricNameConverter: metricNameConverter,
-			metricType:          rule.MetricType,
+			resourceConverter:            resourceConverter,
+			queryBuilder:                 queryBuilder,
+			seriesFilterer:               seriesFilterer,
+			metricNameConverter:          metricNameConverter,
+			metricType:                   metricType,
+			externalMetricNamespaceLabel: namespaceLabel,
 		}
 
 		namers[i] = namer
@@ -236,8 +253,28 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	return namers, nil
 }
 
-func (n *metricNamer) QueryForExternalSeries(series string, metricSelector labels.Selector) (prom.Selector, error) {
-	queryParts := n.createQueryPartsFromSelector(metricSelector)
+func (n *metricNamer) buildNamespaceQueryPartForExternalSeries(namespace string) (queryPart, error) {
+	return queryPart{
+		labelName: n.externalMetricNamespaceLabel,
+		values:    []string{namespace},
+	}, nil
+}
+
+func (n *metricNamer) QueryForExternalSeries(namespace string, series string, metricSelector labels.Selector) (prom.Selector, error) {
+	queryParts := []queryPart{}
+
+	if namespace != "" {
+		//Build up the namespace part of the query.
+		namespaceQueryPart, err := n.buildNamespaceQueryPartForExternalSeries(namespace)
+		if err != nil {
+			return "", err
+		}
+
+		queryParts = append(queryParts, namespaceQueryPart)
+	}
+
+	//Build up the query parts from the selector.
+	queryParts = append(queryParts, n.createQueryPartsFromSelector(metricSelector)...)
 
 	selector, err := n.queryBuilder.BuildSelector(series, "", []string{}, queryParts)
 	if err != nil {

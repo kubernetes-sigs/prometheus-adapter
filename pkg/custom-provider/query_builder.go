@@ -9,6 +9,7 @@ import (
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 )
 
+//QueryBuilder provides functions for generating Prometheus queries.
 type QueryBuilder interface {
 	BuildSelector(seriesName string, groupBy string, groupBySlice []string, queryParts []queryPart) (prom.Selector, error)
 }
@@ -17,6 +18,7 @@ type queryBuilder struct {
 	metricsQueryTemplate *template.Template
 }
 
+//NewQueryBuilder creates a QueryBuilder.
 func NewQueryBuilder(metricsQuery string) (QueryBuilder, error) {
 	metricsQueryTemplate, err := template.New("metrics-query").Delims("<<", ">>").Parse(metricsQuery)
 	if err != nil {

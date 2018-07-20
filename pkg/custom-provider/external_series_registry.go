@@ -14,31 +14,33 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 )
 
+//ExternalSeriesRegistry acts as the top-level converter for transforming Kubernetes requests
+//for external metrics into Prometheus queries.
 type ExternalSeriesRegistry interface {
 	// ListAllMetrics lists all metrics known to this registry
 	ListAllMetrics() []provider.ExternalMetricInfo
-	QueryForMetric(metricName string, metricSelector labels.Selector) (query prom.Selector, found bool)
+	QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool)
 }
 
 // overridableSeriesRegistry is a basic SeriesRegistry
 type externalSeriesRegistry struct {
 	mu sync.RWMutex
 
-	externalInfo map[string]seriesInfo
 	// metrics is the list of all known metrics
 	metrics []provider.ExternalMetricInfo
 
 	mapper apimeta.RESTMapper
 
-	metricLister     MetricListerWithNotification
-	tonyExternalInfo ExternalInfoMap
+	metricLister       MetricListerWithNotification
+	externalMetricInfo ExternalInfoMap
 }
 
+//NewExternalSeriesRegistry creates an ExternalSeriesRegistry driven by the data from the provided MetricLister.
 func NewExternalSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) ExternalSeriesRegistry {
 	var registry = externalSeriesRegistry{
-		mapper:           mapper,
-		metricLister:     lister,
-		tonyExternalInfo: NewExternalInfoMap(),
+		mapper:             mapper,
+		metricLister:       lister,
+		externalMetricInfo: NewExternalInfoMap(),
 	}
 
 	lister.AddNotificationReceiver(registry.onNewDataAvailable)
@@ -50,7 +52,7 @@ func (r *externalSeriesRegistry) filterMetrics(result metricUpdateResult) metric
 	namers := make([]MetricNamer, 0)
 	series := make([][]prom.Series, 0)
 
-	targetType := config.MetricType("External")
+	targetType := config.External
 
 	for i, namer := range result.namers {
 		if namer.MetricType() == targetType {
@@ -98,10 +100,16 @@ func (r *externalSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
 			// namespaced := identity.namespaced
 			name := identity.name
 			labels := r.convertLabels(series.Labels)
-			//TODO: Figure out the namespace, if applicable
-			metricNs := ""
+
+			//Check for a label indicating namespace.
+			metricNs, found := series.Labels[model.LabelName(namer.ExternalMetricNamespaceLabelName())]
+
+			if !found {
+				metricNs = ""
+			}
+
 			trackedMetric := updatedCache.TrackMetric(name, namer)
-			trackedMetric.WithNamespacedSeries(metricNs, labels)
+			trackedMetric.WithNamespacedSeries(string(metricNs), labels)
 		}
 	}
 
@@ -112,7 +120,7 @@ func (r *externalSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.tonyExternalInfo = updatedCache
+	r.externalMetricInfo = updatedCache
 	r.metrics = convertedMetrics
 }
 
@@ -135,29 +143,20 @@ func (r *externalSeriesRegistry) ListAllMetrics() []provider.ExternalMetricInfo 
 	return r.metrics
 }
 
-func (r *externalSeriesRegistry) QueryForMetric(metricName string, metricSelector labels.Selector) (query prom.Selector, found bool) {
+func (r *externalSeriesRegistry) QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	metric, found := r.tonyExternalInfo.FindMetric(metricName)
+	metric, found := r.externalMetricInfo.FindMetric(metricName)
 
 	if !found {
+		glog.V(10).Infof("external metric %q not registered", metricName)
 		return "", false
 	}
 
-	query, err := metric.GenerateQuery(metricSelector)
-	// info, infoFound := r.info[metricInfo]
-	// if !infoFound {
-	// 	//TODO: Weird that it switches between types here.
-	// 	glog.V(10).Infof("metric %v not registered", metricInfo)
-	// 	return "", false
-	// }
+	query, err := metric.GenerateQuery(namespace, metricSelector)
 
-	// query, err := info.namer.QueryForExternalSeries(info.seriesName, metricSelector)
 	if err != nil {
-		//TODO: See what was being .String() and implement that for ExternalMetricInfo.
-		// errorVal := metricInfo.String()
-		errorVal := "something"
-		glog.Errorf("unable to construct query for metric %s: %v", errorVal, err)
+		glog.Errorf("unable to construct query for external metric %s: %v", metricName, err)
 		return "", false
 	}
 

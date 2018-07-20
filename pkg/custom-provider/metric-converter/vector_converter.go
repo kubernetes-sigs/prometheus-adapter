@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/prometheus/common/model"
@@ -46,8 +47,13 @@ func (c *vectorConverter) convert(result model.Vector) (*external_metrics.Extern
 	}
 
 	for _, val := range result {
-		//TODO: Care about potential errors here.
-		singleMetric, _ := c.SampleConverter.Convert(val)
+
+		singleMetric, err := c.SampleConverter.Convert(val)
+
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert vector: %v", err)
+		}
+
 		items = append(items, *singleMetric)
 	}
 

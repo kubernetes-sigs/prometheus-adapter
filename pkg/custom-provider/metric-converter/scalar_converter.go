@@ -35,18 +35,11 @@ func (c *scalarConverter) Convert(queryResult prom.QueryResult) (*external_metri
 
 func (c *scalarConverter) convert(input *model.Scalar) (*external_metrics.ExternalMetricValueList, error) {
 	result := external_metrics.ExternalMetricValueList{
-		//Using prometheusProvider.metricsFor(...) as an example,
-		//it seems that I don't need to provide values for
-		//TypeMeta and ListMeta.
-		//TODO: Get some confirmation on this.
 		Items: []external_metrics.ExternalMetricValue{
 			{
 				Timestamp: metav1.Time{
 					input.Timestamp.Time(),
 				},
-				//TODO: I'm not so sure about this type/conversions.
-				//Is there a meaningful loss of precision here?
-				//Does K8S only deal win integer metrics?
 				Value: *resource.NewMilliQuantity(int64(input.Value*1000.0), resource.DecimalSI),
 			},
 		},

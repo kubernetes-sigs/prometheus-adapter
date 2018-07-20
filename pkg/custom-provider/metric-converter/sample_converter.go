@@ -30,14 +30,10 @@ func (c *sampleConverter) Convert(sample *model.Sample) (*external_metrics.Exter
 		Timestamp: metav1.Time{
 			sample.Timestamp.Time(),
 		},
-		//TODO: I'm not so sure about this type/conversions.
-		//This can't possibly be the right way to convert this.
-		//Also, does K8S only deal win integer metrics?
-		Value:        *resource.NewQuantity(int64(float64(sample.Value)), resource.DecimalSI),
+		Value:        *resource.NewMilliQuantity(int64(sample.Value*1000.0), resource.DecimalSI),
 		MetricLabels: labels,
 	}
 
-	//TODO: Actual errors?
 	return &singleMetric, nil
 }
 

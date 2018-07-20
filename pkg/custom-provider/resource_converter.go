@@ -17,6 +17,9 @@ import (
 	pmodel "github.com/prometheus/common/model"
 )
 
+//ResourceConverter is a type for extracting associated Kubernetes GroupResource objects from
+//Prometheus series and generating appropriate labels to target specific Kubernetes GroupResource
+//objects.
 type ResourceConverter interface {
 	// ResourcesForSeries returns the group-resources associated with the given series,
 	// as well as whether or not the given series has the "namespace" resource).
@@ -34,6 +37,7 @@ type resourceConverter struct {
 	labelTemplate     *template.Template
 }
 
+//NewResourceConverter creates a ResourceConverter that will use the provided parameters to map data between Prometheus and Kubernetes.
 func NewResourceConverter(resourceTemplate string, overrides map[string]config.GroupResource, mapper apimeta.RESTMapper) (ResourceConverter, error) {
 	converter := &resourceConverter{
 		labelToResource: make(map[pmodel.LabelName]schema.GroupResource),

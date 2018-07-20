@@ -21,7 +21,6 @@ import (
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/labels"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
@@ -49,8 +48,6 @@ type SeriesRegistry interface {
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
 	QueryForMetric(info provider.CustomMetricInfo, namespace string, resourceNames ...string) (query prom.Selector, found bool)
-	// TODO: Don't house the external metric stuff side-by-side with the custom metric stuff.
-	QueryForExternalMetric(info provider.ExternalMetricInfo, metricSelector labels.Selector) (query prom.Selector, found bool)
 	// MatchValuesToNames matches result values to resource names for the given metric and value set
 	MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool)
 }
@@ -78,6 +75,7 @@ type basicSeriesRegistry struct {
 	metricLister MetricListerWithNotification
 }
 
+//NewBasicSeriesRegistry creates a SeriesRegistry driven by the data from the provided MetricLister.
 func NewBasicSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) SeriesRegistry {
 	var registry = basicSeriesRegistry{
 		mapper:       mapper,
@@ -93,7 +91,7 @@ func (r *basicSeriesRegistry) filterMetrics(result metricUpdateResult) metricUpd
 	namers := make([]MetricNamer, 0)
 	series := make([][]prom.Series, 0)
 
-	targetType := config.MetricType("Custom")
+	targetType := config.Custom
 
 	for i, namer := range result.namers {
 		if namer.MetricType() == targetType {
@@ -203,30 +201,6 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 	}
 
 	return query, true
-}
-
-func (r *basicSeriesRegistry) QueryForExternalMetric(metricInfo provider.ExternalMetricInfo, metricSelector labels.Selector) (query prom.Selector, found bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	//TODO: Implementation
-	return "", false
-	// info, infoFound := r.info[metricInfo]
-	// if !infoFound {
-	// 	//TODO: Weird that it switches between types here.
-	// 	glog.V(10).Infof("metric %v not registered", metricInfo)
-	// 	return "", false
-	// }
-
-	// query, err := info.namer.QueryForExternalSeries(info.seriesName, metricSelector)
-	// if err != nil {
-	// 	//TODO: See what was being .String() and implement that for ExternalMetricInfo.
-	// 	// errorVal := metricInfo.String()
-	// 	errorVal := "something"
-	// 	glog.Errorf("unable to construct query for metric %s: %v", errorVal, err)
-	// 	return "", false
-	// }
-
-	// return query, true
 }
 
 func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool) {

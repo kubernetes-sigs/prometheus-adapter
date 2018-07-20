@@ -7,6 +7,8 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 )
 
+//SeriesFilterer provides functions for filtering collections of Prometheus series
+//to only those that meet certain requirements.
 type SeriesFilterer interface {
 	FilterSeries(series []prom.Series) []prom.Series
 	AddRequirement(filter config.RegexFilter) error
@@ -16,6 +18,8 @@ type seriesFilterer struct {
 	seriesMatchers []*reMatcher
 }
 
+//NewSeriesFilterer creates a SeriesFilterer that will remove any series that do not
+//meet the requirements of the provided RegexFilter(s).
 func NewSeriesFilterer(filters []config.RegexFilter) (SeriesFilterer, error) {
 	seriesMatchers := make([]*reMatcher, len(filters))
 	for i, filterRaw := range filters {

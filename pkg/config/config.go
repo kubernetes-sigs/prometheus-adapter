@@ -34,7 +34,10 @@ type DiscoveryRule struct {
 	MetricsQuery string `yaml:"metricsQuery,omitempty"`
 	// MetricType identifies whether the metrics derived from this rule should be classified
 	// as external or custom metrics.
-	MetricType MetricType `yaml:"metricType"`
+	MetricType MetricType `yaml:"metricType,omitempty"`
+	// ExternalMetricNamespaceLabelName identifies what Prometheus label should be examined
+	// to apply a namespace to metrics creates from this rule.
+	ExternalMetricNamespaceLabelName string `yaml:"externalMetricNamespaceLabelName,omitempty"`
 }
 
 // RegexFilter is a filter that matches positively or negatively against a regex.
@@ -79,3 +82,12 @@ type NameMapping struct {
 
 //MetricType identifies whether a given metric should be handled and interpreted as a Custom or External metric.
 type MetricType string
+
+// Operator represents a key/field's relationship to value(s).
+// See labels.Requirement and fields.Requirement for more details.
+type Operator string
+
+const (
+	External MetricType = "External"
+	Custom   MetricType = "Custom"
+)

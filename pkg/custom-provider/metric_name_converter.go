@@ -8,6 +8,7 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 )
 
+//MetricNameConverter provides functions for naming custom metrics from Promethes series.
 type MetricNameConverter interface {
 	GetMetricNameForSeries(series prom.Series) (string, error)
 }
@@ -17,6 +18,8 @@ type metricNameConverter struct {
 	nameAs      string
 }
 
+//NewMetricNameConverter creates a MetricNameConverter capable of translating Prometheus series names
+//into custom metric names.
 func NewMetricNameConverter(mapping config.NameMapping) (MetricNameConverter, error) {
 	var nameMatches *regexp.Regexp
 	var err error
