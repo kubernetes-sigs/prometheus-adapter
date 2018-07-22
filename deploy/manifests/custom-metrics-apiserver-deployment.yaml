@@ -29,7 +29,7 @@ spec:
         - --prometheus-url=http://prometheus.prom.svc:9090/
         - --metrics-relist-interval=1m
         - --v=10
-        - --config=/default-config.yaml
+        - --config=/etc/adapter/config.yaml
         ports:
         - containerPort: 6443
         volumeMounts:
