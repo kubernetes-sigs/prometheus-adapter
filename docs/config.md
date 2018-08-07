@@ -150,7 +150,7 @@ For example:
 # e.g. http_requests_total becomes http_requests_per_second
 name:
   matches: "^(.*)_total$"
-  as: "<<1}_per_second"
+  as: "${1}_per_second"
 ```
 
 Querying
