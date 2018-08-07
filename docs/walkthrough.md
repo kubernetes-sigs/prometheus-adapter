@@ -273,6 +273,18 @@ Try fetching the metrics again.  You should see an increase in the rate
 after the collection interval specified in your Prometheus configuration
 has elapsed.  If you leave it for a bit, the rate will go back down again.
 
+Notice that the API uses Kubernetes-style quantities to describe metric
+values.  These quantities use SI suffixes instead of decimal points.  The
+most common to see in the metrics API is the `m` suffix, which means
+milli-units, or 1000ths of a unit.  If your metric is exactly a whole
+number of units on the nose, you might not see a suffix. Otherwise, you'll
+probably see an `m` suffix to represent fractions of a unit.
+
+For example, here, `500m` would be half a request per second, `10` would
+be 10 requests per second, and `10500m` would be `10.5` requests per
+second.
+
+
 ### Troubleshooting Missing Metrics
 
 If the metric does not appear, or is not registered with the right
