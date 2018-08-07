@@ -9,6 +9,13 @@ metrics API
 suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in
 Kubernetes 1.6+.
 
+Quick Links
+-----------
+
+- [Config walkthrough](docs/config-walkthrough.md) and [config reference](docs/config.md).
+- [End-to-end walkthrough](docs/walkthrough.md)
+- [Deployment info and files](deploy/README.md)
+
 Configuration
 -------------
 

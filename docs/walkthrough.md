@@ -146,7 +146,10 @@ You may also need to modify the ConfigMap containing the metrics discovery
 configuration.  If you're using the Prometheus configuration described
 above, it should work out of the box in common cases.  Otherwise, read the
 [configuration documentation](/docs/config.md) to learn how to configure
-the adapter for your particular metrics and labels.
+the adapter for your particular metrics and labels.  The [configuration
+walkthrough](/docs/config-walkthrough.md) gives an end-to-end
+configuration tutorial for configure the adapter for a scenario similar to
+this one.
 
 ### The Registered API ###
 

@@ -1,6 +1,10 @@
 Metrics Discovery and Presentation Configuration
 ================================================
 
+*If you want a full walkthrough of configuring the adapter for a sample
+metric, please read the [configuration
+walkthrough](/docs/config-walkthrough.md)*
+
 The adapter determines which metrics to expose, and how to expose them,
 through a set of "discovery" rules.  Each rule is executed independently
 (so make sure that your rules are mutually exclusive), and specifies each
@@ -122,6 +126,9 @@ resource:
 
 These two can be combined, so you can specify both a template and some
 individual overrides.
+
+The resources mentioned can be any resource available in your kubernetes
+cluster, as long as you've got a corresponding label.
 
 Naming
 ------
