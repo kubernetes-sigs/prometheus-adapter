@@ -273,6 +273,8 @@ Try fetching the metrics again.  You should see an increase in the rate
 after the collection interval specified in your Prometheus configuration
 has elapsed.  If you leave it for a bit, the rate will go back down again.
 
+### Quantity Values
+
 Notice that the API uses Kubernetes-style quantities to describe metric
 values.  These quantities use SI suffixes instead of decimal points.  The
 most common to see in the metrics API is the `m` suffix, which means

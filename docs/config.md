@@ -188,7 +188,7 @@ Kubernetes resources.  Then, if someone requested the metric
 `pods/http_request_per_second` for the pods `pod1` and `pod2` in the
 `somens` namespace, we'd have:
 
-- `Series: "http_requests_total"
+- `Series: "http_requests_total"`
 - `LabelMatchers: "pod=~\"pod1|pod2",namespace="somens"`
 - `GroupBy`: `pod`
 
