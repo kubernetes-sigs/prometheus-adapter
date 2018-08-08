@@ -8,7 +8,7 @@ metrics sourced from the adapter.
 Prerequisites
 -------------
 
-### Cluster Configuration ###
+### Cluster Configuration
 
 Before getting started, ensure that the main components of your
 cluster are configured for autoscaling on custom metrics.  As of
@@ -29,193 +29,52 @@ Note that most of the API versions in this walkthrough target Kubernetes
 Kubernetes 1.8+.  Version 0.1.0 works with Kubernetes 1.7, but is
 significantly different.
 
-### Binaries and Images ###
+### Binaries and Images
 
 In order to follow this walkthrough, you'll need container images for
 Prometheus and the custom metrics adapter.
 
-Prometheus can be found at `prom/prometheus` on Dockerhub.  The adapter
-has different images for each arch, and can be found at
+It's easiest to deploy Prometheus with the [Prometheus
+Operator](https://coreos.com/operators/prometheus/docs/latest/), which
+makes it easy to get up and running with Prometheus.  This walkthrough
+will assume you're planning on doing that -- if you've deployed it by hand
+instead, you'll need to make a few adjustments to the way you expose
+metrics to Prometheus.
+
+The adapter has different images for each arch, and can be found at
 `directxman12/k8s-prometheus-adapter-${ARCH}`.  For instance, if you're on
 an x86_64 machine, use the `directxman12/k8s-prometheus-adapter-amd64`
 image.
 
 If you're feeling adventurous, you can build the latest version of the
-custom metrics adapter by running `make docker-build`.
+custom metrics adapter by running `make docker-build` or `make
+build-local-image`.
 
-Launching Prometheus and the Adapter
-------------------------------------
+Special thanks to [@luxas](https://github.com/luxas) for providing the
+demo application for this walkthrough.
 
-In this walkthrough, it's assumed that you're deploying Prometheus into
-its own namespace called `prom`.  Most of the sample commands and files
-are namespace-agnostic, but there are a few commands that rely on
-namespace.  If you're using a different namespace, simply substitute that
-in for `prom` when it appears.
+The Scenario
+------------
 
-### Prometheus Configuration ###
+Suppose that you've written some new web application, and you know it's
+the next best thing since sliced bread.  It's ready to unveil to the
+world... except you're not sure that just one instance will handle all the
+traffic once it goes viral.  Thankfully, you've got Kubernetes.
 
-It's reccomended to use the [Prometheus
-Operator](https://coreos.com/operators/prometheus/docs/latest/) to deploy
-Prometheus.  It's a lot easier than configuring Prometheus by hand.  Note
-that the Prometheus operator rules rename some labels if they conflict
-with its automatic labels, so you may have to tweak the adapter
-configuration slightly.
-
-If you don't want to use the Prometheus Operator, you'll have to deploy
-Prometheus with a hand-written configuration.  Below, you can find the
-relevant parts of the configuration that are expected for this
-walkthrough.  See the Prometheus documentation on [configuring
-Prometheus](https://prometheus.io/docs/operating/configuration/) for more
-information.
-
-For the purposes of this walkthrough, you'll need the following
-configuration options to be set:
-
-<details>
-
-<summary>prom-cfg.yaml</summary>
-
-```yaml
-# a short scrape interval means you can respond to changes in
-# metrics more quickly
-global:
-  scrape_interval: 15s
-
-# you need a scrape configuration for scraping from pods
-scrape_configs:
-- job_name: 'kubernetes-pods'
-  # if you want to use metrics on jobs, set the below field to
-  # true to prevent Prometheus from setting the `job` label
-  # automatically.
-  honor_labels: false
-  kubernetes_sd_configs:
-  - role: pod
-  # skip verification so you can do HTTPS to pods
-  tls_config:
-    insecure_skip_verify: true
-  # make sure your labels are in order
-  relabel_configs:
-  # these labels tell Prometheus to automatically attach source
-  # pod and namespace information to each collected sample, so
-  # that they'll be exposed in the custom metrics API automatically.
-  - source_labels: [__meta_kubernetes_namespace]
-    action: replace
-    target_label: namespace
-  - source_labels: [__meta_kubernetes_pod_name]
-    action: replace
-    target_label: pod
-  # these labels tell Prometheus to look for
-  # prometheus.io/{scrape,path,port} annotations to configure
-  # how to scrape
-  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-    action: keep
-    regex: true
-  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-    action: replace
-    target_label: __metrics_path__
-    regex: (.+)
-  - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-    action: replace
-    regex: ([^:]+)(?::\d+)?;(\d+)
-    replacement: $1:$2
-    target_label: __address__
-  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
-    action: replace
-    target_label: __scheme__
-    regex: (.+)
-```
-
-</details>
-
-Ensure that your Prometheus is up and running by accessing the Prometheus
-dashboard, and checking on the labels on those metrics.  You'll need the
-label names for configuring the adapter.
-
-### Creating the Resources and Launching the Deployment ###
-
-The [deploy/manifests](/deploy/manifests) directory contains the
-appropriate files for creating the Kubernetes objects to deploy the
-adapter.
-
-See the [deployment README](/deploy/README.md) for more information about
-the steps to deploy the adapter.  Note that if you're deploying on
-a non-x86_64 (amd64) platform, you'll need to change the `image` field in
-the Deployment to be the appropriate image for your platform.
-
-You may also need to modify the ConfigMap containing the metrics discovery
-configuration.  If you're using the Prometheus configuration described
-above, it should work out of the box in common cases.  Otherwise, read the
-[configuration documentation](/docs/config.md) to learn how to configure
-the adapter for your particular metrics and labels.  The [configuration
-walkthrough](/docs/config-walkthrough.md) gives an end-to-end
-configuration tutorial for configure the adapter for a scenario similar to
-this one.
-
-### The Registered API ###
-
-As part of the creation of the adapter Deployment and associated objects
-(performed above), we registered the API with the API aggregator (part of
-the main Kubernetes API server).
-
-The API is registered as `custom.metrics.k8s.io/v1beta1`, and you can find
-more information about aggregation at [Concepts:
-Aggregation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/aggregation.md).
-
-If you're deploying into production, you'll probably want to modify the
-APIService object to contain the CA used to sign your serving
-certificates.
-
-To do this, first base64-encode the CA (assuming it's stored in
-/tmp/ca.crt):
-
-```shell
-$ base64 -w 0 < /tmp/ca.crt
-```
-
-Then, edit the APIService and place the encoded contents into the
-`caBundle` field under `spec`, and removing the `insecureSkipTLSVerify`
-field in the same location:
-
-```shell
-$ kubectl edit apiservice v1beta1.custom.metrics.k8s.io
-```
-
-This ensures that the API aggregator checks that the API is being served
-by the server that you expect, by verifying the certificates.
-
-### Double-Checking Your Work ###
-
-With that all set, your custom metrics API should show up in discovery.
-
-Try fetching the discovery information for it:
-
-```shell
-$ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
-```
-
-Since you don't have any metrics collected yet, you shouldn't see any
-available resources, but the request should return successfully.  Keep
-this command in mind -- you'll want to use it later once you have a pod
-producing custom metrics.
-
-Collecting Application Metrics
-------------------------------
-
-Now that you have a working pipeline for ingesting application metrics,
-you'll need an application that produces some metrics.  Any application
-which produces Prometheus-formatted metrics will do.  For the purposes of
-this walkthrough, try out [@luxas](https://github.com/luxas)'s simple HTTP
-counter in the `luxas/autoscale-demo` image on Dockerhub:
+Deploy your app into your cluster, exposed via a service so that you can
+send traffic to it and fetch metrics from it:
 
 <details>
 
 <summary>sample-app.deploy.yaml</summary>
 
 ```yaml
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sample-app
+  labels:
+    app: sample-app
 spec:
   replicas: 1
   selector:
@@ -225,13 +84,6 @@ spec:
     metadata:
       labels:
         app: sample-app
-      annotations:
-        # if you're not using the Operator, you'll need these annotations
-        # otherwise, configure the operator to collect metrics from
-        # the sample-app service on port 80 at /metrics
-        prometheus.io/scrape: true
-        prometheus.io/port: 8080
-        prometheus.io/path: "/metrics"
     spec:
       containers:
       - image: luxas/autoscale-demo:v0.1.2
@@ -243,75 +95,23 @@ spec:
 
 </details>
 
-Create this deployment, and expose it so that you can easily trigger
-increases in metrics:
-
-```yaml
+```shell
 $ kubectl create -f sample-app.deploy.yaml
 $ kubectl create service clusterip sample-app --tcp=80:8080
 ```
 
-This sample application provides some metrics on the number of HTTP
-requests it receives.  Consider the metric `http_requests_total`.  First,
-check that it appears in discovery using the command from [Double-Checking
-Yor Work](#double-checking-your-work).  The cumulative Prometheus metric
-`http_requests_total` should have become the custom-metrics-API rate
-metric `pods/http_requests`.  Check out its value:
-
-```shell
-$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
-```
-
-It should be zero, since you're not currently accessing it.  Now, create
-a few requests with curl:
+Now, check your app, which exposes metrics and counts the number of
+accesses to the metrics page via the `http_requests_total` metric:
 
 ```shell
 $ curl http://$(kubectl get service sample-app -o jsonpath='{ .spec.clusterIP }')/metrics
 ```
 
-Try fetching the metrics again.  You should see an increase in the rate
-after the collection interval specified in your Prometheus configuration
-has elapsed.  If you leave it for a bit, the rate will go back down again.
+Notice that each time you access the page, the counter goes up.
 
-### Quantity Values
-
-Notice that the API uses Kubernetes-style quantities to describe metric
-values.  These quantities use SI suffixes instead of decimal points.  The
-most common to see in the metrics API is the `m` suffix, which means
-milli-units, or 1000ths of a unit.  If your metric is exactly a whole
-number of units on the nose, you might not see a suffix. Otherwise, you'll
-probably see an `m` suffix to represent fractions of a unit.
-
-For example, here, `500m` would be half a request per second, `10` would
-be 10 requests per second, and `10500m` would be `10.5` requests per
-second.
-
-
-### Troubleshooting Missing Metrics
-
-If the metric does not appear, or is not registered with the right
-resources, you might need to modify your [metrics discovery
-configuration](/docs/config.md), as mentioned above.  Check your labels via
-the Prometheus dashboard, and then modify the configuration appropriately.
-
-As noted in the main [README](/README.md), you'll need to also make sure
-your metrics relist interval is at least your Prometheus scrape interval.
-If it's less that that, you'll see metrics periodically appear and
-disappear from the adapter.
-
-Autoscaling
------------
-
-Now that you have an application which produces custom metrics, you'll be
-able to autoscale on it.  As noted in the [HorizontalPodAutoscaler
-walkthrough](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics),
-there are three different types of metrics that the
-HorizontalPodAutoscaler can handle.
-
-In this walkthrough, you've exposed some metrics that can be consumed
-using the `Pods` metric type.
-
-Create a description for the HorizontalPodAutoscaler (HPA):
+Now, you'll want to make sure you can autoscale your application on that
+metric, so that you're ready for your launch.  You can use
+a HorizontalPodAutoscaler like this to accomplish the autoscaling:
 
 <details>
 
@@ -346,25 +146,215 @@ spec:
 
 </details>
 
-Create the HorizontalPodAutoscaler with
+If you try creating that now (and take a look at your controller-manager
+logs), you'll see that the that the HorizontalPodAutoscaler controller is
+attempting to fetch metrics from
+`/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app`,
+but right now, nothing's serving that API.
 
+Before you can autoscale your application, you'll need to make sure that
+Kubernetes can read the metrics that your application exposes.
+
+Launching Prometheus and the Adapter
+------------------------------------
+
+In order to expose metrics beyond CPU and memory to Kubernetes for
+autoscaling, you'll need an "adapter" that serves the custom metrics API.
+Since you've got Prometheus metrics, it makes sense to use the
+Prometheus adapter to serve metrics out of Prometheus.
+
+### Launching Prometheus
+
+First, you'll need to deploy the Prometheus Operator.  Check out the
+[getting started
+guide](https://coreos.com/operators/prometheus/docs/latest/user-guides/getting-started.html)
+for the Operator to deploy a copy of Prometheus.
+
+This walkthrough assumes that Prometheus is deployed in the `prom`
+namespace. Most of the sample commands and files are namespace-agnostic,
+but there are a few commands or pieces of configuration that rely on
+namespace.  If you're using a different namespace, simply substitute that
+in for `prom` when it appears.
+
+### Monitoring Your Application
+
+In order to monitor your application, you'll need to set up
+a ServiceMonitor pointing at the application.  Assuming you've set up your
+Prometheus instance to use ServiceMonitors with the `app: sample-app`
+label, create a ServiceMonitor to monitor the app's metrics via the
+service:
+
+<details>
+
+<summary>service-monitor.yaml</summary>
+
+```yaml
+kind: ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+spec:
+  selector:
+    matchLabels:
+      app: sample-app
+  endpoints: 
+  - port: http
 ```
+
+</details>
+
+```shell
+$ kubectl create -f service-monitor.yaml
+```
+
+Now, you should see your metrics appear in your Prometheus instance.  Look
+them up via the dashboard, and make sure they have the `namespace` and
+`pod` labels.
+
+### Launching the Adapter
+
+Now that you've got a running copy of Prometheus that's monitoring your
+application, you'll need to deploy the adapter, which knows how to
+communicate with both Kubernetes and Promethues, acting as a translator
+between the two.
+
+The [deploy/manifests](/deploy/manifests) directory contains the
+appropriate files for creating the Kubernetes objects to deploy the
+adapter.
+
+See the [deployment README](/deploy/README.md) for more information about
+the steps to deploy the adapter.  Note that if you're deploying on
+a non-x86_64 (amd64) platform, you'll need to change the `image` field in
+the Deployment to be the appropriate image for your platform.
+
+The default adapter configuration should work for this walkthrough and
+a standard Prometheus Operator configuration, but if you've got custom
+relabelling rules, or your labels above weren't exactly `namespace` and
+`pod`, you may need to edit the configuration in the ConfigMap. The
+[configuration walkthrough](/docs/config-walkthrough.md) provides an
+overview of how configuration works.
+
+### The Registered API
+
+As part of the creation of the adapter Deployment and associated objects
+(performed above), we registered the API with the API aggregator (part of
+the main Kubernetes API server).
+
+The API is registered as `custom.metrics.k8s.io/v1beta1`, and you can find
+more information about aggregation at [Concepts:
+Aggregation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/aggregation.md).
+
+### Double-Checking Your Work
+
+With that all set, your custom metrics API should show up in discovery.
+
+Try fetching the discovery information for it:
+
+```shell
+$ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
+```
+
+Since you've set up Prometheus to collect your app's metrics, you should
+see a `pods/http_request` resource show up.  This represents the
+`http_requests_total` metric, converted into a rate, aggregated to have
+one datapoint per pod.  Notice that this translates to the same API that
+our HorizontalPodAutoscaler was trying to use above.
+
+You can check the value of the metric using `kubectl get --raw`, which
+sends a raw GET request to the Kubernetes API server, automatically
+injecting auth information:
+
+```shell
+$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
+```
+
+Because of the adapter's configuration, the cumulative metric
+`http_requests_total` has been converted into a rate metric,
+`pods/http_requests`, which measures requests per second over a 2 minute
+interval. The value should currently be close to zero, since there's no
+traffic to your app, except for the regular metrics collection from
+Prometheus.
+
+Try generating some traffic using cURL a few times, like before:
+
+```shell
+$ curl http://$(kubectl get service sample-app -o jsonpath='{ .spec.clusterIP }')/metrics
+```
+
+Now, if you fetch the metrics again, you should see an increase in the
+value.  If you leave it alone for a bit, the value should go back down
+again.
+
+### Quantity Values
+
+Notice that the API uses Kubernetes-style quantities to describe metric
+values.  These quantities use SI suffixes instead of decimal points.  The
+most common to see in the metrics API is the `m` suffix, which means
+milli-units, or 1000ths of a unit.  If your metric is exactly a whole
+number of units on the nose, you might not see a suffix. Otherwise, you'll
+probably see an `m` suffix to represent fractions of a unit.
+
+For example, here, `500m` would be half a request per second, `10` would
+be 10 requests per second, and `10500m` would be `10.5` requests per
+second.
+
+### Troubleshooting Missing Metrics
+
+If the metric does not appear, or is not registered with the right
+resources, you might need to modify your [adapter
+configuration](/docs/config.md), as mentioned above.  Check your labels
+via the Prometheus dashboard, and then modify the configuration
+appropriately.
+
+As noted in the main [README](/README.md), you'll need to also make sure
+your metrics relist interval is at least your Prometheus scrape interval.
+If it's less that that, you'll see metrics periodically appear and
+disappear from the adapter.
+
+Autoscaling
+-----------
+
+Now that you finally have the metrics API set up, your
+HorizontalPodAutoscaler should be able to fetch the appropriate metric,
+and make decisions based on it.
+
+If you didn't create the HorizontalPodAutoscaler above, create it now:
+
+```shell
 $ kubectl create -f sample-app-hpa.yaml
 ```
 
-Then, like before, make some requests to the sample app's service.  If you
-describe the HPA, after the HPA sync interval has elapsed, you should see
-the number of pods increase proportionally to the ratio between the actual
-requests per second and your target of 1 request every 2 seconds.
-
-You can examine the HPA with
+Wait a little bit, and then examine the HPA:
 
 ```shell
 $ kubectl describe hpa sample-app
 ```
 
-You should see the HPA's last observed metric value, which should roughly
-correspond to the rate of requests that you made.
+You should see that it succesfully fetched the metric, but it hasn't tried
+to scale, since there's not traffic.
+
+Since your app is going to need to scale in response to traffic, generate
+some via cURL like above: 
+
+```shell
+$ curl http://$(kubectl get service sample-app -o jsonpath='{ .spec.clusterIP }')/metrics
+```
+
+Recall from the configuration at the start that you configured your HPA to
+have each replica handle 500 milli-requests, or 1 request every two
+seconds (ok, so *maybe* you still have some performance issues to work out
+before your beta period ends).  Thus, if you generate a few requests, you
+should see the HPA scale up your app relatively quickly.
+
+If you describe the HPA again, you should see that the last observed
+metric value roughly corresponds to your rate of requests, and that the
+HPA has recently scaled your app.
+
+Now that you've got your app autoscaling on the HTTP requests, you're all
+ready to launch! If you leave the app alone for a while, the HPA should
+scale it back down, so you can save precious budget for the launch party.
 
 Next Steps
 ----------
