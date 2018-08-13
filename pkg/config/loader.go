@@ -25,7 +25,7 @@ func FromFile(filename string) (*MetricsDiscoveryConfig, error) {
 // FromYAML loads the configuration from a blob of YAML.
 func FromYAML(contents []byte) (*MetricsDiscoveryConfig, error) {
 	var cfg MetricsDiscoveryConfig
-	if err := yaml.Unmarshal(contents, &cfg); err != nil {
+	if err := yaml.UnmarshalStrict(contents, &cfg); err != nil {
 		return nil, fmt.Errorf("unable to parse metrics discovery config: %v", err)
 	}
 	return &cfg, nil
