@@ -9,6 +9,16 @@ metrics API
 suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in
 Kubernetes 1.6+.
 
+Installation
+-------------
+To install Kubernetes Custom Metrics Adapter for Prometheus via Helm with the release name `my-release`:
+
+```console
+$ helm install --name my-release stable/prometheus-adapter
+```
+
+More information can be found [here](https://github.com/helm/charts/blob/master/stable/prometheus-adapter/README.md).
+
 Configuration
 -------------
 
