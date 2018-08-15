@@ -279,20 +279,22 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:46bdda4b93f3a1169365a10a9eef6cfba14fbb59a636f8562c6eba578afb48b8"
+  digest = "1:cf71ca07e2ee5914c776d9eaec4a7f63f4ddb013d55e39ffd5689fe4cd2df861"
   name = "github.com/kubernetes-incubator/custom-metrics-apiserver"
   packages = [
     "pkg/apiserver",
     "pkg/apiserver/installer",
+    "pkg/cmd",
     "pkg/cmd/server",
     "pkg/dynamicmapper",
     "pkg/provider",
+    "pkg/provider/helpers",
     "pkg/registry/custom_metrics",
     "pkg/registry/external_metrics",
   ]
   pruneopts = "UT"
-  revision = "d8f23423aa1d0ff2bc9656da863d721725b3c68a"
-  version = "kubernetes-1.11.0-rc.1"
+  revision = "f54b0d6f31d8e0f0a2d7be372ddd837a2ef15d97"
+  version = "kubernetes-1.11.2"
 
 [[projects]]
   branch = "master"
@@ -937,9 +939,9 @@
   analyzer-version = 1
   input-imports = [
     "github.com/golang/glog",
-    "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server",
-    "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/dynamicmapper",
+    "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd",
     "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider",
+    "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/common/model",
     "github.com/spf13/cobra",
@@ -952,14 +954,12 @@
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
     "k8s.io/apimachinery/pkg/labels",
-    "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apiserver/pkg/util/logs",
-    "k8s.io/client-go/discovery",
     "k8s.io/client-go/dynamic",
     "k8s.io/client-go/dynamic/fake",
     "k8s.io/client-go/rest",

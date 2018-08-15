@@ -76,5 +76,5 @@ func (r *REST) List(ctx context.Context, options *metainternalversion.ListOption
 	}
 	metricName := requestInfo.Resource
 
-	return r.emProvider.GetExternalMetric(namespace, metricName, metricSelector)
+	return r.emProvider.GetExternalMetric(namespace, metricSelector, provider.ExternalMetricInfo{Metric: metricName})
 }
