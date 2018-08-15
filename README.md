@@ -11,13 +11,13 @@ Kubernetes 1.6+.
 
 Installation
 -------------
-To install Kubernetes Custom Metrics Adapter for Prometheus via Helm with the release name `my-release`:
+If you're a helm user, a helm chart is listed on the Kubeapps Hub as [stable/prometheus-adapter](https://github.com/helm/charts/blob/master/stable/prometheus-adapter/README.md).
+
+To install it with the release name `my-release`, run this Helm command:
 
 ```console
 $ helm install --name my-release stable/prometheus-adapter
 ```
-
-More information can be found [here](https://github.com/helm/charts/blob/master/stable/prometheus-adapter/README.md).
 
 Configuration
 -------------
