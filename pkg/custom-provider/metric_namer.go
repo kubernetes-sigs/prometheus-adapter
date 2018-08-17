@@ -1,11 +1,9 @@
 package provider
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
-	"text/template"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -84,24 +82,16 @@ func (m *reMatcher) Matches(val string) bool {
 }
 
 type metricNamer struct {
-	seriesQuery          prom.Selector
-	metricsQueryTemplate *template.Template
-	nameMatches          *regexp.Regexp
-	nameAs               string
-	seriesMatchers       []*reMatcher
+	seriesQuery    prom.Selector
+	metricsQuery   naming.MetricsQuery
+	nameMatches    *regexp.Regexp
+	nameAs         string
+	seriesMatchers []*reMatcher
 
 	naming.ResourceConverter
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
-type queryTemplateArgs struct {
-	Series            string
-	LabelMatchers     string
-	LabelValuesByName map[string][]string
-	GroupBy           string
-	GroupBySlice      []string
-}
-
 func (n *metricNamer) FilterSeries(initialSeries []prom.Series) []prom.Series {
 	if len(n.seriesMatchers) == 0 {
 		return initialSeries
@@ -122,48 +112,7 @@ SeriesLoop:
 }
 
 func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error) {
-	var exprs []string
-	valuesByName := map[string][]string{}
-
-	if namespace != "" {
-		namespaceLbl, err := n.LabelForResource(nsGroupResource)
-		if err != nil {
-			return "", err
-		}
-		exprs = append(exprs, prom.LabelEq(string(namespaceLbl), namespace))
-		valuesByName[string(namespaceLbl)] = []string{namespace}
-	}
-
-	resourceLbl, err := n.LabelForResource(resource)
-	if err != nil {
-		return "", err
-	}
-	matcher := prom.LabelEq
-	targetValue := names[0]
-	if len(names) > 1 {
-		matcher = prom.LabelMatches
-		targetValue = strings.Join(names, "|")
-	}
-	exprs = append(exprs, matcher(string(resourceLbl), targetValue))
-	valuesByName[string(resourceLbl)] = names
-
-	args := queryTemplateArgs{
-		Series:            series,
-		LabelMatchers:     strings.Join(exprs, ","),
-		LabelValuesByName: valuesByName,
-		GroupBy:           string(resourceLbl),
-		GroupBySlice:      []string{string(resourceLbl)},
-	}
-	queryBuff := new(bytes.Buffer)
-	if err := n.metricsQueryTemplate.Execute(queryBuff, args); err != nil {
-		return "", err
-	}
-
-	if queryBuff.Len() == 0 {
-		return "", fmt.Errorf("empty query produced by metrics query template")
-	}
-
-	return prom.Selector(queryBuff.String()), nil
+	return n.metricsQuery.Build(series, resource, namespace, nil, names...)
 }
 
 func (n *metricNamer) MetricNameForSeries(series prom.Series) (string, error) {
@@ -180,9 +129,14 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	namers := make([]MetricNamer, len(cfg.Rules))
 
 	for i, rule := range cfg.Rules {
-		metricsQueryTemplate, err := template.New("metrics-query").Delims("<<", ">>").Parse(rule.MetricsQuery)
+		resConv, err := naming.NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse metrics query template %q associated with series query %q: %v", rule.MetricsQuery, rule.SeriesQuery, err)
+			return nil, err
+		}
+
+		metricsQuery, err := naming.NewMetricsQuery(rule.MetricsQuery, resConv)
+		if err != nil {
+			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}
 
 		seriesMatchers := make([]*reMatcher, len(rule.SeriesFilters))
@@ -226,18 +180,13 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 			}
 		}
 
-		resConv, err := naming.NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
-		if err != nil {
-			return nil, err
-		}
-
 		namer := &metricNamer{
-			seriesQuery:          prom.Selector(rule.SeriesQuery),
-			metricsQueryTemplate: metricsQueryTemplate,
-			nameMatches:          nameMatches,
-			nameAs:               nameAs,
-			seriesMatchers:       seriesMatchers,
-			ResourceConverter:    resConv,
+			seriesQuery:       prom.Selector(rule.SeriesQuery),
+			metricsQuery:      metricsQuery,
+			nameMatches:       nameMatches,
+			nameAs:            nameAs,
+			seriesMatchers:    seriesMatchers,
+			ResourceConverter: resConv,
 		}
 
 		namers[i] = namer
