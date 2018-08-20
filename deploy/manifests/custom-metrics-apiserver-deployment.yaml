@@ -21,7 +21,6 @@ spec:
       - name: custom-metrics-apiserver
         image: directxman12/k8s-prometheus-adapter-amd64
         args:
-        - /adapter
         - --secure-port=6443
         - --tls-cert-file=/var/run/serving-cert/serving.crt
         - --tls-private-key-file=/var/run/serving-cert/serving.key
