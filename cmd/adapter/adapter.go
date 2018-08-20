@@ -27,6 +27,7 @@ import (
 	"github.com/golang/glog"
 	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	resmetrics "github.com/kubernetes-incubator/metrics-server/pkg/apiserver/generic"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/rest"
@@ -36,6 +37,7 @@ import (
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
+	resprov "github.com/directxman12/k8s-prometheus-adapter/pkg/resourceprovider"
 )
 
 type PrometheusAdapter struct {
@@ -51,6 +53,8 @@ type PrometheusAdapter struct {
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
 	MetricsRelistInterval time.Duration
+
+	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
 
 func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
@@ -81,7 +85,7 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 }
 
-func (cmd *PrometheusAdapter) makeProvider(stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
+func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
 	// load metrics discovery configuration
 	if cmd.AdapterConfigFile == "" {
 		return nil, fmt.Errorf("no metrics discovery configuration file specified (make sure to use --config)")
@@ -91,11 +95,7 @@ func (cmd *PrometheusAdapter) makeProvider(stopCh <-chan struct{}) (provider.Cus
 		return nil, fmt.Errorf("unable to load metrics discovery configuration: %v", err)
 	}
 
-	// make the prometheus client
-	promClient, err := cmd.makePromClient()
-	if err != nil {
-		return nil, fmt.Errorf("unable to construct Prometheus client: %v", err)
-	}
+	cmd.metricsConfig = metricsConfig
 
 	// grab the mapper and dynamic client
 	mapper, err := cmd.RESTMapper()
@@ -120,6 +120,43 @@ func (cmd *PrometheusAdapter) makeProvider(stopCh <-chan struct{}) (provider.Cus
 	return cmProvider, nil
 }
 
+func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) error {
+	if cmd.metricsConfig.ResourceRules == nil {
+		// bail if we don't have rules for setting things up
+		return nil
+	}
+
+	mapper, err := cmd.RESTMapper()
+	if err != nil {
+		return err
+	}
+
+	provider, err := resprov.NewProvider(promClient, mapper, cmd.metricsConfig.ResourceRules)
+	if err != nil {
+		return fmt.Errorf("unable to construct resource metrics API provider: %v", err)
+	}
+
+	provCfg := &resmetrics.ProviderConfig{
+		Node: provider,
+		Pod:  provider,
+	}
+	informers, err := cmd.Informers()
+	if err != nil {
+		return err
+	}
+
+	server, err := cmd.Server()
+	if err != nil {
+		return err
+	}
+
+	if err := resmetrics.InstallStorage(provCfg, informers.Core().V1(), server.GenericAPIServer); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
@@ -129,18 +166,33 @@ func main() {
 		PrometheusURL:         "https://localhost",
 		MetricsRelistInterval: 10 * time.Minute,
 	}
+	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
 	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the glog flags
 	cmd.Flags().Parse(os.Args)
 
+	// make the prometheus client
+	promClient, err := cmd.makePromClient()
+	if err != nil {
+		glog.Fatalf("unable to construct Prometheus client: %v", err)
+	}
+
 	// construct the provider
-	cmProvider, err := cmd.makeProvider(wait.NeverStop)
+	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
 	if err != nil {
 		glog.Fatalf("unable to construct custom metrics provider: %v", err)
 	}
 
-	// attach the provider to the server and run it
+	// attach the provider to the server
 	cmd.WithCustomMetrics(cmProvider)
+
+	// attach resource metrics support
+	// TODO: make this optional
+	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
+		glog.Fatalf("unable to install resource metrics API: %v", err)
+	}
+
+	// run the server
 	if err := cmd.Run(wait.NeverStop); err != nil {
 		glog.Fatalf("unable to run custom metrics adapter: %v", err)
 	}

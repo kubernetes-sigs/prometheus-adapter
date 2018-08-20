@@ -89,5 +89,25 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				MetricsQuery: fmt.Sprintf("sum(rate(<<.Series>>{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 			},
 		},
+
+		ResourceRules: &ResourceRules{
+			CPU: ResourceRule{
+				ContainerQuery: fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
+				NodeQuery:      fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
+				Resources: ResourceMapping{
+					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
+				},
+				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
+			},
+			Memory: ResourceRule{
+				ContainerQuery: "sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)",
+				NodeQuery:      "sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)",
+				Resources: ResourceMapping{
+					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
+				},
+				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
+			},
+			Window: pmodel.Duration(rateInterval),
+		},
 	}
 }

@@ -1,11 +1,16 @@
 package config
 
+import (
+	pmodel "github.com/prometheus/common/model"
+)
+
 type MetricsDiscoveryConfig struct {
 	// Rules specifies how to discover and map Prometheus metrics to
 	// custom metrics API resources.  The rules are applied independently,
 	// and thus must be mutually exclusive.  Rules will the same SeriesQuery
 	// will make only a single API call.
-	Rules []DiscoveryRule `yaml:"rules"`
+	Rules         []DiscoveryRule `yaml:"rules"`
+	ResourceRules *ResourceRules  `yaml:"resourceRules,omitempty"`
 }
 
 // DiscoveryRule describes on set of rules for transforming Prometheus metrics to/from
@@ -72,4 +77,32 @@ type NameMapping struct {
 	// to $0 if no capture groups are present in Matches, or $1
 	// if only one is present, and will error if multiple are.
 	As string `yaml:"as"`
+}
+
+// ResourceRules describe the rules for querying resource metrics
+// API results.  It's assumed that the same metrics can be used
+// to aggregate across different resources.
+type ResourceRules struct {
+	CPU    ResourceRule `yaml:"cpu"`
+	Memory ResourceRule `yaml:"memory"`
+	// Window is the window size reported by the resource metrics API.  It should match the value used
+	// in your containerQuery and nodeQuery if you use a `rate` function.
+	Window pmodel.Duration `yaml:"window"`
+}
+
+// ResourceRule describes how to query metrics for some particular
+// system resource metric.
+type ResourceRule struct {
+	// Container is the query used to fetch the metrics for containers.
+	ContainerQuery string `yaml:"containerQuery"`
+	// NodeQuery is the query used to fetch the metrics for nodes
+	// (for instance, simply aggregating by node label is insufficient for
+	// cadvisor metrics -- you need to select the `/` container).
+	NodeQuery string `yaml:"nodeQuery"`
+	// Resources specifies how associated Kubernetes resources should be discovered for
+	// the given metrics.
+	Resources ResourceMapping `yaml:"resources"`
+	// ContainerLabel indicates the name of the Prometheus label containing the container name
+	// (since "container" is not a resource, this can't go in the `resources` block, but is similar).
+	ContainerLabel string `yaml:"containerLabel"`
 }

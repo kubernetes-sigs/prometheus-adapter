@@ -51,6 +51,10 @@
   name = "github.com/kubernetes-incubator/custom-metrics-apiserver"
   version = "kubernetes-1.11.2"
 
+[[constraint]]
+  name = "github.com/kubernetes-incubator/metrics-server"
+  branch = "master"
+
 # Core Kubernetes deps
 [[constraint]]
   name = "k8s.io/api"
