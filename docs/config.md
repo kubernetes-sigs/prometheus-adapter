@@ -1,6 +1,10 @@
 Metrics Discovery and Presentation Configuration
 ================================================
 
+*If you want a full walkthrough of configuring the adapter for a sample
+metric, please read the [configuration
+walkthrough](/docs/config-walkthrough.md)*
+
 The adapter determines which metrics to expose, and how to expose them,
 through a set of "discovery" rules.  Each rule is executed independently
 (so make sure that your rules are mutually exclusive), and specifies each
@@ -123,6 +127,9 @@ resource:
 These two can be combined, so you can specify both a template and some
 individual overrides.
 
+The resources mentioned can be any resource available in your kubernetes
+cluster, as long as you've got a corresponding label.
+
 Naming
 ------
 
@@ -150,7 +157,7 @@ For example:
 # e.g. http_requests_total becomes http_requests_per_second
 name:
   matches: "^(.*)_total$"
-  as: "<<1}_per_second"
+  as: "${1}_per_second"
 ```
 
 Querying
@@ -181,7 +188,7 @@ Kubernetes resources.  Then, if someone requested the metric
 `pods/http_request_per_second` for the pods `pod1` and `pod2` in the
 `somens` namespace, we'd have:
 
-- `Series: "http_requests_total"
+- `Series: "http_requests_total"`
 - `LabelMatchers: "pod=~\"pod1|pod2",namespace="somens"`
 - `GroupBy`: `pod`
 
