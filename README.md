@@ -130,7 +130,9 @@ the "discovery" and "naming" parts of the configuration.  Then, you can write
 whichever metrics you want in the `metricsQuery`!  The series query can contain
 whichever metrics you want, as long as they have the right set of labels.
 
-For example, if you have two metrics `foo_total` and `foo_count`, you might write
+For example, suppose you have two metrics `foo_total` and `foo_count`,
+both with the label `system_name`, which represents the `node` resource.
+Then, you might write
 
 ```yaml
 rules:
@@ -139,7 +141,7 @@ rules:
   name:
     matches: 'foo_total'
     as: 'foo'
-  metricsQuery: 'sum(foo_total) by (<<.GroupBy>>) / sum(foo_count) by (<<.GroupBy>>)'
+  metricsQuery: 'sum(foo_total{<<.LabelMatchers>>}) by (<<.GroupBy>>) / sum(foo_count{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
 ```
 
 ### I get errors about SubjectAccessReviews/system:anonymous/TLS/Certificates/RequestHeader!
