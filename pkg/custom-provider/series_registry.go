@@ -56,8 +56,8 @@ type seriesInfo struct {
 	// seriesName is the name of the corresponding Prometheus series
 	seriesName string
 
-	// namer is the MetricNamer used to name this series
-	namer MetricNamer
+	// converter is the SeriesConverter used to name this series
+	converter SeriesConverter
 }
 
 // overridableSeriesRegistry is a basic SeriesRegistry
@@ -75,52 +75,52 @@ type basicSeriesRegistry struct {
 	metricLister MetricListerWithNotification
 }
 
-//NewBasicSeriesRegistry creates a SeriesRegistry driven by the data from the provided MetricLister.
+// NewBasicSeriesRegistry creates a SeriesRegistry driven by the data from the provided MetricLister.
 func NewBasicSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) SeriesRegistry {
 	var registry = basicSeriesRegistry{
 		mapper:       mapper,
 		metricLister: lister,
 	}
 
-	lister.AddNotificationReceiver(registry.onNewDataAvailable)
+	lister.AddNotificationReceiver(registry.filterAndStoreMetrics)
 
 	return &registry
 }
 
-func (r *basicSeriesRegistry) filterMetrics(result metricUpdateResult) metricUpdateResult {
-	namers := make([]MetricNamer, 0)
+func (r *basicSeriesRegistry) filterMetrics(result MetricUpdateResult) MetricUpdateResult {
+	converters := make([]SeriesConverter, 0)
 	series := make([][]prom.Series, 0)
 
 	targetType := config.Custom
 
-	for i, namer := range result.namers {
-		if namer.MetricType() == targetType {
-			namers = append(namers, namer)
+	for i, converter := range result.converters {
+		if converter.MetricType() == targetType {
+			converters = append(converters, converter)
 			series = append(series, result.series[i])
 		}
 	}
 
-	return metricUpdateResult{
-		namers: namers,
-		series: series,
+	return MetricUpdateResult{
+		converters: converters,
+		series:     series,
 	}
 }
 
-func (r *basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
+func (r *basicSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult) {
 	result = r.filterMetrics(result)
 
 	newSeriesSlices := result.series
-	namers := result.namers
+	converters := result.converters
 
-	// if len(newSeriesSlices) != len(namers) {
-	// 	return fmt.Errorf("need one set of series per namer")
+	// if len(newSeriesSlices) != len(converters) {
+	// 	return fmt.Errorf("need one set of series per converter")
 	// }
 
 	newInfo := make(map[provider.CustomMetricInfo]seriesInfo)
 	for i, newSeries := range newSeriesSlices {
-		namer := namers[i]
+		converter := converters[i]
 		for _, series := range newSeries {
-			identity, err := namer.IdentifySeries(series)
+			identity, err := converter.IdentifySeries(series)
 
 			if err != nil {
 				glog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
@@ -147,7 +147,7 @@ func (r *basicSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
 				// we don't need to re-normalize, because the metric namer should have already normalized for us
 				newInfo[info] = seriesInfo{
 					seriesName: series.Name,
-					namer:      namer,
+					converter:  converter,
 				}
 			}
 		}
@@ -194,7 +194,7 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 		return "", false
 	}
 
-	query, err := info.namer.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, resourceNames...)
+	query, err := info.converter.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, resourceNames...)
 	if err != nil {
 		glog.Errorf("unable to construct query for metric %s: %v", metricInfo.String(), err)
 		return "", false
@@ -218,7 +218,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetri
 		return nil, false
 	}
 
-	resourceLbl, err := info.namer.ResourceConverter().LabelForResource(metricInfo.GroupResource)
+	resourceLbl, err := info.converter.ResourceConverter().LabelForResource(metricInfo.GroupResource)
 	if err != nil {
 		glog.Errorf("unable to construct resource label for metric %s: %v", metricInfo.String(), err)
 		return nil, false

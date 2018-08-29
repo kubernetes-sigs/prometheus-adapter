@@ -92,10 +92,10 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
 	cfg := config.DefaultConfig(1*time.Minute, "")
-	namers, err := NamersFromConfig(cfg, restMapper())
+	converters, err := ConvertersFromConfig(cfg, restMapper())
 	require.NoError(t, err)
 
-	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
+	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, converters, fakeProviderUpdateInterval)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))

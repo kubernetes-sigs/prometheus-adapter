@@ -184,12 +184,12 @@ func (o PrometheusAdapterServerOptions) RunCustomMetricsAdapterServer(stopCh <-c
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	promClient := prom.NewClientForAPI(instrumentedGenericPromClient)
 
-	namers, err := cmprov.NamersFromConfig(metricsConfig, dynamicMapper)
+	converters, err := cmprov.ConvertersFromConfig(metricsConfig, dynamicMapper)
 	if err != nil {
 		return fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
 
-	cmProvider, runner := cmprov.NewPrometheusProvider(dynamicMapper, dynamicClient, promClient, namers, o.MetricsRelistInterval)
+	cmProvider, runner := cmprov.NewPrometheusProvider(dynamicMapper, dynamicClient, promClient, converters, o.MetricsRelistInterval)
 	runner.RunUntil(stopCh)
 
 	server, err := config.Complete().New("prometheus-custom-metrics-adapter", cmProvider, nil)

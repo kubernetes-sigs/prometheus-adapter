@@ -46,10 +46,10 @@ type prometheusProvider struct {
 	SeriesRegistry
 }
 
-//NewPrometheusProvider creates an CustomMetricsProvider capable of responding to Kubernetes requests for custom metric data.
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
-	//TODO: AC - Consider injecting these objects and calling .Run() before calling this function.
-	basicLister := NewBasicMetricLister(promClient, namers, updateInterval)
+// NewPrometheusProvider creates an CustomMetricsProvider capable of responding to Kubernetes requests for custom metric data.
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, converters []SeriesConverter, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
+	// TODO: Consider injecting these objects and calling .Run() on the runnables before calling this function.
+	basicLister := NewBasicMetricLister(promClient, converters, updateInterval)
 	periodicLister, _ := NewPeriodicMetricLister(basicLister, updateInterval)
 	seriesRegistry := NewBasicSeriesRegistry(periodicLister, mapper)
 

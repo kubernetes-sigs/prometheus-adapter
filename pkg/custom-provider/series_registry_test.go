@@ -51,11 +51,11 @@ func restMapper() apimeta.RESTMapper {
 	return mapper
 }
 
-func setupMetricNamer(t testing.TB) []MetricNamer {
+func setupMetricNamer(t testing.TB) []SeriesConverter {
 	cfg := config.DefaultConfig(1*time.Minute, "kube_")
-	namers, err := NamersFromConfig(cfg, restMapper())
+	converters, err := ConvertersFromConfig(cfg, restMapper())
 	require.NoError(t, err)
-	return namers
+	return converters
 }
 
 var seriesRegistryTestSeries = [][]prom.Series{
@@ -117,60 +117,21 @@ var seriesRegistryTestSeries = [][]prom.Series{
 	},
 }
 
-type myType struct {
-	a int
-	b string
-	m map[string]int
-}
-
-type mapWrapper struct {
-	item map[string]int
-}
-
-func (o *myType) Mutate(newMap mapWrapper) {
-	o.a = 2
-	o.b = "two"
-	o.m = newMap.item
-}
-
-func TestWeirdStuff(t *testing.T) {
-	o := myType{
-		a: 1,
-		b: "one",
-		m: map[string]int{
-			"one": 1,
-		},
-	}
-
-	oldMap := o.m
-	newMap := map[string]int{
-		"two": 2,
-	}
-	newWrapper := mapWrapper{
-		item: newMap,
-	}
-	oldWrapper := mapWrapper{
-		item: oldMap,
-	}
-	o.Mutate(newWrapper)
-	o.Mutate(oldWrapper)
-}
-
 func TestSeriesRegistry(t *testing.T) {
 	assert := assert.New(t)
 
-	namers := setupMetricNamer(t)
+	converters := setupMetricNamer(t)
 	registry := &basicSeriesRegistry{
 		mapper: restMapper(),
 	}
 
-	updateResult := metricUpdateResult{
-		series: seriesRegistryTestSeries,
-		namers: namers,
+	updateResult := MetricUpdateResult{
+		series:     seriesRegistryTestSeries,
+		converters: converters,
 	}
 
 	// set up the registry
-	registry.onNewDataAvailable(updateResult)
+	registry.filterAndStoreMetrics(updateResult)
 
 	// make sure each metric got registered and can form queries
 	testCases := []struct {
@@ -309,7 +270,7 @@ func TestSeriesRegistry(t *testing.T) {
 }
 
 func BenchmarkSetSeries(b *testing.B) {
-	namers := setupMetricNamer(b)
+	converters := setupMetricNamer(b)
 	registry := &basicSeriesRegistry{
 		mapper: restMapper(),
 	}
@@ -328,11 +289,11 @@ func BenchmarkSetSeries(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		updateResult := metricUpdateResult{
-			series: newSeriesSlices,
-			namers: namers,
+		updateResult := MetricUpdateResult{
+			series:     newSeriesSlices,
+			converters: converters,
 		}
-		registry.onNewDataAvailable(updateResult)
+		registry.filterAndStoreMetrics(updateResult)
 	}
 }
 

@@ -36,7 +36,7 @@ type DiscoveryRule struct {
 	// as external or custom metrics.
 	MetricType MetricType `yaml:"metricType,omitempty"`
 	// ExternalMetricNamespaceLabelName identifies what Prometheus label should be examined
-	// to apply a namespace to metrics creates from this rule.
+	// to apply a namespace to metrics created from this rule.
 	ExternalMetricNamespaceLabelName string `yaml:"externalMetricNamespaceLabelName,omitempty"`
 }
 
@@ -80,7 +80,7 @@ type NameMapping struct {
 	As string `yaml:"as"`
 }
 
-//MetricType identifies whether a given metric should be handled and interpreted as a Custom or External metric.
+// MetricType identifies whether a given metric should be handled and interpreted as a Custom or External metric.
 type MetricType string
 
 // Operator represents a key/field's relationship to value(s).

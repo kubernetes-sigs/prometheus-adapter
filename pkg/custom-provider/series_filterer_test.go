@@ -60,12 +60,12 @@ func TestAddRequirementAppliesFilter(t *testing.T) {
 	filterer, err := NewSeriesFilterer(filters)
 	require.NoError(t, err)
 
-	//Test it once with the default filters.
+	// Test it once with the default filters.
 	result := filterer.FilterSeries(series)
 	expectedSeries := []string{"series_1", "series_2", "series_3"}
 	VerifyMatches(t, result, expectedSeries)
 
-	//Add a new filter and test again.
+	// Add a new filter and test again.
 	filterer.AddRequirement(config.RegexFilter{
 		Is: "series_[2-3]",
 	})

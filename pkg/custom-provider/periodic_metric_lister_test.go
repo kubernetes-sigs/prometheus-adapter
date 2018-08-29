@@ -12,10 +12,10 @@ type fakeLister struct {
 	callCount int
 }
 
-func (f *fakeLister) ListAllMetrics() (metricUpdateResult, error) {
+func (f *fakeLister) ListAllMetrics() (MetricUpdateResult, error) {
 	f.callCount++
 
-	return metricUpdateResult{
+	return MetricUpdateResult{
 		series: [][]prom.Series{
 			[]prom.Series{
 				prom.Series{
@@ -32,7 +32,7 @@ func TestWhenNewMetricsAvailableCallbackIsInvoked(t *testing.T) {
 	periodicLister := targetLister.(*periodicMetricLister)
 
 	callbackInvoked := false
-	callback := func(r metricUpdateResult) {
+	callback := func(r MetricUpdateResult) {
 		callbackInvoked = true
 	}
 
@@ -47,21 +47,21 @@ func TestWhenListingMetricsReturnsCachedValues(t *testing.T) {
 	targetLister, _ := NewPeriodicMetricLister(fakeLister, time.Duration(1000))
 	periodicLister := targetLister.(*periodicMetricLister)
 
-	//We haven't invoked the inner lister yet, so we should have no results.
+	// We haven't invoked the inner lister yet, so we should have no results.
 	resultBeforeUpdate, err := periodicLister.ListAllMetrics()
 	require.NoError(t, err)
 	require.Equal(t, 0, len(resultBeforeUpdate.series))
 	require.Equal(t, 0, fakeLister.callCount)
 
-	//We can simulate waiting for the udpate interval to pass...
-	//which should result in calling the inner lister to get the metrics.
+	// We can simulate waiting for the udpate interval to pass...
+	// which should result in calling the inner lister to get the metrics.
 	err = periodicLister.updateMetrics()
 	require.NoError(t, err)
 	require.Equal(t, 1, fakeLister.callCount)
 
-	//If we list now, we should return the cached values.
-	//Make sure we got some results this time
-	//as well as that we didn't unnecessarily invoke the inner lister.
+	// If we list now, we should return the cached values.
+	// Make sure we got some results this time
+	// as well as that we didn't unnecessarily invoke the inner lister.
 	resultAfterUpdate, err := periodicLister.ListAllMetrics()
 	require.NoError(t, err)
 	require.NotEqual(t, 0, len(resultAfterUpdate.series))

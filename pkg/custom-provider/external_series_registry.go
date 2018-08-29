@@ -3,8 +3,6 @@ package provider
 import (
 	"sync"
 
-	"github.com/prometheus/common/model"
-
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -14,126 +12,99 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 )
 
-//ExternalSeriesRegistry acts as the top-level converter for transforming Kubernetes requests
-//for external metrics into Prometheus queries.
+// ExternalSeriesRegistry acts as the top-level converter for transforming Kubernetes requests
+// for external metrics into Prometheus queries.
 type ExternalSeriesRegistry interface {
 	// ListAllMetrics lists all metrics known to this registry
 	ListAllMetrics() []provider.ExternalMetricInfo
-	QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool)
+	QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool, err error)
 }
 
 // overridableSeriesRegistry is a basic SeriesRegistry
 type externalSeriesRegistry struct {
 	mu sync.RWMutex
 
-	// metrics is the list of all known metrics
+	// metrics is the list of all known metrics, ready to return from the API
 	metrics []provider.ExternalMetricInfo
+	// rawMetrics is a lookup from a metric to SeriesConverter for the sake of generating queries
+	rawMetrics map[string]SeriesConverter
 
 	mapper apimeta.RESTMapper
 
-	metricLister       MetricListerWithNotification
-	externalMetricInfo ExternalInfoMap
+	metricLister MetricListerWithNotification
 }
 
-//NewExternalSeriesRegistry creates an ExternalSeriesRegistry driven by the data from the provided MetricLister.
+// NewExternalSeriesRegistry creates an ExternalSeriesRegistry driven by the data from the provided MetricLister.
 func NewExternalSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) ExternalSeriesRegistry {
 	var registry = externalSeriesRegistry{
-		mapper:             mapper,
-		metricLister:       lister,
-		externalMetricInfo: NewExternalInfoMap(),
+		mapper:       mapper,
+		metricLister: lister,
+		metrics:      make([]provider.ExternalMetricInfo, 0),
+		rawMetrics:   map[string]SeriesConverter{},
 	}
 
-	lister.AddNotificationReceiver(registry.onNewDataAvailable)
+	lister.AddNotificationReceiver(registry.filterAndStoreMetrics)
 
 	return &registry
 }
 
-func (r *externalSeriesRegistry) filterMetrics(result metricUpdateResult) metricUpdateResult {
-	namers := make([]MetricNamer, 0)
+func (r *externalSeriesRegistry) filterMetrics(result MetricUpdateResult) MetricUpdateResult {
+	converters := make([]SeriesConverter, 0)
 	series := make([][]prom.Series, 0)
 
 	targetType := config.External
 
-	for i, namer := range result.namers {
-		if namer.MetricType() == targetType {
-			namers = append(namers, namer)
+	for i, converter := range result.converters {
+		if converter.MetricType() == targetType {
+			converters = append(converters, converter)
 			series = append(series, result.series[i])
 		}
 	}
 
-	return metricUpdateResult{
-		namers: namers,
-		series: series,
+	return MetricUpdateResult{
+		converters: converters,
+		series:     series,
 	}
 }
 
-func (r *externalSeriesRegistry) convertLabels(labels model.LabelSet) labels.Set {
-	set := map[string]string{}
-	for key, value := range labels {
-		set[string(key)] = string(value)
-	}
-	return set
-}
-
-func (r *externalSeriesRegistry) onNewDataAvailable(result metricUpdateResult) {
+func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult) {
 	result = r.filterMetrics(result)
 
 	newSeriesSlices := result.series
-	namers := result.namers
+	converters := result.converters
 
-	// if len(newSeriesSlices) != len(namers) {
-	// 	return fmt.Errorf("need one set of series per namer")
+	// if len(newSeriesSlices) != len(converters) {
+	// 	return fmt.Errorf("need one set of series per converter")
 	// }
+	apiMetricsCache := make([]provider.ExternalMetricInfo, 0)
+	rawMetricsCache := make(map[string]SeriesConverter)
 
-	updatedCache := NewExternalInfoMap()
 	for i, newSeries := range newSeriesSlices {
-		namer := namers[i]
+		converter := converters[i]
 		for _, series := range newSeries {
-			identity, err := namer.IdentifySeries(series)
+			identity, err := converter.IdentifySeries(series)
 
 			if err != nil {
 				glog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
 				continue
 			}
 
-			// resources := identity.resources
-			// namespaced := identity.namespaced
 			name := identity.name
-			labels := r.convertLabels(series.Labels)
-
-			//Check for a label indicating namespace.
-			metricNs, found := series.Labels[model.LabelName(namer.ExternalMetricNamespaceLabelName())]
-
-			if !found {
-				metricNs = ""
-			}
-
-			trackedMetric := updatedCache.TrackMetric(name, namer)
-			trackedMetric.WithNamespacedSeries(string(metricNs), labels)
+			rawMetricsCache[name] = converter
 		}
 	}
 
-	// regenerate metrics
-	allMetrics := updatedCache.ExportMetrics()
-	convertedMetrics := r.convertMetrics(allMetrics)
+	for metricName := range rawMetricsCache {
+		apiMetricsCache = append(apiMetricsCache, provider.ExternalMetricInfo{
+			Metric: metricName,
+		})
+	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.externalMetricInfo = updatedCache
-	r.metrics = convertedMetrics
-}
-
-func (r *externalSeriesRegistry) convertMetrics(metrics []ExportedMetric) []provider.ExternalMetricInfo {
-	results := make([]provider.ExternalMetricInfo, len(metrics))
-	for i, info := range metrics {
-		results[i] = provider.ExternalMetricInfo{
-			Labels: info.Labels,
-			Metric: info.MetricName,
-		}
-	}
-
-	return results
+	r.metrics = apiMetricsCache
+	r.rawMetrics = rawMetricsCache
 }
 
 func (r *externalSeriesRegistry) ListAllMetrics() []provider.ExternalMetricInfo {
@@ -143,22 +114,17 @@ func (r *externalSeriesRegistry) ListAllMetrics() []provider.ExternalMetricInfo 
 	return r.metrics
 }
 
-func (r *externalSeriesRegistry) QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool) {
+func (r *externalSeriesRegistry) QueryForMetric(namespace string, metricName string, metricSelector labels.Selector) (query prom.Selector, found bool, err error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	metric, found := r.externalMetricInfo.FindMetric(metricName)
+
+	converter, found := r.rawMetrics[metricName]
 
 	if !found {
-		glog.V(10).Infof("external metric %q not registered", metricName)
-		return "", false
+		glog.V(10).Infof("external metric %q not found", metricName)
+		return "", false, nil
 	}
 
-	query, err := metric.GenerateQuery(namespace, metricSelector)
-
-	if err != nil {
-		glog.Errorf("unable to construct query for external metric %s: %v", metricName, err)
-		return "", false
-	}
-
-	return query, true
+	query, err = converter.QueryForExternalSeries(namespace, metricName, metricSelector)
+	return query, found, err
 }

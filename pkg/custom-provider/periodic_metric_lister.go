@@ -26,27 +26,27 @@ import (
 type periodicMetricLister struct {
 	realLister       MetricLister
 	updateInterval   time.Duration
-	mostRecentResult metricUpdateResult
-	callbacks        []func(metricUpdateResult)
+	mostRecentResult MetricUpdateResult
+	callbacks        []MetricUpdateCallback
 }
 
-//NewPeriodicMetricLister creates a MetricLister that periodically pulls the list of available metrics
-//at the provided interval, but defers the actual act of retrieving the metrics to the supplied MetricLister.
+// NewPeriodicMetricLister creates a MetricLister that periodically pulls the list of available metrics
+// at the provided interval, but defers the actual act of retrieving the metrics to the supplied MetricLister.
 func NewPeriodicMetricLister(realLister MetricLister, updateInterval time.Duration) (MetricListerWithNotification, Runnable) {
 	lister := periodicMetricLister{
 		updateInterval: updateInterval,
 		realLister:     realLister,
-		callbacks:      make([]func(metricUpdateResult), 0),
+		callbacks:      make([]MetricUpdateCallback, 0),
 	}
 
 	return &lister, &lister
 }
 
-func (l *periodicMetricLister) AddNotificationReceiver(callback func(metricUpdateResult)) {
+func (l *periodicMetricLister) AddNotificationReceiver(callback MetricUpdateCallback) {
 	l.callbacks = append(l.callbacks, callback)
 }
 
-func (l *periodicMetricLister) ListAllMetrics() (metricUpdateResult, error) {
+func (l *periodicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 	return l.mostRecentResult, nil
 }
 
