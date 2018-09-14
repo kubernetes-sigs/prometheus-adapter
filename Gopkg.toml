@@ -54,23 +54,23 @@
 # Core Kubernetes deps
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.11.0-rc.1"
+  version = "kubernetes-1.11.3"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.11.0-rc.1"
+  version = "kubernetes-1.11.3"
 
 [[constraint]]
   name = "k8s.io/apiserver"
-  version = "kubernetes-1.11.0-rc.1"
+  version = "kubernetes-1.11.3"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.11.0-rc.1"
+  version = "kubernetes-1.11.3"
 
 [[constraint]]
   name = "k8s.io/metrics"
-  version = "kubernetes-1.11.0-rc.1"
+  version = "kubernetes-1.11.3"
 
 # Test deps
 [[constraint]]
