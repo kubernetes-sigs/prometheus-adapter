@@ -275,7 +275,8 @@ func (n *metricNamer) ResourcesForSeries(series prom.Series) ([]schema.GroupReso
 				if groupRes, ok = n.labelResExtractor.GroupResourceForLabel(lbl); ok {
 					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(n.mapper)
 					if err != nil {
-						glog.Errorf("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
+						// this is likely to show up for a lot of labels, so make it a verbose info log
+						glog.V(9).Infof("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
 						continue
 					}
 
