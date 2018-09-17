@@ -16,6 +16,16 @@ Quick Links
 - [End-to-end walkthrough](docs/walkthrough.md)
 - [Deployment info and files](deploy/README.md)
 
+Installation
+-------------
+If you're a helm user, a helm chart is listed on the Kubeapps Hub as [stable/prometheus-adapter](https://github.com/helm/charts/blob/master/stable/prometheus-adapter/README.md).
+
+To install it with the release name `my-release`, run this Helm command:
+
+```console
+$ helm install --name my-release stable/prometheus-adapter
+```
+
 Configuration
 -------------
 
