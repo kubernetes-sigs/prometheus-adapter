@@ -19,13 +19,11 @@ package provider
 import (
 	"context"
 	"fmt"
-	"sort"
-	"testing"
 	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakedyn "k8s.io/client-go/dynamic/fake"
 
@@ -87,13 +85,13 @@ func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.
 	return prom.QueryResult{}, nil
 }
 
-func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fakePromClient) {
+func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakePromClient) {
 	fakeProm := &fakePromClient{}
 	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
 	cfg := config.DefaultConfig(1*time.Minute, "")
 	namers, err := NamersFromConfig(cfg, restMapper())
-	require.NoError(t, err)
+	Expect(err).NotTo(HaveOccurred())
 
 	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
 
@@ -129,39 +127,35 @@ func setupPrometheusProvider(t *testing.T) (provider.CustomMetricsProvider, *fak
 	return prov, fakeProm
 }
 
-func TestListAllMetrics(t *testing.T) {
-	// setup
-	prov, fakeProm := setupPrometheusProvider(t)
+var _ = Describe("Custom Metrics Provider", func() {
+	It("should be able to list all metrics", func() {
+		By("setting up the provider")
+		prov, fakeProm := setupPrometheusProvider()
 
-	// assume we have no updates
-	require.Len(t, prov.ListAllMetrics(), 0, "assume: should have no metrics updates at the start")
+		By("ensuring that no metrics are present before we start listing")
+		Expect(prov.ListAllMetrics()).To(BeEmpty())
 
-	// set the acceptible interval (now until the next update, with a bit of wiggle room)
-	startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
-	fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
+		By("setting the acceptible interval to now until the next update, with a bit of wiggle room")
+		startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
+		fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
 
-	// update the metrics (without actually calling RunUntil, so we can avoid timing issues)
-	lister := prov.(*prometheusProvider).SeriesRegistry.(*cachingMetricsLister)
-	require.NoError(t, lister.updateMetrics())
+		By("updating the list of available metrics")
+		// don't call RunUntil to avoid timing issue
+		lister := prov.(*prometheusProvider).SeriesRegistry.(*cachingMetricsLister)
+		Expect(lister.updateMetrics()).To(Succeed())
 
-	// list/sort the metrics
-	actualMetrics := prov.ListAllMetrics()
-	sort.Sort(metricInfoSorter(actualMetrics))
-
-	expectedMetrics := []provider.CustomMetricInfo{
-		{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
-		{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
-		{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
-		{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
-		{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
-		{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
-		{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
-		{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
-		{schema.GroupResource{Resource: "namespaces"}, false, "some_usage"},
-		{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
-	}
-	sort.Sort(metricInfoSorter(expectedMetrics))
-
-	// assert that we got what we expected
-	assert.Equal(t, expectedMetrics, actualMetrics)
-}
+		By("listing all metrics, and checking that they contain the expected results")
+		Expect(prov.ListAllMetrics()).To(ConsistOf(
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
+			provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
+			provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "some_usage"},
+			provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+		))
+	})
+})

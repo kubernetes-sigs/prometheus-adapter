@@ -255,6 +255,20 @@
   version = "v0.5.0"
 
 [[projects]]
+  digest = "1:a1038ef593beb4771c8f0f9c26e8b00410acd800af5c6864651d9bf160ea1813"
+  name = "github.com/hpcloud/tail"
+  packages = [
+    ".",
+    "ratelimiter",
+    "util",
+    "watch",
+    "winfile",
+  ]
+  pruneopts = "UT"
+  revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:8eb1de8112c9924d59bf1d3e5c26f5eaa2bfc2a5fcbb92dc1c2e4546d695f277"
   name = "github.com/imdario/mergo"
   packages = ["."]
@@ -297,6 +311,19 @@
   version = "kubernetes-1.11.2"
 
 [[projects]]
+  digest = "1:b15075296ef5f8edf0f101198deae645b12a81e89c54a132113e45172b9355b7"
+  name = "github.com/kubernetes-incubator/metrics-server"
+  packages = [
+    "pkg/apiserver/generic",
+    "pkg/provider",
+    "pkg/storage/nodemetrics",
+    "pkg/storage/podmetrics",
+  ]
+  pruneopts = "UT"
+  revision = "6cd52610db69d662b3b7890b73df82b3b3601ab3"
+  version = "v0.3.1"
+
+[[projects]]
   branch = "master"
   digest = "1:84a5a2b67486d5d67060ac393aa255d05d24ed5ee41daecd5635ec22657b6492"
   name = "github.com/mailru/easyjson"
@@ -333,6 +360,54 @@
   version = "1.0.1"
 
 [[projects]]
+  digest = "1:42e29deef12327a69123b9cb2cb45fee4af5c12c2a23c6e477338279a052703f"
+  name = "github.com/onsi/ginkgo"
+  packages = [
+    ".",
+    "config",
+    "internal/codelocation",
+    "internal/containernode",
+    "internal/failer",
+    "internal/leafnodes",
+    "internal/remote",
+    "internal/spec",
+    "internal/spec_iterator",
+    "internal/specrunner",
+    "internal/suite",
+    "internal/testingtproxy",
+    "internal/writer",
+    "reporters",
+    "reporters/stenographer",
+    "reporters/stenographer/support/go-colorable",
+    "reporters/stenographer/support/go-isatty",
+    "types",
+  ]
+  pruneopts = "UT"
+  revision = "3774a09d95489ccaa16032e0770d08ea77ba6184"
+  version = "v1.6.0"
+
+[[projects]]
+  digest = "1:ab54eea8d482272009e9e4af07d4d9b5236c27b4d8c54a3f2c99d163be883eca"
+  name = "github.com/onsi/gomega"
+  packages = [
+    ".",
+    "format",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types",
+  ]
+  pruneopts = "UT"
+  revision = "7615b9433f86a8bdf29709bf288bc4fd0636a369"
+  version = "v1.4.2"
+
+[[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
   name = "github.com/pborman/uuid"
   packages = ["."]
@@ -355,14 +430,6 @@
   pruneopts = "UT"
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
-
-[[projects]]
-  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
-  name = "github.com/pmezard/go-difflib"
-  packages = ["difflib"]
-  pruneopts = "UT"
-  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
-  version = "v1.0.0"
 
 [[projects]]
   digest = "1:b6221ec0f8903b556e127c449e7106b63e6867170c2d10a7c058623d086f2081"
@@ -422,17 +489,6 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
-  name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require",
-  ]
-  pruneopts = "UT"
-  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
-  version = "v1.2.2"
-
-[[projects]]
   digest = "1:03aa6e485e528acb119fb32901cf99582c380225fc7d5a02758e08b180cb56c3"
   name = "github.com/ugorji/go"
   packages = ["codec"]
@@ -450,10 +506,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9812eb354c055268a95354e388d47021483712b842f32ebd4cbceb144cb18488"
+  digest = "1:88058f781f1921d55d36bf6cf3ddafb894cf67031b52b805ad9838aa52d3419f"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "html",
+    "html/atom",
+    "html/charset",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -477,17 +536,29 @@
   revision = "90868a75fefd03942536221d7c0e2f84ec62a668"
 
 [[projects]]
-  digest = "1:0c56024909189aee3364b7f21a95a27459f718aa7c199a5c111c36cfffd9eaef"
+  digest = "1:bb8277a2ca2bcad6ff7f413b939375924099be908cedd1314baa21ecd08df477"
   name = "golang.org/x/text"
   packages = [
     "collate",
     "collate/build",
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
     "internal/colltab",
     "internal/gen",
     "internal/tag",
     "internal/triegen",
     "internal/ucd",
+    "internal/utf8internal",
     "language",
+    "runes",
     "secure/bidirule",
     "transform",
     "unicode/bidi",
@@ -553,6 +624,15 @@
   version = "v1.15.0"
 
 [[projects]]
+  digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
+  name = "gopkg.in/fsnotify.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
+  source = "https://github.com/fsnotify/fsnotify.git"
+  version = "v1.4.7"
+
+[[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
   name = "gopkg.in/inf.v0"
   packages = ["."]
@@ -569,6 +649,14 @@
   version = "v2.1"
 
 [[projects]]
+  branch = "v1"
+  digest = "1:0caa92e17bc0b65a98c63e5bc76a9e844cd5e56493f8fdbb28fad101a16254d9"
+  name = "gopkg.in/tomb.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
+
+[[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -577,6 +665,7 @@
   version = "v2.2.1"
 
 [[projects]]
+  branch = "release-1.11"
   digest = "1:13f16734c26d843bc2accbc21dd49be71de99ad5fa0176726cdada80cc6859cb"
   name = "k8s.io/api"
   packages = [
@@ -613,9 +702,9 @@
   ]
   pruneopts = "UT"
   revision = "4e7be11eab3ffcfc1876898b8272df53785a9504"
-  version = "kubernetes-1.11.3"
 
 [[projects]]
+  branch = "release-1.11"
   digest = "1:3ac9d135ccf71b822fc64e13180a69a2a7df35c77327f731739619c41e8237a3"
   name = "k8s.io/apimachinery"
   packages = [
@@ -670,9 +759,9 @@
   ]
   pruneopts = "UT"
   revision = "def12e63c512da17043b4f0293f52d1006603d9f"
-  version = "kubernetes-1.11.3"
 
 [[projects]]
+  branch = "release-1.11"
   digest = "1:3d66c1286b541bc8be16799c7d55dc058197f984b3378d712a1f3c9d8323a439"
   name = "k8s.io/apiserver"
   packages = [
@@ -767,10 +856,10 @@
     "plugin/pkg/authorizer/webhook",
   ]
   pruneopts = "UT"
-  revision = "386115dd78fde3efc2366cb381420a4dd0157348"
-  version = "kubernetes-1.11.3"
+  revision = "d296c96c12b7d15d7fb5fea7a05fb165f8fd4014"
 
 [[projects]]
+  branch = "release-8.0"
   digest = "1:e0cfa2c6dd6483c1d9de73f972e1651c3b06591fb9ca39d2fac87e123693f005"
   name = "k8s.io/client-go"
   packages = [
@@ -902,8 +991,7 @@
     "util/retry",
   ]
   pruneopts = "UT"
-  revision = "2cefa64ff137e128daeddbd1775cd775708a05bf"
-  version = "kubernetes-1.11.3"
+  revision = "f2f85107cac6fe04c30435ca0ac0c3318fd1b94c"
 
 [[projects]]
   branch = "master"
@@ -920,7 +1008,8 @@
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [[projects]]
-  digest = "1:1663f8dc974bcb231bc7743999e60cd7a131844f11ad76561a2b0747f6060c9b"
+  branch = "release-1.11"
+  digest = "1:593a35190e3fa5e35b749479345fe61adf1b4433150cae243401394c820b2095"
   name = "k8s.io/metrics"
   packages = [
     "pkg/apis/custom_metrics",
@@ -929,10 +1018,12 @@
     "pkg/apis/external_metrics",
     "pkg/apis/external_metrics/install",
     "pkg/apis/external_metrics/v1beta1",
+    "pkg/apis/metrics",
+    "pkg/apis/metrics/install",
+    "pkg/apis/metrics/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "9aa1ab0459f06be9d4f59b83c50a9a17a1358806"
-  version = "kubernetes-1.11.3"
+  revision = "972ef826b8401c180b89cefc7457daa2d116daa9"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -942,11 +1033,13 @@
     "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd",
     "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider",
     "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers",
+    "github.com/kubernetes-incubator/metrics-server/pkg/apiserver/generic",
+    "github.com/kubernetes-incubator/metrics-server/pkg/provider",
+    "github.com/onsi/ginkgo",
+    "github.com/onsi/gomega",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/common/model",
     "github.com/spf13/cobra",
-    "github.com/stretchr/testify/assert",
-    "github.com/stretchr/testify/require",
     "gopkg.in/yaml.v2",
     "k8s.io/api/core/v1",
     "k8s.io/api/extensions/v1beta1",
@@ -965,6 +1058,7 @@
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/metrics/pkg/apis/custom_metrics",
+    "k8s.io/metrics/pkg/apis/metrics",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
