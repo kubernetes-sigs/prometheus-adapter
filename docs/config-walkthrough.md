@@ -2,7 +2,7 @@ Configuration Walkthroughs
 ==========================
 
 *If you're looking for reference documentation on configuration, please
-read the the [configuration reference](/docs/config.md)*
+read the [configuration reference](/docs/config.md)*
 
 Per-pod HTTP Requests
 ---------------------
@@ -105,7 +105,7 @@ in the custom-metrics-apiserver boilerplate guide.
 Now, cumulative metrics (like those that end in `_total`) aren't
 particularly useful for autoscaling, so we want to convert them to rate
 metrics in the API.  We'll call the rate version of our metric
-`http_requests_per_second`.  We can use the the `name` field to tell the
+`http_requests_per_second`.  We can use the `name` field to tell the
 adapter about that:
 
 ```yaml
