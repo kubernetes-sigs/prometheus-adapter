@@ -34,7 +34,7 @@ http_requests_total{method="GET",kubernetes_namespace="production",kubernetes_po
 
 The adapter considers metrics in the following ways:
 
-1. First, It discovers the metrics available (*Discovery*)
+1. First, it discovers the metrics available (*Discovery*)
 
 2. Then, it figures out which Kubernetes resources each metric is
    associated with (*Association*)
