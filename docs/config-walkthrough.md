@@ -58,7 +58,7 @@ rules:
 If we want to find all `http_requests_total` series ourselves in the
 Prometheus dashboard, we'd write
 `http_requests_total{kubernetes_namespace!="",kubernetes_pod_name!=""}` to
-find all find all `http_requests_total` series that were associated with
+find all `http_requests_total` series that were associated with
 a namespace and pod.
 
 We can add this to our rule in the `seriesQuery` field, to tell the
