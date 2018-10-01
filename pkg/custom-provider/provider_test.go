@@ -17,8 +17,6 @@ limitations under the License.
 package provider
 
 import (
-	"context"
-	"fmt"
 	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -29,64 +27,14 @@ import (
 
 	config "github.com/directxman12/k8s-prometheus-adapter/cmd/config-gen/utils"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	fakeprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/fake"
 	pmodel "github.com/prometheus/common/model"
 )
 
 const fakeProviderUpdateInterval = 2 * time.Second
 
-// fakePromClient is a fake instance of prom.Client
-type fakePromClient struct {
-	// acceptibleInterval is the interval in which to return queries
-	acceptibleInterval pmodel.Interval
-	// errQueries are queries that result in an error (whether from Query or Series)
-	errQueries map[prom.Selector]error
-	// series are non-error responses to partial Series calls
-	series map[prom.Selector][]prom.Series
-	// queryResults are non-error responses to Query
-	queryResults map[prom.Selector]prom.QueryResult
-}
-
-func (c *fakePromClient) Series(_ context.Context, interval pmodel.Interval, selectors ...prom.Selector) ([]prom.Series, error) {
-	if (interval.Start != 0 && interval.Start < c.acceptibleInterval.Start) || (interval.End != 0 && interval.End > c.acceptibleInterval.End) {
-		return nil, fmt.Errorf("interval [%v, %v] for query is outside range [%v, %v]", interval.Start, interval.End, c.acceptibleInterval.Start, c.acceptibleInterval.End)
-	}
-	res := []prom.Series{}
-	for _, sel := range selectors {
-		if err, found := c.errQueries[sel]; found {
-			return nil, err
-		}
-		if series, found := c.series[sel]; found {
-			res = append(res, series...)
-		}
-	}
-
-	return res, nil
-}
-
-func (c *fakePromClient) Query(_ context.Context, t pmodel.Time, query prom.Selector) (prom.QueryResult, error) {
-	if t < c.acceptibleInterval.Start || t > c.acceptibleInterval.End {
-		return prom.QueryResult{}, fmt.Errorf("time %v for query is outside range [%v, %v]", t, c.acceptibleInterval.Start, c.acceptibleInterval.End)
-	}
-
-	if err, found := c.errQueries[query]; found {
-		return prom.QueryResult{}, err
-	}
-
-	if res, found := c.queryResults[query]; found {
-		return res, nil
-	}
-
-	return prom.QueryResult{
-		Type:   pmodel.ValVector,
-		Vector: &pmodel.Vector{},
-	}, nil
-}
-func (c *fakePromClient) QueryRange(_ context.Context, r prom.Range, query prom.Selector) (prom.QueryResult, error) {
-	return prom.QueryResult{}, nil
-}
-
-func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakePromClient) {
-	fakeProm := &fakePromClient{}
+func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakeprom.FakePrometheusClient) {
+	fakeProm := &fakeprom.FakePrometheusClient{}
 	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
 	cfg := config.DefaultConfig(1*time.Minute, "")
@@ -97,7 +45,7 @@ func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakePromClient)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))
-	fakeProm.series = map[prom.Selector][]prom.Series{
+	fakeProm.SeriesResults = map[prom.Selector][]prom.Series{
 		containerSel: {
 			{
 				Name:   "container_some_usage",
@@ -137,7 +85,7 @@ var _ = Describe("Custom Metrics Provider", func() {
 
 		By("setting the acceptible interval to now until the next update, with a bit of wiggle room")
 		startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
-		fakeProm.acceptibleInterval = pmodel.Interval{Start: startTime, End: 0}
+		fakeProm.AcceptableInterval = pmodel.Interval{Start: startTime, End: 0}
 
 		By("updating the list of available metrics")
 		// don't call RunUntil to avoid timing issue
