@@ -85,17 +85,25 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 }
 
-func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
+func (cmd *PrometheusAdapter) loadConfig() error {
 	// load metrics discovery configuration
 	if cmd.AdapterConfigFile == "" {
-		return nil, fmt.Errorf("no metrics discovery configuration file specified (make sure to use --config)")
+		return fmt.Errorf("no metrics discovery configuration file specified (make sure to use --config)")
 	}
 	metricsConfig, err := adaptercfg.FromFile(cmd.AdapterConfigFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load metrics discovery configuration: %v", err)
+		return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
 	}
 
 	cmd.metricsConfig = metricsConfig
+
+	return nil
+}
+
+func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
+	if len(cmd.metricsConfig.Rules) == 0 {
+		return nil, nil
+	}
 
 	// grab the mapper and dynamic client
 	mapper, err := cmd.RESTMapper()
@@ -108,7 +116,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// extract the namers
-	namers, err := cmprov.NamersFromConfig(metricsConfig, mapper)
+	namers, err := cmprov.NamersFromConfig(cmd.metricsConfig, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
@@ -177,17 +185,23 @@ func main() {
 		glog.Fatalf("unable to construct Prometheus client: %v", err)
 	}
 
+	// load the config
+	if err := cmd.loadConfig(); err != nil {
+		glog.Fatalf("unable to load metrics discovery config: %v", err)
+	}
+
 	// construct the provider
 	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
 	if err != nil {
 		glog.Fatalf("unable to construct custom metrics provider: %v", err)
 	}
 
-	// attach the provider to the server
-	cmd.WithCustomMetrics(cmProvider)
+	// attach the provider to the server, if it's needed
+	if cmProvider != nil {
+		cmd.WithCustomMetrics(cmProvider)
+	}
 
-	// attach resource metrics support
-	// TODO: make this optional
+	// attach resource metrics support, if it's needed
 	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
 		glog.Fatalf("unable to install resource metrics API: %v", err)
 	}
