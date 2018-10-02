@@ -95,7 +95,11 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				ContainerQuery: fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 				NodeQuery:      fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 				Resources: ResourceMapping{
-					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
+					Overrides: map[string]GroupResource{
+						"namespace": {Resource: "namespace"},
+						"pod_name":  {Resource: "pod"},
+						"instance":  {Resource: "node"},
+					},
 				},
 				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
 			},
@@ -103,7 +107,11 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				ContainerQuery: "sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)",
 				NodeQuery:      "sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)",
 				Resources: ResourceMapping{
-					Template: fmt.Sprintf("%s<<.Resource>>", labelPrefix),
+					Overrides: map[string]GroupResource{
+						"namespace": {Resource: "namespace"},
+						"pod_name":  {Resource: "pod"},
+						"instance":  {Resource: "node"},
+					},
 				},
 				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
 			},

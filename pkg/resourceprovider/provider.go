@@ -306,11 +306,11 @@ func (p *resourceProvider) queryBoth(now pmodel.Time, resource schema.GroupResou
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		cpuRes, cpuErr = p.runQuery(now, p.cpu, resource, "", names...)
+		cpuRes, cpuErr = p.runQuery(now, p.cpu, resource, namespace, names...)
 	}()
 	go func() {
 		defer wg.Done()
-		memRes, memErr = p.runQuery(now, p.mem, resource, "", names...)
+		memRes, memErr = p.runQuery(now, p.mem, resource, namespace, names...)
 	}()
 	wg.Wait()
 
