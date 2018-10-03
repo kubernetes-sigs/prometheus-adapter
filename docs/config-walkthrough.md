@@ -2,7 +2,7 @@ Configuration Walkthroughs
 ==========================
 
 *If you're looking for reference documentation on configuration, please
-read the the [configuration reference](/docs/config.md)*
+read the [configuration reference](/docs/config.md)*
 
 Per-pod HTTP Requests
 ---------------------
@@ -34,7 +34,7 @@ http_requests_total{method="GET",kubernetes_namespace="production",kubernetes_po
 
 The adapter considers metrics in the following ways:
 
-1. First, It discovers the metrics available (*Discovery*)
+1. First, it discovers the metrics available (*Discovery*)
 
 2. Then, it figures out which Kubernetes resources each metric is
    associated with (*Association*)
@@ -58,7 +58,7 @@ rules:
 If we want to find all `http_requests_total` series ourselves in the
 Prometheus dashboard, we'd write
 `http_requests_total{kubernetes_namespace!="",kubernetes_pod_name!=""}` to
-find all find all `http_requests_total` series that were associated with
+find all `http_requests_total` series that were associated with
 a namespace and pod.
 
 We can add this to our rule in the `seriesQuery` field, to tell the
@@ -105,7 +105,7 @@ in the custom-metrics-apiserver boilerplate guide.
 Now, cumulative metrics (like those that end in `_total`) aren't
 particularly useful for autoscaling, so we want to convert them to rate
 metrics in the API.  We'll call the rate version of our metric
-`http_requests_per_second`.  We can use the the `name` field to tell the
+`http_requests_per_second`.  We can use the `name` field to tell the
 adapter about that:
 
 ```yaml

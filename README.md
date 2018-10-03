@@ -107,7 +107,7 @@ information.
 ### Why isn't my metric showing up?
 
 First, check your configuration.  Does it select your metric?  You can
-find the [default configuration](/deploy/custom-metrics-config-map.yaml)
+find the [default configuration](/deploy/manifests/custom-metrics-config-map.yaml)
 in the deploy directory, and more information about configuring the
 adapter in the [docs](/docs/config.md).
 
