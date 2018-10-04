@@ -18,7 +18,6 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
@@ -32,20 +31,14 @@ type CustomMetricsAdapterServerOptions struct {
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 	Features       *genericoptions.FeatureOptions
-
-	StdOut io.Writer
-	StdErr io.Writer
 }
 
-func NewCustomMetricsAdapterServerOptions(out, errOut io.Writer) *CustomMetricsAdapterServerOptions {
+func NewCustomMetricsAdapterServerOptions() *CustomMetricsAdapterServerOptions {
 	o := &CustomMetricsAdapterServerOptions{
 		SecureServing:  genericoptions.WithLoopback(genericoptions.NewSecureServingOptions()),
 		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
 		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
 		Features:       genericoptions.NewFeatureOptions(),
-
-		StdOut: out,
-		StdErr: errOut,
 	}
 
 	return o

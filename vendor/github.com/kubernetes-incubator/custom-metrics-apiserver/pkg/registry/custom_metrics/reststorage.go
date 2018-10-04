@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -103,14 +104,11 @@ func (r *REST) List(ctx context.Context, options *metainternalversion.ListOption
 }
 
 func (r *REST) handleIndividualOp(namespace string, groupResource schema.GroupResource, name string, metricName string) (*custom_metrics.MetricValueList, error) {
-	var err error
-	var singleRes *custom_metrics.MetricValue
-	if namespace == "" {
-		singleRes, err = r.cmProvider.GetRootScopedMetricByName(groupResource, name, metricName)
-	} else {
-		singleRes, err = r.cmProvider.GetNamespacedMetricByName(groupResource, namespace, name, metricName)
-	}
-
+	singleRes, err := r.cmProvider.GetMetricByName(types.NamespacedName{Namespace: namespace, Name: name}, provider.CustomMetricInfo{
+		GroupResource: groupResource,
+		Metric:        metricName,
+		Namespaced:    namespace != "",
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +119,9 @@ func (r *REST) handleIndividualOp(namespace string, groupResource schema.GroupRe
 }
 
 func (r *REST) handleWildcardOp(namespace string, groupResource schema.GroupResource, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error) {
-	if namespace == "" {
-		return r.cmProvider.GetRootScopedMetricBySelector(groupResource, selector, metricName)
-	} else {
-		return r.cmProvider.GetNamespacedMetricBySelector(groupResource, namespace, selector, metricName)
-	}
+	return r.cmProvider.GetMetricBySelector(namespace, selector, provider.CustomMetricInfo{
+		GroupResource: groupResource,
+		Metric:        metricName,
+		Namespaced:    namespace != "",
+	})
 }

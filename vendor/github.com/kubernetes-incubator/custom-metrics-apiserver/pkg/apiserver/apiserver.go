@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/informers"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	cminstall "k8s.io/metrics/pkg/apis/custom_metrics/install"
@@ -69,12 +70,12 @@ type completedConfig struct {
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
-func (c *Config) Complete() completedConfig {
+func (c *Config) Complete(informers informers.SharedInformerFactory) completedConfig {
 	c.GenericConfig.Version = &version.Info{
 		Major: "1",
 		Minor: "0",
 	}
-	return completedConfig{c.GenericConfig.Complete(nil)}
+	return completedConfig{c.GenericConfig.Complete(informers)}
 }
 
 // New returns a new instance of CustomMetricsAdapterServer from the given config.

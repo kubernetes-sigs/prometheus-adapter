@@ -22,6 +22,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 )
@@ -37,7 +38,6 @@ type CustomMetricInfo struct {
 // ExternalMetricInfo describes a metric.
 type ExternalMetricInfo struct {
 	Metric string
-	Labels map[string]string
 }
 
 func (i CustomMetricInfo) String() string {
@@ -82,19 +82,13 @@ func (i CustomMetricInfo) Normalized(mapper apimeta.RESTMapper) (normalizedInfo 
 // they may wish to query the main Kubernetes API server, or may
 // wish to simply make use of stored information in their TSDB.
 type CustomMetricsProvider interface {
-	// GetRootScopedMetricByName fetches a particular metric for a particular root-scoped object.
-	GetRootScopedMetricByName(groupResource schema.GroupResource, name string, metricName string) (*custom_metrics.MetricValue, error)
+	// GetMetricByName fetches a particular metric for a particular object.
+	// The namespace will be empty if the metric is root-scoped.
+	GetMetricByName(name types.NamespacedName, info CustomMetricInfo) (*custom_metrics.MetricValue, error)
 
-	// GetRootScopedMetricByName fetches a particular metric for a set of root-scoped objects
-	// matching the given label selector.
-	GetRootScopedMetricBySelector(groupResource schema.GroupResource, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error)
-
-	// GetNamespacedMetricByName fetches a particular metric for a particular namespaced object.
-	GetNamespacedMetricByName(groupResource schema.GroupResource, namespace string, name string, metricName string) (*custom_metrics.MetricValue, error)
-
-	// GetNamespacedMetricByName fetches a particular metric for a set of namespaced objects
-	// matching the given label selector.
-	GetNamespacedMetricBySelector(groupResource schema.GroupResource, namespace string, selector labels.Selector, metricName string) (*custom_metrics.MetricValueList, error)
+	// GetMetricBySelector fetches a particular metric for a set of objects matching
+	// the given label selector.  The namespace will be empty if the metric is root-scoped.
+	GetMetricBySelector(namespace string, selector labels.Selector, info CustomMetricInfo) (*custom_metrics.MetricValueList, error)
 
 	// ListAllMetrics provides a list of all available metrics at
 	// the current time.  Note that this is not allowed to return
@@ -108,7 +102,7 @@ type CustomMetricsProvider interface {
 // implementation how to translate metricSelector to a filter for metric values.
 // Namespace can be used by the implemetation for metric identification, access control or ignored.
 type ExternalMetricsProvider interface {
-	GetExternalMetric(namespace string, metricName string, metricSelector labels.Selector) (*external_metrics.ExternalMetricValueList, error)
+	GetExternalMetric(namespace string, metricSelector labels.Selector, info ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error)
 
 	ListAllExternalMetrics() []ExternalMetricInfo
 }
