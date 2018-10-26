@@ -217,7 +217,7 @@ them up via the dashboard, and make sure they have the `namespace` and
 
 Now that you've got a running copy of Prometheus that's monitoring your
 application, you'll need to deploy the adapter, which knows how to
-communicate with both Kubernetes and Promethues, acting as a translator
+communicate with both Kubernetes and Prometheus, acting as a translator
 between the two.
 
 The [deploy/manifests](/deploy/manifests) directory contains the
