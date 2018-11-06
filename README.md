@@ -1,13 +1,13 @@
-Kubernetes Custom Metrics Adapter for Prometheus
-================================================
+# Prometheus Adapter for Kubernetes Metrics APIs
 
 [![Build Status](https://travis-ci.org/DirectXMan12/k8s-prometheus-adapter.svg?branch=master)](https://travis-ci.org/DirectXMan12/k8s-prometheus-adapter)
 
-This repository contains an implementation of the Kubernetes custom
-metrics API
-([custom.metrics.k8s.io/v1beta1](https://github.com/kubernetes/metrics/tree/master/pkg/apis/custom_metrics)),
-suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in
-Kubernetes 1.6+.
+This repository contains an implementation of the Kubernetes
+[resource metrics](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/instrumentation/resource-metrics-api.md) API and
+[custom metrics](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/instrumentation/custom-metrics-api.md) API.
+
+This adapter is therefore suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in Kubernetes 1.6+.  
+It can also replace the [metrics server](https://github.com/kubernetes-incubator/metrics-server) on clusters that run Prometheus already.
 
 Quick Links
 -----------
