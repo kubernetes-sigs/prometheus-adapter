@@ -7,7 +7,7 @@ This repository contains an implementation of the Kubernetes
 [custom metrics](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/instrumentation/custom-metrics-api.md) API.
 
 This adapter is therefore suitable for use with the autoscaling/v2 Horizontal Pod Autoscaler in Kubernetes 1.6+.  
-It can also replace the [metrics server](https://github.com/kubernetes-incubator/metrics-server) on clusters that run Prometheus already.
+It can also replace the [metrics server](https://github.com/kubernetes-incubator/metrics-server) on clusters that already run Prometheus and collect the appropriate metrics.
 
 Quick Links
 -----------
