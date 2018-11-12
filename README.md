@@ -62,7 +62,7 @@ Presentation
 ------------
 
 The adapter gathers the names of available metrics from Prometheus
-a regular interval (see [Configuration](#configuration) above), and then
+at a regular interval (see [Configuration](#configuration) above), and then
 only exposes metrics that follow specific forms.
 
 The rules governing this discovery are specified in a [configuration file](docs/config.md).
