@@ -23,11 +23,11 @@ var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
 // themselves be normalized.
 type MetricNamer interface {
 	// Selector produces the appropriate Prometheus series selector to match all
-	// series handlable by this namer.
+	// series handable by this namer.
 	Selector() prom.Selector
 	// FilterSeries checks to see which of the given series match any additional
-	// constrains beyond the series query.  It's assumed that the series given
-	// already matche the series query.
+	// constraints beyond the series query.  It's assumed that the series given
+	// already match the series query.
 	FilterSeries(series []prom.Series) []prom.Series
 	// MetricNameForSeries returns the name (as presented in the API) for a given series.
 	MetricNameForSeries(series prom.Series) (string, error)

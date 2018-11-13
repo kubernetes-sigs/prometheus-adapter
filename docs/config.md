@@ -179,7 +179,7 @@ template:
   group-resource, plus the label for namespace, if the group-resource is
   namespaced.
 - `GroupBy`: a comma-separated list of labels to group by.  Currently,
-  this contains the group-resoure label used in `LabelMarchers`.
+  this contains the group-resource label used in `LabelMatchers`.
 
 For instance, suppose we had a series `http_requests_total` (exposed as
 `http_requests_per_second` in the API) with labels `service`, `pod`,

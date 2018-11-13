@@ -22,14 +22,14 @@ import (
 
 // LabelNeq produces a not-equal label selector expression.
 // Label is passed verbatim, and value is double-quote escaped
-// using Go's escaping is used on value (as per the PromQL rules).
+// using Go's escaping (as per the PromQL rules).
 func LabelNeq(label string, value string) string {
 	return fmt.Sprintf("%s!=%q", label, value)
 }
 
 // LabelEq produces a equal label selector expression.
 // Label is passed verbatim, and value is double-quote escaped
-// using Go's escaping is used on value (as per the PromQL rules).
+// using Go's escaping (as per the PromQL rules).
 func LabelEq(label string, value string) string {
 	return fmt.Sprintf("%s=%q", label, value)
 }
@@ -52,7 +52,7 @@ func NameMatches(expr string) string {
 }
 
 // NameNotMatches produces a label selector expression that checks that the series name doesn't matches the given expression.
-// It's a convinience wrapper around LabelNotMatches.
+// It's a convenience wrapper around LabelNotMatches.
 func NameNotMatches(expr string) string {
 	return LabelNotMatches("__name__", expr)
 }

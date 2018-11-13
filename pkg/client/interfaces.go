@@ -27,7 +27,7 @@ import (
 
 // NB: the official prometheus API client at https://github.com/prometheus/client_golang
 // is rather lackluster -- as of the time of writing of this file, it lacked support
-// for querying the series metadata, which we need for the adapter.  Instead, we use
+// for querying the series metadata, which we need for the adapter. Instead, we use
 // this client.
 
 // Selector represents a series selector
