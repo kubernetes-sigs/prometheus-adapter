@@ -17,8 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -49,6 +53,8 @@ type PrometheusAdapter struct {
 	PrometheusAuthInCluster bool
 	// PrometheusAuthConf is the kubeconfig file that contains auth details used to connect to Prometheus
 	PrometheusAuthConf string
+	// PrometheusCAFile points to the file containing the ca-root for connecting with Prometheus
+	PrometheusCAFile string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
@@ -62,11 +68,26 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid Prometheus URL %q: %v", baseURL, err)
 	}
-	promHTTPClient, err := makeHTTPClient(cmd.PrometheusAuthInCluster, cmd.PrometheusAuthConf)
-	if err != nil {
-		return nil, err
+
+	var httpClient *http.Client
+
+	if cmd.PrometheusCAFile != "" {
+		prometheusCAClient, err := makePrometheusCAClient(cmd.PrometheusCAFile)
+		if err != nil {
+			return nil, err
+		}
+		httpClient = prometheusCAClient
+		fmt.Println("successfully loaded ca file")
+	} else {
+		kubeconfigHTTPClient, err := makeKubeconfigHTTPClient(cmd.PrometheusAuthInCluster, cmd.PrometheusAuthConf)
+		if err != nil {
+			return nil, err
+		}
+		httpClient = kubeconfigHTTPClient
+		fmt.Println("successfully using in cluster")
 	}
-	genericPromClient := prom.NewGenericAPIClient(promHTTPClient, baseURL)
+
+	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL)
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	return prom.NewClientForAPI(instrumentedGenericPromClient), nil
 }
@@ -78,6 +99,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"use auth details from the in-cluster kubeconfig when connecting to prometheus.")
 	cmd.Flags().StringVar(&cmd.PrometheusAuthConf, "prometheus-auth-config", cmd.PrometheusAuthConf,
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
+	cmd.Flags().StringVar(&cmd.PrometheusCAFile, "prometheus-ca-file", cmd.PrometheusCAFile,
+		"Optional CA file to use when connecting with Prometheus")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
@@ -212,8 +235,8 @@ func main() {
 	}
 }
 
-// makeHTTPClient constructs an HTTP for connecting with the given auth options.
-func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, error) {
+// makeKubeconfigHTTPClient constructs an HTTP for connecting with the given auth options.
+func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, error) {
 	// make sure we're not trying to use two different sources of auth
 	if inClusterAuth && kubeConfigPath != "" {
 		return nil, fmt.Errorf("may not use both in-cluster auth and an explicit kubeconfig at the same time")
@@ -245,4 +268,26 @@ func makeHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.Client, er
 		return nil, fmt.Errorf("unable to construct client transport for connecting to Prometheus: %v", err)
 	}
 	return &http.Client{Transport: tr}, nil
+}
+
+func makePrometheusCAClient(caFilename string) (*http.Client, error) {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read system certificates: %v", err)
+	}
+	data, err := ioutil.ReadFile(caFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read prometheus-ca-file: %v", err)
+	}
+	if !pool.AppendCertsFromPEM(data) {
+		log.Printf("warning: no certs found in prometheus-ca-file")
+	}
+
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: pool,
+			},
+		},
+	}, nil
 }
