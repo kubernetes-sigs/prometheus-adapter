@@ -53,6 +53,8 @@ type PrometheusAdapter struct {
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
 	MetricsRelistInterval time.Duration
+	// MetricsMaxAge is the period to query available metrics for
+	MetricsMaxAge time.Duration
 
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
@@ -83,6 +85,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 			"and custom metrics API resources")
 	cmd.Flags().DurationVar(&cmd.MetricsRelistInterval, "metrics-relist-interval", cmd.MetricsRelistInterval, ""+
 		"interval at which to re-list the set of all available metrics from Prometheus")
+	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
+		"period for which to query the set of available metrics from Prometheus")
 }
 
 func (cmd *PrometheusAdapter) loadConfig() error {
@@ -122,7 +126,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// construct the provider and start it
-	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval)
+	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge)
 	runner.RunUntil(stopCh)
 
 	return cmProvider, nil
@@ -173,6 +177,7 @@ func main() {
 	cmd := &PrometheusAdapter{
 		PrometheusURL:         "https://localhost",
 		MetricsRelistInterval: 10 * time.Minute,
+		MetricsMaxAge:         20 * time.Minute,
 	}
 	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
