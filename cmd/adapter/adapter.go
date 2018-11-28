@@ -109,6 +109,10 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 		return nil, nil
 	}
 
+	if cmd.MetricsMaxAge < cmd.MetricsRelistInterval {
+		return nil, fmt.Errorf("max age must not be less than relist interval")
+	}
+
 	// grab the mapper and dynamic client
 	mapper, err := cmd.RESTMapper()
 	if err != nil {
