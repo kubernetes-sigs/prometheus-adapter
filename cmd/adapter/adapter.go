@@ -272,14 +272,12 @@ func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.
 }
 
 func makePrometheusCAClient(caFilename string) (*http.Client, error) {
-	pool, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read system certificates: %v", err)
-	}
 	data, err := ioutil.ReadFile(caFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read prometheus-ca-file: %v", err)
 	}
+
+	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(data) {
 		return nil, fmt.Errorf("no certs found in prometheus-ca-file")
 	}
