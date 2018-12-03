@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -200,7 +199,9 @@ func main() {
 	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
 	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the glog flags
-	cmd.Flags().Parse(os.Args)
+	if err := cmd.Flags().Parse(os.Args); err != nil {
+		glog.Fatalf("unable to parse flags: %v", err)
+	}
 
 	// make the prometheus client
 	promClient, err := cmd.makePromClient()
@@ -280,7 +281,7 @@ func makePrometheusCAClient(caFilename string) (*http.Client, error) {
 		return nil, fmt.Errorf("failed to read prometheus-ca-file: %v", err)
 	}
 	if !pool.AppendCertsFromPEM(data) {
-		log.Printf("warning: no certs found in prometheus-ca-file")
+		return nil, fmt.Errorf("no certs found in prometheus-ca-file")
 	}
 
 	return &http.Client{
