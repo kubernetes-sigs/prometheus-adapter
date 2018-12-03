@@ -76,14 +76,14 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 			return nil, err
 		}
 		httpClient = prometheusCAClient
-		fmt.Println("successfully loaded ca file")
+		glog.Info("successfully loaded ca from file")
 	} else {
 		kubeconfigHTTPClient, err := makeKubeconfigHTTPClient(cmd.PrometheusAuthInCluster, cmd.PrometheusAuthConf)
 		if err != nil {
 			return nil, err
 		}
 		httpClient = kubeconfigHTTPClient
-		fmt.Println("successfully using in cluster")
+		glog.Info("successfully using in-cluster auth")
 	}
 
 	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL)
