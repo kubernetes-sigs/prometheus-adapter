@@ -32,6 +32,7 @@ import (
 )
 
 const fakeProviderUpdateInterval = 2 * time.Second
+const fakeProviderStartDuration = 2 * time.Second
 
 func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakeprom.FakePrometheusClient) {
 	fakeProm := &fakeprom.FakePrometheusClient{}
@@ -41,7 +42,7 @@ func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakeprom.FakePr
 	namers, err := NamersFromConfig(cfg, restMapper())
 	Expect(err).NotTo(HaveOccurred())
 
-	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval)
+	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval, fakeProviderStartDuration)
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))

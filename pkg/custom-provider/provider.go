@@ -55,9 +55,10 @@ type prometheusProvider struct {
 	SeriesRegistry
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration) (provider.CustomMetricsProvider, Runnable) {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
+		maxAge:         maxAge,
 		promClient:     promClient,
 		namers:         namers,
 
@@ -191,6 +192,7 @@ type cachingMetricsLister struct {
 
 	promClient     prom.Client
 	updateInterval time.Duration
+	maxAge         time.Duration
 	namers         []MetricNamer
 }
 
@@ -212,7 +214,7 @@ type selectorSeries struct {
 }
 
 func (l *cachingMetricsLister) updateMetrics() error {
-	startTime := pmodel.Now().Add(-1 * l.updateInterval)
+	startTime := pmodel.Now().Add(-1 * l.maxAge)
 
 	// don't do duplicate queries when it's just the matchers that change
 	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
