@@ -7,13 +7,13 @@ import (
 type MetricsDiscoveryConfig struct {
 	// Rules specifies how to discover and map Prometheus metrics to
 	// custom metrics API resources.  The rules are applied independently,
-	// and thus must be mutually exclusive.  Rules will the same SeriesQuery
+	// and thus must be mutually exclusive.  Rules with the same SeriesQuery
 	// will make only a single API call.
 	Rules         []DiscoveryRule `yaml:"rules"`
 	ResourceRules *ResourceRules  `yaml:"resourceRules,omitempty"`
 }
 
-// DiscoveryRule describes on set of rules for transforming Prometheus metrics to/from
+// DiscoveryRule describes a set of rules for transforming Prometheus metrics to/from
 // custom metrics API resources.
 type DiscoveryRule struct {
 	// SeriesQuery specifies which metrics this rule should consider via a Prometheus query

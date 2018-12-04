@@ -20,7 +20,7 @@ Detailed instructions can be found in the Kubernetes documentation under
 [Horizontal Pod
 Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-custom-metrics).
 
-Make sure that you've properly configured metrics-server (as is default in
+Make sure that you've properly configured metrics-server (as default in
 Kubernetes 1.9+), or enabling custom metrics autoscaling support will
 disable CPU autoscaling support.
 
@@ -34,15 +34,14 @@ significantly different.
 In order to follow this walkthrough, you'll need container images for
 Prometheus and the custom metrics adapter.
 
-It's easiest to deploy Prometheus with the [Prometheus
-Operator](https://coreos.com/operators/prometheus/docs/latest/), which
+The [Prometheus Operator](https://coreos.com/operators/prometheus/docs/latest/),
 makes it easy to get up and running with Prometheus.  This walkthrough
 will assume you're planning on doing that -- if you've deployed it by hand
 instead, you'll need to make a few adjustments to the way you expose
 metrics to Prometheus.
 
-The adapter has different images for each arch, and can be found at
-`directxman12/k8s-prometheus-adapter-${ARCH}`.  For instance, if you're on
+The adapter has different images for each arch, which can be found at
+`directxman12/k8s-prometheus-adapter-${ARCH}`. For instance, if you're on
 an x86_64 machine, use the `directxman12/k8s-prometheus-adapter-amd64`
 image.
 
@@ -172,7 +171,7 @@ for the Operator to deploy a copy of Prometheus.
 
 This walkthrough assumes that Prometheus is deployed in the `prom`
 namespace. Most of the sample commands and files are namespace-agnostic,
-but there are a few commands or pieces of configuration that rely on
+but there are a few commands or pieces of configuration that rely on that
 namespace.  If you're using a different namespace, simply substitute that
 in for `prom` when it appears.
 
