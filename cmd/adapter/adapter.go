@@ -35,6 +35,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/transport"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
@@ -54,6 +55,8 @@ type PrometheusAdapter struct {
 	PrometheusAuthConf string
 	// PrometheusCAFile points to the file containing the ca-root for connecting with Prometheus
 	PrometheusCAFile string
+	// PrometheusTokenFile points to the file that contains the bearer token when connecting with Prometheus
+	PrometheusTokenFile string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
@@ -88,6 +91,14 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 		glog.Info("successfully using in-cluster auth")
 	}
 
+	if cmd.PrometheusTokenFile != "" {
+		data, err := ioutil.ReadFile(cmd.PrometheusTokenFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read prometheus-token-file: %v", err)
+		}
+		httpClient.Transport = transport.NewBearerAuthRoundTripper(string(data), httpClient.Transport)
+	}
+
 	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL)
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	return prom.NewClientForAPI(instrumentedGenericPromClient), nil
@@ -102,6 +113,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
 	cmd.Flags().StringVar(&cmd.PrometheusCAFile, "prometheus-ca-file", cmd.PrometheusCAFile,
 		"Optional CA file to use when connecting with Prometheus")
+	cmd.Flags().StringVar(&cmd.PrometheusTokenFile, "prometheus-token-file", cmd.PrometheusTokenFile,
+		"Optional file containing the bearer token to use when connecting with Prometheus")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
