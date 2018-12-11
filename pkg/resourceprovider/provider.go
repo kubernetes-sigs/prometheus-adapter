@@ -120,7 +120,7 @@ type nsQueryResults struct {
 
 func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]provider.TimeInfo, [][]metrics.ContainerMetrics, error) {
 	if len(pods) == 0 {
-		return nil, nil, fmt.Errorf("no pods to fetch metrics for")
+		return nil, nil, nil
 	}
 
 	// TODO(directxman12): figure out how well this scales if we go to list 1000+ pods
@@ -240,7 +240,7 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 
 func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]provider.TimeInfo, []corev1.ResourceList, error) {
 	if len(nodes) == 0 {
-		return nil, nil, fmt.Errorf("no nodes to fetch metrics for")
+		return nil, nil, nil
 	}
 
 	now := pmodel.Now()
