@@ -24,7 +24,6 @@ ifeq ($(ARCH),ppc64le)
 endif
 ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
-	GOIMAGE=s390x/golang:1.10
 endif
 
 .PHONY: all docker-build push-% push test verify-gofmt gofmt verify build-local-image
