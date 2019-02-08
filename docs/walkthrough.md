@@ -87,9 +87,9 @@ spec:
       containers:
       - image: luxas/autoscale-demo:v0.1.2
         name: metrics-provider
-      ports:
-      - name: http
-        port: 8080
+        ports:
+        - name: http
+          containerPort: 8080
 ```
 
 </details>
