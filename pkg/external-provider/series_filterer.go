@@ -5,6 +5,7 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
 // SeriesFilterer provides functions for filtering collections of Prometheus series
@@ -15,15 +16,15 @@ type SeriesFilterer interface {
 }
 
 type seriesFilterer struct {
-	seriesMatchers []*reMatcher
+	seriesMatchers []*naming.ReMatcher
 }
 
 // NewSeriesFilterer creates a SeriesFilterer that will remove any series that do not
 // meet the requirements of the provided RegexFilter(s).
 func NewSeriesFilterer(filters []config.RegexFilter) (SeriesFilterer, error) {
-	seriesMatchers := make([]*reMatcher, len(filters))
+	seriesMatchers := make([]*naming.ReMatcher, len(filters))
 	for i, filterRaw := range filters {
-		matcher, err := newReMatcher(filterRaw)
+		matcher, err := naming.NewReMatcher(filterRaw)
 		if err != nil {
 			return nil, fmt.Errorf("unable to generate series name filter: %v", err)
 		}
@@ -36,7 +37,7 @@ func NewSeriesFilterer(filters []config.RegexFilter) (SeriesFilterer, error) {
 }
 
 func (n *seriesFilterer) AddRequirement(filterRaw config.RegexFilter) error {
-	matcher, err := newReMatcher(filterRaw)
+	matcher, err := naming.NewReMatcher(filterRaw)
 	if err != nil {
 		return fmt.Errorf("unable to generate series name filter: %v", err)
 	}

@@ -1,20 +1,15 @@
-package provider
+package naming
 
 import (
 	"fmt"
 	"regexp"
-	"strings"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
-
-var nsGroupResource = schema.GroupResource{Resource: "namespaces"}
-var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
 
 // MetricNamer knows how to convert Prometheus series names and label names to
 // metrics API resources, and vice-versa.  MetricNamers should be safe to access
@@ -35,20 +30,20 @@ type MetricNamer interface {
 	// the given namespace name (if relevant), resource, and resource names.
 	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
 
-	naming.ResourceConverter
+	ResourceConverter
 }
 
-func (r *metricNamer) Selector() prom.Selector {
-	return r.seriesQuery
+func (n *metricNamer) Selector() prom.Selector {
+	return n.seriesQuery
 }
 
-// reMatcher either positively or negatively matches a regex
-type reMatcher struct {
+// ReMatcher either positively or negatively matches a regex
+type ReMatcher struct {
 	regex    *regexp.Regexp
 	positive bool
 }
 
-func newReMatcher(cfg config.RegexFilter) (*reMatcher, error) {
+func NewReMatcher(cfg config.RegexFilter) (*ReMatcher, error) {
 	if cfg.Is != "" && cfg.IsNot != "" {
 		return nil, fmt.Errorf("cannot have both an `is` (%q) and `isNot` (%q) expression in a single filter", cfg.Is, cfg.IsNot)
 	}
@@ -71,24 +66,24 @@ func newReMatcher(cfg config.RegexFilter) (*reMatcher, error) {
 		return nil, fmt.Errorf("unable to compile series filter %q: %v", regexRaw, err)
 	}
 
-	return &reMatcher{
+	return &ReMatcher{
 		regex:    regex,
 		positive: positive,
 	}, nil
 }
 
-func (m *reMatcher) Matches(val string) bool {
+func (m *ReMatcher) Matches(val string) bool {
 	return m.regex.MatchString(val) == m.positive
 }
 
 type metricNamer struct {
 	seriesQuery    prom.Selector
-	metricsQuery   naming.MetricsQuery
+	metricsQuery   MetricsQuery
 	nameMatches    *regexp.Regexp
 	nameAs         string
-	seriesMatchers []*reMatcher
+	seriesMatchers []*ReMatcher
 
-	naming.ResourceConverter
+	ResourceConverter
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -129,26 +124,26 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	namers := make([]MetricNamer, len(cfg.Rules))
 
 	for i, rule := range cfg.Rules {
-		resConv, err := naming.NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
+		resConv, err := NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
 		if err != nil {
 			return nil, err
 		}
 
-		metricsQuery, err := naming.NewMetricsQuery(rule.MetricsQuery, resConv)
+		metricsQuery, err := NewMetricsQuery(rule.MetricsQuery, resConv)
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}
 
-		seriesMatchers := make([]*reMatcher, len(rule.SeriesFilters))
+		seriesMatchers := make([]*ReMatcher, len(rule.SeriesFilters))
 		for i, filterRaw := range rule.SeriesFilters {
-			matcher, err := newReMatcher(filterRaw)
+			matcher, err := NewReMatcher(filterRaw)
 			if err != nil {
 				return nil, fmt.Errorf("unable to generate series name filter associated with series query %q: %v", rule.SeriesQuery, err)
 			}
 			seriesMatchers[i] = matcher
 		}
 		if rule.Name.Matches != "" {
-			matcher, err := newReMatcher(config.RegexFilter{Is: rule.Name.Matches})
+			matcher, err := NewReMatcher(config.RegexFilter{Is: rule.Name.Matches})
 			if err != nil {
 				return nil, fmt.Errorf("unable to generate series name filter from name rules associated with series query %q: %v", rule.SeriesQuery, err)
 			}
@@ -193,4 +188,39 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	}
 
 	return namers, nil
+}
+
+// NewMetricNamer creates a MetricNamer capable of translating Prometheus series names
+// into custom metric names.
+func NewMetricNamer(mapping config.NameMapping) (MetricNamer, error) {
+	var nameMatches *regexp.Regexp
+	var err error
+	if mapping.Matches != "" {
+		nameMatches, err = regexp.Compile(mapping.Matches)
+		if err != nil {
+			return nil, fmt.Errorf("unable to compile series name match expression %q: %v", mapping.Matches, err)
+		}
+	} else {
+		// this will always succeed
+		nameMatches = regexp.MustCompile(".*")
+	}
+	nameAs := mapping.As
+	if nameAs == "" {
+		// check if we have an obvious default
+		subexpNames := nameMatches.SubexpNames()
+		if len(subexpNames) == 1 {
+			// no capture groups, use the whole thing
+			nameAs = "$0"
+		} else if len(subexpNames) == 2 {
+			// one capture group, use that
+			nameAs = "$1"
+		} else {
+			return nil, fmt.Errorf("must specify an 'as' value for name matcher %q", mapping.Matches)
+		}
+	}
+
+	return &metricNamer{
+		nameMatches: nameMatches,
+		nameAs:      nameAs,
+	}, nil
 }

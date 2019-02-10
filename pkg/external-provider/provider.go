@@ -18,6 +18,7 @@ import (
 	"k8s.io/metrics/pkg/apis/external_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
 // TODO: Make sure everything has the proper licensing disclosure at the top.
@@ -56,7 +57,7 @@ func (p *externalPrometheusProvider) ListAllExternalMetrics() []provider.Externa
 
 func (p *externalPrometheusProvider) selectGroupResource(namespace string) schema.GroupResource {
 	if namespace == "default" {
-		return nsGroupResource
+		return naming.NsGroupResource
 	}
 
 	return schema.GroupResource{

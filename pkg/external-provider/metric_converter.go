@@ -85,7 +85,6 @@ func (c *metricConverter) convertVector(queryResult prom.QueryResult) (*external
 	}
 
 	for _, val := range toConvert {
-
 		singleMetric, err := c.convertSample(val)
 
 		if err != nil {

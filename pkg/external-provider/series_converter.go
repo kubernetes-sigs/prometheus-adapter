@@ -49,7 +49,7 @@ type seriesConverter struct {
 	resourceConverter naming.ResourceConverter
 	queryBuilder      QueryBuilder
 	seriesFilterer    SeriesFilterer
-	metricNamer       MetricNamer
+	metricNamer       naming.MetricNamer
 	mapper            apimeta.RESTMapper
 }
 
@@ -122,7 +122,7 @@ func (c *seriesConverter) buildNamespaceQueryPartForSeries(namespace string) (qu
 	// If we've been given a namespace, then we need to set up
 	// the label requirements to target that namespace.
 	if namespace != "default" {
-		namespaceLbl, err := c.resourceConverter.LabelForResource(nsGroupResource)
+		namespaceLbl, err := c.resourceConverter.LabelForResource(naming.NsGroupResource)
 		if err != nil {
 			return result, err
 		}
@@ -226,7 +226,7 @@ func converterFromRule(rule config.DiscoveryRule, mapper apimeta.RESTMapper) (Se
 		}
 	}
 
-	metricNamer, err := NewMetricNamer(rule.Name)
+	metricNamer, err := naming.NewMetricNamer(rule.Name)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a MetricNamer associated with series query %q: %v", rule.SeriesQuery, err)
 	}
@@ -242,7 +242,7 @@ func converterFromRule(rule config.DiscoveryRule, mapper apimeta.RESTMapper) (Se
 }
 
 func (c *seriesConverter) buildNamespaceQueryPartForExternalSeries(namespace string) (queryPart, error) {
-	namespaceLbl, _ := c.metricNamer.LabelForResource(nsGroupResource)
+	namespaceLbl, _ := c.metricNamer.LabelForResource(naming.NsGroupResource)
 
 	return queryPart{
 		labelName: string(namespaceLbl),

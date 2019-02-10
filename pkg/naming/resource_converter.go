@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
-	nsGroupResource    = schema.GroupResource{Resource: "namespaces"}
+	GroupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
+	NsGroupResource    = schema.GroupResource{Resource: "namespaces"}
 )
 
 // ResourceConverter knows the relationship between Kubernetes group-resources and Prometheus labels,
@@ -118,7 +118,7 @@ func (r *resourceConverter) makeLabelForResource(resource schema.GroupResource) 
 		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String(), err)
 	}
 	convResource := schema.GroupResource{
-		Group:    groupNameSanitizer.Replace(resource.Group),
+		Group:    GroupNameSanitizer.Replace(resource.Group),
 		Resource: singularRes,
 	}
 
@@ -177,7 +177,7 @@ func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 				}
 			}
 
-			if groupRes == nsGroupResource {
+			if groupRes == NsGroupResource {
 				namespaced = true
 			}
 		}

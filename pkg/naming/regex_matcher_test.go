@@ -1,4 +1,4 @@
-package provider
+package naming
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ func TestReMatcherIs(t *testing.T) {
 		Is: "my_.*",
 	}
 
-	matcher, err := newReMatcher(filter)
+	matcher, err := NewReMatcher(filter)
 	require.NoError(t, err)
 
 	result := matcher.Matches("my_label")
@@ -28,7 +28,7 @@ func TestReMatcherIsNot(t *testing.T) {
 		IsNot: "my_.*",
 	}
 
-	matcher, err := newReMatcher(filter)
+	matcher, err := NewReMatcher(filter)
 	require.NoError(t, err)
 
 	result := matcher.Matches("my_label")
@@ -44,6 +44,6 @@ func TestEnforcesIsOrIsNotButNotBoth(t *testing.T) {
 		IsNot: "your_.*",
 	}
 
-	_, err := newReMatcher(filter)
+	_, err := NewReMatcher(filter)
 	require.Error(t, err)
 }

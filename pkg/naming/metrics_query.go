@@ -64,7 +64,7 @@ func (q *metricsQuery) Build(series string, resource schema.GroupResource, names
 	valuesByName := map[string][]string{}
 
 	if namespace != "" {
-		namespaceLbl, err := q.resConverter.LabelForResource(nsGroupResource)
+		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err
 		}

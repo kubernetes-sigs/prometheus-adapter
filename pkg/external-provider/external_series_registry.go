@@ -48,12 +48,11 @@ func NewExternalSeriesRegistry(lister MetricListerWithNotification, mapper apime
 }
 
 func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult) {
-
 	newSeriesSlices := result.series
 	converters := result.converters
 
 	if len(newSeriesSlices) != len(converters) {
-		glog.Errorf("need one set of series per converter")
+		glog.Fatal("need one set of series per converter")
 	}
 	apiMetricsCache := make([]provider.ExternalMetricInfo, 0)
 	rawMetricsCache := make(map[string]SeriesConverter)
@@ -84,6 +83,7 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 
 	r.metrics = apiMetricsCache
 	r.rawMetrics = rawMetricsCache
+
 }
 
 func (r *externalSeriesRegistry) ListAllMetrics() []provider.ExternalMetricInfo {
