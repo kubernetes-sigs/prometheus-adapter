@@ -42,6 +42,7 @@ import (
 	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
 	extprov "github.com/directxman12/k8s-prometheus-adapter/pkg/external-provider"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 	resprov "github.com/directxman12/k8s-prometheus-adapter/pkg/resourceprovider"
 )
 
@@ -160,7 +161,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// extract the namers
-	namers, err := cmprov.NamersFromConfig(cmd.metricsConfig, mapper)
+	namers, err := naming.NamersFromConfig(cmd.metricsConfig, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
