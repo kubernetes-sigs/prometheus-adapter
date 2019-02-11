@@ -24,6 +24,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
 )
@@ -45,7 +46,7 @@ const (
 type SeriesRegistry interface {
 	// SetSeries replaces the known series in this registry.
 	// Each slice in series should correspond to a MetricNamer in namers.
-	SetSeries(series [][]prom.Series, namers []MetricNamer) error
+	SetSeries(series [][]prom.Series, namers []naming.MetricNamer) error
 	// ListAllMetrics lists all metrics known to this registry
 	ListAllMetrics() []provider.CustomMetricInfo
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
@@ -60,7 +61,7 @@ type seriesInfo struct {
 	seriesName string
 
 	// namer is the MetricNamer used to name this series
-	namer MetricNamer
+	namer naming.MetricNamer
 }
 
 // overridableSeriesRegistry is a basic SeriesRegistry
@@ -75,7 +76,7 @@ type basicSeriesRegistry struct {
 	mapper apimeta.RESTMapper
 }
 
-func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers []MetricNamer) error {
+func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers []naming.MetricNamer) error {
 	if len(newSeriesSlices) != len(namers) {
 		return fmt.Errorf("need one set of series per namer")
 	}
@@ -99,7 +100,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 				}
 
 				// namespace metrics aren't counted as namespaced
-				if resource == nsGroupResource {
+				if resource == naming.NsGroupResource {
 					info.Namespaced = false
 				}
 

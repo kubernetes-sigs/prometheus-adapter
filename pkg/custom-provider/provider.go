@@ -37,6 +37,7 @@ import (
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
 // Runnable represents something that can be run until told to stop.
@@ -55,7 +56,7 @@ type prometheusProvider struct {
 	SeriesRegistry
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		maxAge:         maxAge,
@@ -193,7 +194,7 @@ type cachingMetricsLister struct {
 	promClient     prom.Client
 	updateInterval time.Duration
 	maxAge         time.Duration
-	namers         []MetricNamer
+	namers         []naming.MetricNamer
 }
 
 func (l *cachingMetricsLister) Run() {

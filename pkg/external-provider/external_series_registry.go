@@ -21,6 +21,7 @@ type ExternalSeriesRegistry interface {
 
 // overridableSeriesRegistry is a basic SeriesRegistry
 type externalSeriesRegistry struct {
+	// We lock when reading/writing metrics, and rawMetrics to prevent inconsistencies.
 	mu sync.RWMutex
 
 	// metrics is the list of all known metrics, ready to return from the API

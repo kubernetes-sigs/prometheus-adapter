@@ -92,11 +92,11 @@ func (n *queryBuilder) processQueryParts(queryParts []queryPart) ([]string, map[
 		// We obviously can't generate label filters for these cases.
 		fmt.Println("This is queryPart", qPart.labelName, qPart.operator, qPart.values)
 		if qPart.labelName == "" {
-			return nil, nil, ErrorNewLabelNotSpecified
+			return nil, nil, ErrNewLabelNotSpecified
 		}
 
 		if !n.operatorIsSupported(qPart.operator) {
-			return nil, nil, ErrorNewOperatorNotSupportedByPrometheus
+			return nil, nil, ErrNewOperatorNotSupportedByPrometheus
 		}
 
 		matcher, err := n.selectMatcher(qPart.operator, qPart.values)
@@ -128,7 +128,7 @@ func (n *queryBuilder) selectMatcher(operator selection.Operator, values []strin
 		case selection.DoesNotExist:
 			return prom.LabelEq, nil
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
-			return nil, ErrorNewOperatorRequiresValues
+			return nil, ErrNewOperatorRequiresValues
 		}
 	} else if numValues == 1 {
 		switch operator {
@@ -168,7 +168,7 @@ func (n *queryBuilder) selectTargetValue(operator selection.Operator, values []s
 			// whose value is NOT "".
 			return "", nil
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
-			return "", ErrorNewOperatorRequiresValues
+			return "", ErrNewOperatorRequiresValues
 		}
 	} else if numValues == 1 {
 		switch operator {
@@ -194,7 +194,7 @@ func (n *queryBuilder) selectTargetValue(operator selection.Operator, values []s
 			// for their label selector.
 			return strings.Join(values, "|"), nil
 		case selection.Exists, selection.DoesNotExist:
-			return "", ErrorNewOperatorDoesNotSupportValues
+			return "", ErrNewOperatorDoesNotSupportValues
 		}
 	}
 

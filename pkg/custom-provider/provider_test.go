@@ -28,6 +28,7 @@ import (
 	config "github.com/directxman12/k8s-prometheus-adapter/cmd/config-gen/utils"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	fakeprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/fake"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 	pmodel "github.com/prometheus/common/model"
 )
 
@@ -39,7 +40,7 @@ func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakeprom.FakePr
 	fakeKubeClient := &fakedyn.FakeDynamicClient{}
 
 	cfg := config.DefaultConfig(1*time.Minute, "")
-	namers, err := NamersFromConfig(cfg, restMapper())
+	namers, err := naming.NamersFromConfig(cfg, restMapper())
 	Expect(err).NotTo(HaveOccurred())
 
 	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval, fakeProviderStartDuration)
