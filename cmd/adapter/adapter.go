@@ -321,11 +321,11 @@ func makePrometheusCAClient(caFilename string) (*http.Client, error) {
 	}, nil
 }
 
-func makePrometheusInsecureClient() (*http.Client) {
+func makePrometheusInsecureClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				SkipTLSVerification: true
+				SkipTLSVerification: true,
 			},
 		},
 	}
