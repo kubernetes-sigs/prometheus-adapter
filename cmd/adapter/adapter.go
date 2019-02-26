@@ -78,10 +78,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	var httpClient *http.Client
 
 	if cmd.SkipTLSVerification {
-		prometheusInsecureClient, err := makePrometheusInsecureClient()
-		if err != nil {
-			return nil, err
-		}
+		prometheusInsecureClient := makePrometheusInsecureClient()
 		httpClient = prometheusInsecureClient
 		glog.Info("successfully skipped tls verification")
 	} else if cmd.PrometheusCAFile != "" {
@@ -328,7 +325,6 @@ func makePrometheusInsecureClient() (*http.Client) {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: pool,
 				SkipTLSVerification: true
 			},
 		},
