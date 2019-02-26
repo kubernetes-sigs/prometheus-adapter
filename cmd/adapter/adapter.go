@@ -119,7 +119,7 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
 	cmd.Flags().StringVar(&cmd.PrometheusCAFile, "prometheus-ca-file", cmd.PrometheusCAFile,
 		"Optional CA file to use when connecting with Prometheus")
-	cmd.Flags().StringVar(&cmd.SkipTLSVerification, "prometheus-skip-tls-verification", cmd.SkipTLSVerification,
+	cmd.Flags().BoolVar(&cmd.SkipTLSVerification, "prometheus-skip-tls-verification", cmd.SkipTLSVerification,
 		"Optional flag indicating whether connection to prometheus should skip tls verification")
 	cmd.Flags().StringVar(&cmd.PrometheusTokenFile, "prometheus-token-file", cmd.PrometheusTokenFile,
 		"Optional file containing the bearer token to use when connecting with Prometheus")
