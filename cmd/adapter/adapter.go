@@ -63,6 +63,8 @@ type PrometheusAdapter struct {
 	MetricsRelistInterval time.Duration
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
+	// SkipTLSVerification indicates whether TLS verification should be skipped or not
+	SkipTLSVerification bool
 
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
@@ -75,7 +77,14 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 
 	var httpClient *http.Client
 
-	if cmd.PrometheusCAFile != "" {
+	if cmd.SkipTLSVerification {
+		prometheusInsecureClient, err := makePrometheusInsecureClient()
+		if err != nil {
+			return nil, err
+		}
+		httpClient = prometheusInsecureClient
+		glog.Info("successfully skipped tls verification")
+	} else if cmd.PrometheusCAFile != "" {
 		prometheusCAClient, err := makePrometheusCAClient(cmd.PrometheusCAFile)
 		if err != nil {
 			return nil, err
@@ -113,6 +122,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
 	cmd.Flags().StringVar(&cmd.PrometheusCAFile, "prometheus-ca-file", cmd.PrometheusCAFile,
 		"Optional CA file to use when connecting with Prometheus")
+	cmd.Flags().StringVar(&cmd.SkipTLSVerification, "prometheus-skip-tls-verification", cmd.SkipTLSVerification,
+		"Optional flag indicating whether connection to prometheus should skip tls verification")
 	cmd.Flags().StringVar(&cmd.PrometheusTokenFile, "prometheus-token-file", cmd.PrometheusTokenFile,
 		"Optional file containing the bearer token to use when connecting with Prometheus")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
@@ -311,4 +322,15 @@ func makePrometheusCAClient(caFilename string) (*http.Client, error) {
 			},
 		},
 	}, nil
+}
+
+func makePrometheusInsecureClient() (*http.Client) {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: pool,
+				SkipTLSVerification: true
+			},
+		},
+	}
 }
