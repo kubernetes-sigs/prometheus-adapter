@@ -325,7 +325,7 @@ func makePrometheusInsecureClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				SkipTLSVerification: true,
+				InsecureSkipVerify: true,
 			},
 		},
 	}
