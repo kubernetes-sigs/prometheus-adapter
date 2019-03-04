@@ -1,11 +1,16 @@
 REGISTRY?=directxman12
 IMAGE?=k8s-prometheus-adapter
-TEMP_DIR:=$(shell mktemp -d)
 ARCH?=amd64
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=./_output
 VENDOR_DOCKERIZED=0
+# You need to run "brew install coreutils gnu-sed" to use "macos" below
+LOCAL_OS?=linux
+SED_BIN?=sed
+READLINK_BIN?=readlink
+# Get Mozilla CA Cert store in PEM format from curl, https://curl.haxx.se/docs/caextract.html
+CA_CERTIFICATES_URL?=https://curl.haxx.se/ca/cacert.pem
 
 VERSION?=latest
 GOIMAGE=golang:1.10
@@ -25,8 +30,14 @@ endif
 ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
 endif
+ifeq ($(LOCAL_OS),macos)
+        SED_BIN=gsed
+        READLINK_BIN=greadlink
+endif
 
-.PHONY: all docker-build push-% push test verify-gofmt gofmt verify build-local-image
+TEMP_DIR:=$(shell $(READLINK_BIN) -f $(shell mktemp -d))
+
+.PHONY: all docker-build push-% push test verify-gofmt gofmt verify download-ca-certificates build-local-image
 
 all: $(OUT_DIR)/$(ARCH)/adapter
 
@@ -34,9 +45,9 @@ src_deps=$(shell find pkg cmd -type f -name "*.go")
 $(OUT_DIR)/%/adapter: $(src_deps)
 	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 	
-docker-build:
+docker-build: | download-ca-certificates
 	cp deploy/Dockerfile $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
+	cd $(TEMP_DIR) && $(SED_BIN) -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
 
 	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) $(GOIMAGE) /bin/bash -c "\
 		CGO_ENABLED=0 go build -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
@@ -44,10 +55,14 @@ docker-build:
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 	rm -rf $(TEMP_DIR)
 
-build-local-image: $(OUT_DIR)/$(ARCH)/adapter
+download-ca-certificates:
+	curl -sSL $(CA_CERTIFICATES_URL) -o $(TEMP_DIR)/cacert.pem
+	cd $(TEMP_DIR) && curl -sSL $(CA_CERTIFICATES_URL).sha256 | sha256sum --quiet -c -
+
+build-local-image: $(OUT_DIR)/$(ARCH)/adapter | download-ca-certificates
 	cp deploy/Dockerfile $(TEMP_DIR)
-	cp  $(OUT_DIR)/$(ARCH)/adapter $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|scratch|g" Dockerfile
+	cp $(OUT_DIR)/$(ARCH)/adapter $(TEMP_DIR)
+	cd $(TEMP_DIR) && $(SED_BIN) -i "s|BASEIMAGE|scratch|g" Dockerfile
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 	rm -rf $(TEMP_DIR)
 
