@@ -26,7 +26,6 @@ import (
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 
 	apierr "k8s.io/apimachinery/pkg/api/errors"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 
@@ -79,11 +78,11 @@ func (p *externalPrometheusProvider) selectGroupResource(namespace string) schem
 }
 
 // NewExternalPrometheusProvider creates an ExternalMetricsProvider capable of responding to Kubernetes requests for external metric data
-func NewExternalPrometheusProvider(mapper apimeta.RESTMapper, promClient prom.Client, converters []SeriesConverter, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
+func NewExternalPrometheusProvider(promClient prom.Client, converters []SeriesConverter, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
 	metricConverter := NewMetricConverter()
 	basicLister := NewBasicMetricLister(promClient, converters, updateInterval)
 	periodicLister, _ := NewPeriodicMetricLister(basicLister, updateInterval)
-	seriesRegistry := NewExternalSeriesRegistry(periodicLister, mapper)
+	seriesRegistry := NewExternalSeriesRegistry(periodicLister)
 	return &externalPrometheusProvider{
 		promClient:      promClient,
 		seriesRegistry:  seriesRegistry,

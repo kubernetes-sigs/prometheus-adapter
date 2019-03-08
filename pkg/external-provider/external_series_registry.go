@@ -18,7 +18,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -41,19 +40,13 @@ type externalSeriesRegistry struct {
 	metrics []provider.ExternalMetricInfo
 	// rawMetrics is a lookup from a metric to SeriesConverter for the sake of generating queries
 	rawMetrics map[string]SeriesConverter
-
-	mapper apimeta.RESTMapper
-
-	metricLister MetricListerWithNotification
 }
 
 // NewExternalSeriesRegistry creates an ExternalSeriesRegistry driven by the data from the provided MetricLister.
-func NewExternalSeriesRegistry(lister MetricListerWithNotification, mapper apimeta.RESTMapper) ExternalSeriesRegistry {
+func NewExternalSeriesRegistry(lister MetricListerWithNotification) ExternalSeriesRegistry {
 	var registry = externalSeriesRegistry{
-		mapper:       mapper,
-		metricLister: lister,
-		metrics:      make([]provider.ExternalMetricInfo, 0),
-		rawMetrics:   map[string]SeriesConverter{},
+		metrics:    make([]provider.ExternalMetricInfo, 0),
+		rawMetrics: map[string]SeriesConverter{},
 	}
 
 	lister.AddNotificationReceiver(registry.filterAndStoreMetrics)

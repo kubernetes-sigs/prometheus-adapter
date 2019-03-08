@@ -63,7 +63,6 @@ type seriesConverter struct {
 	queryBuilder      QueryBuilder
 	seriesFilterer    SeriesFilterer
 	metricNamer       naming.MetricNamer
-	mapper            apimeta.RESTMapper
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -103,7 +102,6 @@ func (c *seriesConverter) createQueryPartsFromSelector(metricSelector labels.Sel
 
 	selectors := []queryPart{}
 	for i := 0; i < len(requirements); i++ {
-		fmt.Println("This is post Requirements", requirements[i].Key(), requirements[i].Values().List(), requirements[i].Operator())
 		selector := c.convertRequirement(requirements[i])
 
 		selectors = append(selectors, selector)
@@ -246,7 +244,6 @@ func converterFromRule(rule config.DiscoveryRule, mapper apimeta.RESTMapper) (Se
 
 	return &seriesConverter{
 		seriesQuery:       prom.Selector(rule.SeriesQuery),
-		mapper:            mapper,
 		resourceConverter: resourceConverter,
 		queryBuilder:      queryBuilder,
 		seriesFilterer:    seriesFilterer,
@@ -255,13 +252,13 @@ func converterFromRule(rule config.DiscoveryRule, mapper apimeta.RESTMapper) (Se
 }
 
 func (c *seriesConverter) buildNamespaceQueryPartForExternalSeries(namespace string) (queryPart, error) {
-	namespaceLbl, _ := c.metricNamer.LabelForResource(naming.NsGroupResource)
+	namespaceLbl, err := c.resourceConverter.LabelForResource(naming.NsGroupResource)
 
 	return queryPart{
 		labelName: string(namespaceLbl),
 		values:    []string{namespace},
 		operator:  selection.Equals,
-	}, nil
+	}, err
 }
 
 func (c *seriesConverter) QueryForExternalSeries(namespace string, series string, metricSelector labels.Selector) (prom.Selector, error) {
