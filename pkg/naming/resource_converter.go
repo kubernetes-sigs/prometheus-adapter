@@ -177,7 +177,7 @@ func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 				}
 			}
 
-			if groupRes == nsGroupResource {
+			if groupRes != nsGroupResource {
 				namespaced = true
 			}
 		}

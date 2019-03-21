@@ -14,6 +14,7 @@ import (
 )
 
 var nsGroupResource = schema.GroupResource{Resource: "namespaces"}
+var nodeGroupResource = schema.GroupResource{Resource: "nodes"}
 var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
 
 // MetricNamer knows how to convert Prometheus series names and label names to
