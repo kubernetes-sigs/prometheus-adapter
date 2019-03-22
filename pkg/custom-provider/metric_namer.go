@@ -13,9 +13,12 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
-var nsGroupResource = schema.GroupResource{Resource: "namespaces"}
-var nodeGroupResource = schema.GroupResource{Resource: "nodes"}
-var groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
+var (
+	nsGroupResource    = schema.GroupResource{Resource: "namespaces"}
+	nodeGroupResource  = schema.GroupResource{Resource: "nodes"}
+	pvGroupResource    = schema.GroupResource{Resource: "persistentvolumes"}
+	groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
+)
 
 // MetricNamer knows how to convert Prometheus series names and label names to
 // metrics API resources, and vice-versa.  MetricNamers should be safe to access
