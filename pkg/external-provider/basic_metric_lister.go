@@ -25,6 +25,7 @@ import (
 	pmodel "github.com/prometheus/common/model"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
 // Runnable represents something that can be run until told to stop.
@@ -56,15 +57,15 @@ type MetricListerWithNotification interface {
 
 type basicMetricLister struct {
 	promClient prom.Client
-	converters []SeriesConverter
+	namers     []naming.MetricNamer
 	lookback   time.Duration
 }
 
 // NewBasicMetricLister creates a MetricLister that is capable of interactly directly with Prometheus to list metrics.
-func NewBasicMetricLister(promClient prom.Client, converters []SeriesConverter, lookback time.Duration) MetricLister {
+func NewBasicMetricLister(promClient prom.Client, namers []naming.MetricNamer, lookback time.Duration) MetricLister {
 	lister := basicMetricLister{
 		promClient: promClient,
-		converters: converters,
+		namers:     namers,
 		lookback:   lookback,
 	}
 
@@ -78,8 +79,8 @@ type selectorSeries struct {
 
 func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 	result := MetricUpdateResult{
-		series:     make([][]prom.Series, 0),
-		converters: make([]SeriesConverter, 0),
+		series: make([][]prom.Series, 0),
+		namers: make([]naming.MetricNamer, 0),
 	}
 
 	startTime := pmodel.Now().Add(-1 * l.lookback)
@@ -87,9 +88,9 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 	// these can take a while on large clusters, so launch in parallel
 	// and don't duplicate
 	selectors := make(map[prom.Selector]struct{})
-	selectorSeriesChan := make(chan selectorSeries, len(l.converters))
-	errs := make(chan error, len(l.converters))
-	for _, converter := range l.converters {
+	selectorSeriesChan := make(chan selectorSeries, len(l.namers))
+	errs := make(chan error, len(l.namers))
+	for _, converter := range l.namers {
 		sel := converter.Selector()
 		if _, ok := selectors[sel]; ok {
 			errs <- nil
@@ -118,7 +119,7 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 	// iterate through, blocking until we've got all results
 	// We know that, from above, we should have pushed one item into the channel
 	// for each converter. So here, we'll assume that we should receive one item per converter.
-	for range l.converters {
+	for range l.namers {
 		if err := <-errs; err != nil {
 			return result, fmt.Errorf("unable to update list of all metrics: %v", err)
 		}
@@ -133,21 +134,21 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 
 	// Now that we've collected all of the results into `seriesCacheByQuery`
 	// we can start processing them.
-	newSeries := make([][]prom.Series, len(l.converters))
-	for i, converter := range l.converters {
-		series, cached := seriesCacheByQuery[converter.Selector()]
+	newSeries := make([][]prom.Series, len(l.namers))
+	for i, namer := range l.namers {
+		series, cached := seriesCacheByQuery[namer.Selector()]
 		if !cached {
-			return result, fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", converter.Selector())
+			return result, fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", namer.Selector())
 		}
 		// Because converters provide a "post-filtering" option, it's not enough to
 		// simply take all the series that were produced. We need to further filter them.
-		newSeries[i] = converter.SeriesFilterer().FilterSeries(series)
+		newSeries[i] = namer.FilterSeries(series)
 	}
 
 	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
 
 	result.series = newSeries
-	result.converters = l.converters
+	result.namers = l.namers
 	return result, nil
 }
 
@@ -156,8 +157,8 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 // It includes both the series data the Prometheus exposed, as well as the configurational
 // object that led to their discovery.
 type MetricUpdateResult struct {
-	series     [][]prom.Series
-	converters []SeriesConverter
+	series [][]prom.Series
+	namers []naming.MetricNamer
 }
 
 // MetricUpdateCallback is a function signature for receiving periodic updates about

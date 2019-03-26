@@ -21,6 +21,7 @@ import (
 	"regexp"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -45,6 +46,9 @@ type MetricNamer interface {
 	// QueryForSeries returns the query for a given series (not API metric name), with
 	// the given namespace name (if relevant), resource, and resource names.
 	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
+	// QueryForExternalSeries returns the query for a given series (not API metric name), with
+	// the given namespace name (if relevant), resource, and resource names.
+	QueryForExternalSeries(series string, namespace string, targetLabels labels.Selector) (prom.Selector, error)
 
 	ResourceConverter
 }
@@ -126,6 +130,12 @@ func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResourc
 	return n.metricsQuery.Build(series, resource, namespace, nil, names...)
 }
 
+func (n *metricNamer) QueryForExternalSeries(series string, namespace string, metricSelector labels.Selector) (prom.Selector, error) {
+	//test := prom.Selector()
+	//return test, nil
+	return n.metricsQuery.BuildExternal(series, namespace, "", []string{}, metricSelector)
+}
+
 func (n *metricNamer) MetricNameForSeries(series prom.Series) (string, error) {
 	matches := n.nameMatches.FindStringSubmatchIndex(series.Name)
 	if matches == nil {
@@ -136,10 +146,10 @@ func (n *metricNamer) MetricNameForSeries(series prom.Series) (string, error) {
 }
 
 // NamersFromConfig produces a MetricNamer for each rule in the given config.
-func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper) ([]MetricNamer, error) {
-	namers := make([]MetricNamer, len(cfg.Rules))
+func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]MetricNamer, error) {
+	namers := make([]MetricNamer, len(cfg))
 
-	for i, rule := range cfg.Rules {
+	for i, rule := range cfg {
 		resConv, err := NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
 		if err != nil {
 			return nil, err
@@ -204,39 +214,4 @@ func NamersFromConfig(cfg *config.MetricsDiscoveryConfig, mapper apimeta.RESTMap
 	}
 
 	return namers, nil
-}
-
-// NewMetricNamer creates a MetricNamer capable of translating Prometheus series names
-// into custom metric names.
-func NewMetricNamer(mapping config.NameMapping) (MetricNamer, error) {
-	var nameMatches *regexp.Regexp
-	var err error
-	if mapping.Matches != "" {
-		nameMatches, err = regexp.Compile(mapping.Matches)
-		if err != nil {
-			return nil, fmt.Errorf("unable to compile series name match expression %q: %v", mapping.Matches, err)
-		}
-	} else {
-		// this will always succeed
-		nameMatches = regexp.MustCompile(".*")
-	}
-	nameAs := mapping.As
-	if nameAs == "" {
-		// check if we have an obvious default
-		subexpNames := nameMatches.SubexpNames()
-		if len(subexpNames) == 1 {
-			// no capture groups, use the whole thing
-			nameAs = "$0"
-		} else if len(subexpNames) == 2 {
-			// one capture group, use that
-			nameAs = "$1"
-		} else {
-			return nil, fmt.Errorf("must specify an 'as' value for name matcher %q", mapping.Matches)
-		}
-	}
-
-	return &metricNamer{
-		nameMatches: nameMatches,
-		nameAs:      nameAs,
-	}, nil
 }

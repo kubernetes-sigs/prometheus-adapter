@@ -161,7 +161,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// extract the namers
-	namers, err := naming.NamersFromConfig(cmd.metricsConfig, mapper)
+	namers, err := naming.NamersFromConfig(cmd.metricsConfig.Rules, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
@@ -184,14 +184,14 @@ func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopC
 		return nil, fmt.Errorf("unable to construct RESTMapper: %v", err)
 	}
 
-	// collect series converters for adapter
-	converters, errs := extprov.ConvertersFromConfig(cmd.metricsConfig, mapper)
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", errs)
+	// extract the namers
+	namers, err := naming.NamersFromConfig(cmd.metricsConfig.ExternalRules, mapper)
+	if err != nil {
+		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
 
 	// construct the provider and start it
-	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, converters, cmd.MetricsRelistInterval)
+	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval)
 	runner.RunUntil(stopCh)
 
 	return emProvider, nil

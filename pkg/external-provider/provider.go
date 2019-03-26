@@ -51,7 +51,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 	if !found {
 		return nil, provider.NewMetricNotFoundError(p.selectGroupResource(namespace), info.Metric)
 	}
-
+	// Here is where we're making the query, need to be before here xD
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), selector)
 
 	if err != nil {
@@ -78,9 +78,9 @@ func (p *externalPrometheusProvider) selectGroupResource(namespace string) schem
 }
 
 // NewExternalPrometheusProvider creates an ExternalMetricsProvider capable of responding to Kubernetes requests for external metric data
-func NewExternalPrometheusProvider(promClient prom.Client, converters []SeriesConverter, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
+func NewExternalPrometheusProvider(promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
 	metricConverter := NewMetricConverter()
-	basicLister := NewBasicMetricLister(promClient, converters, updateInterval)
+	basicLister := NewBasicMetricLister(promClient, namers, updateInterval)
 	periodicLister, _ := NewPeriodicMetricLister(basicLister, updateInterval)
 	seriesRegistry := NewExternalSeriesRegistry(periodicLister)
 	return &externalPrometheusProvider{
