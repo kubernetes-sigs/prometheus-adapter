@@ -53,7 +53,7 @@ func restMapper() apimeta.RESTMapper {
 
 func setupMetricNamer() []naming.MetricNamer {
 	cfg := config.DefaultConfig(1*time.Minute, "kube_")
-	namers, err := naming.NamersFromConfig(cfg, restMapper())
+	namers, err := naming.NamersFromConfig(cfg.Rules, restMapper())
 	Expect(err).NotTo(HaveOccurred())
 	return namers
 }
