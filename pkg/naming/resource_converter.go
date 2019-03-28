@@ -36,6 +36,8 @@ import (
 var (
 	GroupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
 	NsGroupResource    = schema.GroupResource{Resource: "namespaces"}
+	NodeGroupResource  = schema.GroupResource{Resource: "nodes"}
+	PVGroupResource    = schema.GroupResource{Resource: "persistentvolumes"}
 )
 
 // ResourceConverter knows the relationship between Kubernetes group-resources and Prometheus labels,
@@ -193,7 +195,7 @@ func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 				}
 			}
 
-			if groupRes == NsGroupResource {
+			if groupRes != NsGroupResource && groupRes != NodeGroupResource && groupRes != PVGroupResource {
 				namespaced = true
 			}
 		}

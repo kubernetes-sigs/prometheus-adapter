@@ -99,8 +99,8 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 					Metric:        name,
 				}
 
-				// namespace metrics aren't counted as namespaced
-				if resource == naming.NsGroupResource {
+				// some metrics aren't counted as namespaced
+				if resource == naming.NsGroupResource || resource == naming.NodeGroupResource || resource == naming.PVGroupResource {
 					info.Namespaced = false
 				}
 
