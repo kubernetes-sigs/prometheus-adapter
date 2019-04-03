@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package naming
 
 import (
@@ -18,10 +34,10 @@ import (
 )
 
 var (
-	groupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
-	nsGroupResource    = schema.GroupResource{Resource: "namespaces"}
-	nodeGroupResource  = schema.GroupResource{Resource: "nodes"}
-	pvGroupResource    = schema.GroupResource{Resource: "persistentvolumes"}
+	GroupNameSanitizer = strings.NewReplacer(".", "_", "-", "_")
+	NsGroupResource    = schema.GroupResource{Resource: "namespaces"}
+	NodeGroupResource  = schema.GroupResource{Resource: "nodes"}
+	PVGroupResource    = schema.GroupResource{Resource: "persistentvolumes"}
 )
 
 // ResourceConverter knows the relationship between Kubernetes group-resources and Prometheus labels,
@@ -120,7 +136,7 @@ func (r *resourceConverter) makeLabelForResource(resource schema.GroupResource) 
 		return "", fmt.Errorf("unable to singularize resource %s: %v", resource.String(), err)
 	}
 	convResource := schema.GroupResource{
-		Group:    groupNameSanitizer.Replace(resource.Group),
+		Group:    GroupNameSanitizer.Replace(resource.Group),
 		Resource: singularRes,
 	}
 
@@ -179,7 +195,7 @@ func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 				}
 			}
 
-			if groupRes != nsGroupResource && groupRes != nodeGroupResource && groupRes != pvGroupResource {
+			if groupRes != NsGroupResource && groupRes != NodeGroupResource && groupRes != PVGroupResource {
 				namespaced = true
 			}
 		}

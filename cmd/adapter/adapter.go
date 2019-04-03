@@ -41,6 +41,8 @@ import (
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
+	extprov "github.com/directxman12/k8s-prometheus-adapter/pkg/external-provider"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 	resprov "github.com/directxman12/k8s-prometheus-adapter/pkg/resourceprovider"
 )
 
@@ -159,7 +161,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// extract the namers
-	namers, err := cmprov.NamersFromConfig(cmd.metricsConfig, mapper)
+	namers, err := naming.NamersFromConfig(cmd.metricsConfig.Rules, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
 	}
@@ -169,6 +171,30 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	runner.RunUntil(stopCh)
 
 	return cmProvider, nil
+}
+
+func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.ExternalMetricsProvider, error) {
+	if len(cmd.metricsConfig.ExternalRules) == 0 {
+		return nil, nil
+	}
+
+	// grab the mapper
+	mapper, err := cmd.RESTMapper()
+	if err != nil {
+		return nil, fmt.Errorf("unable to construct RESTMapper: %v", err)
+	}
+
+	// extract the namers
+	namers, err := naming.NamersFromConfig(cmd.metricsConfig.ExternalRules, mapper)
+	if err != nil {
+		return nil, fmt.Errorf("unable to construct naming scheme from metrics rules: %v", err)
+	}
+
+	// construct the provider and start it
+	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval)
+	runner.RunUntil(stopCh)
+
+	return emProvider, nil
 }
 
 func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) error {
@@ -245,6 +271,17 @@ func main() {
 	// attach the provider to the server, if it's needed
 	if cmProvider != nil {
 		cmd.WithCustomMetrics(cmProvider)
+	}
+
+	// construct the external provider
+	emProvider, err := cmd.makeExternalProvider(promClient, wait.NeverStop)
+	if err != nil {
+		glog.Fatalf("unable to construct external metrics provider: %v", err)
+	}
+
+	// attach the provider to the server, if it's needed
+	if emProvider != nil {
+		cmd.WithExternalMetrics(emProvider)
 	}
 
 	// attach resource metrics support, if it's needed

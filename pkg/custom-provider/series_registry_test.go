@@ -31,6 +31,7 @@ import (
 
 	config "github.com/directxman12/k8s-prometheus-adapter/cmd/config-gen/utils"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 )
 
 // restMapper creates a RESTMapper with just the types we need for
@@ -50,9 +51,9 @@ func restMapper() apimeta.RESTMapper {
 	return mapper
 }
 
-func setupMetricNamer() []MetricNamer {
+func setupMetricNamer() []naming.MetricNamer {
 	cfg := config.DefaultConfig(1*time.Minute, "kube_")
-	namers, err := NamersFromConfig(cfg, restMapper())
+	namers, err := naming.NamersFromConfig(cfg.Rules, restMapper())
 	Expect(err).NotTo(HaveOccurred())
 	return namers
 }

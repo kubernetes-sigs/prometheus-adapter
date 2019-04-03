@@ -11,6 +11,7 @@ type MetricsDiscoveryConfig struct {
 	// will make only a single API call.
 	Rules         []DiscoveryRule `yaml:"rules"`
 	ResourceRules *ResourceRules  `yaml:"resourceRules,omitempty"`
+	ExternalRules []DiscoveryRule `yaml:"externalRules,omitempty"`
 }
 
 // DiscoveryRule describes a set of rules for transforming Prometheus metrics to/from
