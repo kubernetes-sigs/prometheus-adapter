@@ -210,7 +210,6 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 	for _, qPart := range queryParts {
 		// Be resilient against bad inputs.
 		// We obviously can't generate label filters for these cases.
-		fmt.Println("This is queryPart", qPart.labelName, qPart.operator, qPart.values)
 		if qPart.labelName == "" {
 			return nil, nil, ErrLabelNotSpecified
 		}
