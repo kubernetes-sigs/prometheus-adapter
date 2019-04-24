@@ -20,8 +20,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 
@@ -44,7 +44,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 	selector, found, err := p.seriesRegistry.QueryForMetric(namespace, info.Metric, metricSelector)
 
 	if err != nil {
-		glog.Errorf("unable to generate a query for the metric: %v", err)
+		klog.Errorf("unable to generate a query for the metric: %v", err)
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
@@ -55,7 +55,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), selector)
 
 	if err != nil {
-		glog.Errorf("unable to fetch metrics from prometheus: %v", err)
+		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}

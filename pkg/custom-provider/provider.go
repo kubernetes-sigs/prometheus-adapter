@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers"
 	pmodel "github.com/prometheus/common/model"
@@ -34,6 +33,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/klog"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -85,7 +85,9 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 
 	return &custom_metrics.MetricValue{
 		DescribedObject: ref,
-		MetricName:      info.Metric,
+		Metric: custom_metrics.MetricIdentifier{
+			Name: info.Metric,
+		},
 		// TODO(directxman12): use the right timestamp
 		Timestamp: metav1.Time{time.Now()},
 		Value:     *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI),
@@ -125,13 +127,13 @@ func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespac
 	// TODO: use an actual context
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), query)
 	if err != nil {
-		glog.Errorf("unable to fetch metrics from prometheus: %v", err)
+		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
 	if queryResults.Type != pmodel.ValVector {
-		glog.Errorf("unexpected results from prometheus: expected %s, got %s on results %v", pmodel.ValVector, queryResults.Type, queryResults)
+		klog.Errorf("unexpected results from prometheus: expected %s, got %s on results %v", pmodel.ValVector, queryResults.Type, queryResults)
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
@@ -156,12 +158,12 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 	}
 
 	if len(namedValues) > 1 {
-		glog.V(2).Infof("Got more than one result (%v results) when fetching metric %s for %q, using the first one with a matching name...", len(queryResults), info.String(), name)
+		klog.V(2).Infof("Got more than one result (%v results) when fetching metric %s for %q, using the first one with a matching name...", len(queryResults), info.String(), name)
 	}
 
 	resultValue, nameFound := namedValues[name.Name]
 	if !nameFound {
-		glog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
+		klog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}
 
@@ -173,7 +175,7 @@ func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labe
 	// fetch a list of relevant resource names
 	resourceNames, err := helpers.ListObjectNames(p.mapper, p.kubeClient, namespace, selector, info)
 	if err != nil {
-		glog.Errorf("unable to list matching resource names: %v", err)
+		klog.Errorf("unable to list matching resource names: %v", err)
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
@@ -267,7 +269,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 		newSeries[i] = namer.FilterSeries(series)
 	}
 
-	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
+	klog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
 
 	return l.SetSeries(newSeries, l.namers)
 }

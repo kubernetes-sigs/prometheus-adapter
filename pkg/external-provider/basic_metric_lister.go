@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
+	"k8s.io/klog"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
@@ -145,7 +145,7 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 		newSeries[i] = namer.FilterSeries(series)
 	}
 
-	glog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
+	klog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
 
 	result.series = newSeries
 	result.namers = l.namers

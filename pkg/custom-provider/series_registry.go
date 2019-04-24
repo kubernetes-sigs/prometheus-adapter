@@ -25,8 +25,8 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
-	"github.com/golang/glog"
 	pmodel "github.com/prometheus/common/model"
+	"k8s.io/klog"
 )
 
 // NB: container metrics sourced from cAdvisor don't consistently follow naming conventions,
@@ -89,7 +89,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 			resources, namespaced := namer.ResourcesForSeries(series)
 			name, err := namer.MetricNameForSeries(series)
 			if err != nil {
-				glog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
+				klog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
 				continue
 			}
 			for _, resource := range resources {
@@ -140,25 +140,25 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 	defer r.mu.RUnlock()
 
 	if len(resourceNames) == 0 {
-		glog.Errorf("no resource names requested while producing a query for metric %s", metricInfo.String())
+		klog.Errorf("no resource names requested while producing a query for metric %s", metricInfo.String())
 		return "", false
 	}
 
 	metricInfo, _, err := metricInfo.Normalized(r.mapper)
 	if err != nil {
-		glog.Errorf("unable to normalize group resource while producing a query: %v", err)
+		klog.Errorf("unable to normalize group resource while producing a query: %v", err)
 		return "", false
 	}
 
 	info, infoFound := r.info[metricInfo]
 	if !infoFound {
-		glog.V(10).Infof("metric %v not registered", metricInfo)
+		klog.V(10).Infof("metric %v not registered", metricInfo)
 		return "", false
 	}
 
 	query, err := info.namer.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, resourceNames...)
 	if err != nil {
-		glog.Errorf("unable to construct query for metric %s: %v", metricInfo.String(), err)
+		klog.Errorf("unable to construct query for metric %s: %v", metricInfo.String(), err)
 		return "", false
 	}
 
@@ -171,7 +171,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetri
 
 	metricInfo, _, err := metricInfo.Normalized(r.mapper)
 	if err != nil {
-		glog.Errorf("unable to normalize group resource while matching values to names: %v", err)
+		klog.Errorf("unable to normalize group resource while matching values to names: %v", err)
 		return nil, false
 	}
 
@@ -182,7 +182,7 @@ func (r *basicSeriesRegistry) MatchValuesToNames(metricInfo provider.CustomMetri
 
 	resourceLbl, err := info.namer.LabelForResource(metricInfo.GroupResource)
 	if err != nil {
-		glog.Errorf("unable to construct resource label for metric %s: %v", metricInfo.String(), err)
+		klog.Errorf("unable to construct resource label for metric %s: %v", metricInfo.String(), err)
 		return nil, false
 	}
 
