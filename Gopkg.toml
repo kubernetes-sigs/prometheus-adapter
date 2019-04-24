@@ -27,10 +27,6 @@
 
 # Utility library deps
 [[constraint]]
-  branch = "master"
-  name = "github.com/golang/glog"
-
-[[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "0.8.0"
 
@@ -49,37 +45,57 @@
 # Kubernetes incubator deps
 [[constraint]]
   name = "github.com/kubernetes-incubator/custom-metrics-apiserver"
-  version = "kubernetes-1.11.2"
+  revision = "1e669f6c224a8663cb22a5e32181ba2aacd69ee7"
 
 [[constraint]]
   name = "github.com/kubernetes-incubator/metrics-server"
-  version = "v0.3.1"
+  revision = "020262240108f783e5d0e46891627fa9c8385776"
 
 # Core Kubernetes deps
 [[constraint]]
   name = "k8s.io/api"
-  branch = "release-1.11"
+  branch = "release-1.14"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  branch = "release-1.11"
+  branch = "release-1.14"
 
-[[constraint]]
-  name = "k8s.io/apiserver"
-  branch = "release-1.11"
+[[override]]
+  name = "k8s.io/component-base"
+  branch = "release-1.14"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  branch = "release-8.0"
+  branch = "release-11.0"
 
 [[constraint]]
   name = "k8s.io/metrics"
-  branch = "release-1.11"
+  branch = "release-1.14"
 
 # messed up kubernetes dep
 [[override]]
   name = "github.com/json-iterator/go"
   version = "1.1.5"
+
+# we need to pin to the same version as the one used by kube:
+# https://github.com/kubernetes/apiserver/blob/8b27c41bdbb11ff103caa673315e097bf0289171/Godeps/Godeps.json#L453-L464
+# otherwise the build fails
+[[override]]
+  name = "github.com/googleapis/gnostic"
+  revision = "0c5108395e2debce0d731cf0287ddf7242066aba"
+
+
+# we need to pin to the same version as the one used by kube:
+# https://github.com/kubernetes/apiserver/blob/8b27c41bdbb11ff103caa673315e097bf0289171/Godeps/Godeps.json#L2093-L2112
+[[override]]
+  name = "sigs.k8s.io/structured-merge-diff"
+  revision = "e85c7b244fd2cc57bb829d73a061f93a441e63ce"
+
+# we need to pin to the same version as the one used by kube:
+# https://github.com/kubernetes/apiserver/blob/8b27c41bdbb11ff103caa673315e097bf0289171/Godeps/Godeps.json#L373-L376
+[[override]]
+  name = "github.com/evanphx/json-patch"
+  revision = "5858425f75500d40c52783dce87d085a483ce135"
 
 # Test deps
 [[constraint]]
