@@ -85,7 +85,9 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 
 	return &custom_metrics.MetricValue{
 		DescribedObject: ref,
-		MetricName:      info.Metric,
+		Metric: custom_metrics.MetricIdentifier{
+			Name: info.Metric,
+		},
 		// TODO(directxman12): use the right timestamp
 		Timestamp: metav1.Time{time.Now()},
 		Value:     *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI),
