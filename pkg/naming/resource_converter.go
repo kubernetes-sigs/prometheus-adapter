@@ -28,9 +28,9 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
-	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
+	"k8s.io/klog"
 )
 
 var (
@@ -185,7 +185,7 @@ func (r *resourceConverter) ResourcesForSeries(series prom.Series) ([]schema.Gro
 					info, _, err := provider.CustomMetricInfo{GroupResource: groupRes}.Normalized(r.mapper)
 					if err != nil {
 						// this is likely to show up for a lot of labels, so make it a verbose info log
-						glog.V(9).Infof("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
+						klog.V(9).Infof("unable to normalize group-resource %s from label %q, skipping: %v", groupRes.String(), lbl, err)
 						continue
 					}
 

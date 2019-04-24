@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	resmetrics "github.com/kubernetes-incubator/metrics-server/pkg/apiserver/generic"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
@@ -83,14 +83,14 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 			return nil, err
 		}
 		httpClient = prometheusCAClient
-		glog.Info("successfully loaded ca from file")
+		klog.Info("successfully loaded ca from file")
 	} else {
 		kubeconfigHTTPClient, err := makeKubeconfigHTTPClient(cmd.PrometheusAuthInCluster, cmd.PrometheusAuthConf)
 		if err != nil {
 			return nil, err
 		}
 		httpClient = kubeconfigHTTPClient
-		glog.Info("successfully using in-cluster auth")
+		klog.Info("successfully using in-cluster auth")
 	}
 
 	if cmd.PrometheusTokenFile != "" {
@@ -246,26 +246,26 @@ func main() {
 	}
 	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
-	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the glog flags
+	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the klog flags
 	if err := cmd.Flags().Parse(os.Args); err != nil {
-		glog.Fatalf("unable to parse flags: %v", err)
+		klog.Fatalf("unable to parse flags: %v", err)
 	}
 
 	// make the prometheus client
 	promClient, err := cmd.makePromClient()
 	if err != nil {
-		glog.Fatalf("unable to construct Prometheus client: %v", err)
+		klog.Fatalf("unable to construct Prometheus client: %v", err)
 	}
 
 	// load the config
 	if err := cmd.loadConfig(); err != nil {
-		glog.Fatalf("unable to load metrics discovery config: %v", err)
+		klog.Fatalf("unable to load metrics discovery config: %v", err)
 	}
 
 	// construct the provider
 	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
 	if err != nil {
-		glog.Fatalf("unable to construct custom metrics provider: %v", err)
+		klog.Fatalf("unable to construct custom metrics provider: %v", err)
 	}
 
 	// attach the provider to the server, if it's needed
@@ -276,7 +276,7 @@ func main() {
 	// construct the external provider
 	emProvider, err := cmd.makeExternalProvider(promClient, wait.NeverStop)
 	if err != nil {
-		glog.Fatalf("unable to construct external metrics provider: %v", err)
+		klog.Fatalf("unable to construct external metrics provider: %v", err)
 	}
 
 	// attach the provider to the server, if it's needed
@@ -286,12 +286,12 @@ func main() {
 
 	// attach resource metrics support, if it's needed
 	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
-		glog.Fatalf("unable to install resource metrics API: %v", err)
+		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
 
 	// run the server
 	if err := cmd.Run(wait.NeverStop); err != nil {
-		glog.Fatalf("unable to run custom metrics adapter: %v", err)
+		klog.Fatalf("unable to run custom metrics adapter: %v", err)
 	}
 }
 

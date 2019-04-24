@@ -16,9 +16,9 @@ package provider
 import (
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
@@ -68,7 +68,7 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 	namers := result.namers
 
 	if len(newSeriesSlices) != len(namers) {
-		glog.Fatal("need one set of series per converter")
+		klog.Fatal("need one set of series per converter")
 	}
 	apiMetricsCache := make([]provider.ExternalMetricInfo, 0)
 	rawMetricsCache := make(map[string]seriesInfo)
@@ -79,7 +79,7 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 			identity, err := namer.MetricNameForSeries(series)
 
 			if err != nil {
-				glog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
+				klog.Errorf("unable to name series %q, skipping: %v", series.String(), err)
 				continue
 			}
 
@@ -119,7 +119,7 @@ func (r *externalSeriesRegistry) QueryForMetric(namespace string, metricName str
 	info, found := r.metricsInfo[metricName]
 
 	if !found {
-		glog.V(10).Infof("external metric %q not found", metricName)
+		klog.V(10).Infof("external metric %q not found", metricName)
 		return "", false, nil
 	}
 	query, err := info.namer.QueryForExternalSeries(info.seriesName, namespace, metricSelector)

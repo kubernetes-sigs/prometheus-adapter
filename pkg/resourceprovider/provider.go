@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/metrics-server/pkg/provider"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	metrics "k8s.io/metrics/pkg/apis/metrics"
 
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/client"
@@ -153,7 +153,7 @@ func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) 
 	resultsByNs := make(map[string]nsQueryResults, len(podsByNs))
 	for result := range resChan {
 		if result.err != nil {
-			glog.Errorf("unable to fetch metrics for pods in namespace %q, skipping: %v", result.namespace, result.err)
+			klog.Errorf("unable to fetch metrics for pods in namespace %q, skipping: %v", result.namespace, result.err)
 			continue
 		}
 		resultsByNs[result.namespace] = result
@@ -178,17 +178,17 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 	// check to make sure everything is present
 	nsRes, nsResPresent := resultsByNs[pod.Namespace]
 	if !nsResPresent {
-		glog.Errorf("unable to fetch metrics for pods in namespace %q, skipping pod %s", pod.Namespace, pod.String())
+		klog.Errorf("unable to fetch metrics for pods in namespace %q, skipping pod %s", pod.Namespace, pod.String())
 		return
 	}
 	cpuRes, hasResult := nsRes.cpu[pod.Name]
 	if !hasResult {
-		glog.Errorf("unable to fetch CPU metrics for pod %s, skipping", pod.String())
+		klog.Errorf("unable to fetch CPU metrics for pod %s, skipping", pod.String())
 		return
 	}
 	memRes, hasResult := nsRes.mem[pod.Name]
 	if !hasResult {
-		glog.Errorf("unable to fetch memory metrics for pod %s, skipping", pod.String())
+		klog.Errorf("unable to fetch memory metrics for pod %s, skipping", pod.String())
 		return
 	}
 
@@ -261,12 +261,12 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]provider.TimeInfo,
 		// skip if any data is missing
 		rawCPUs, gotResult := qRes.cpu[nodeName]
 		if !gotResult {
-			glog.V(1).Infof("missing CPU for node %q, skipping", nodeName)
+			klog.V(1).Infof("missing CPU for node %q, skipping", nodeName)
 			continue
 		}
 		rawMems, gotResult := qRes.mem[nodeName]
 		if !gotResult {
-			glog.V(1).Infof("missing memory for node %q, skipping", nodeName)
+			klog.V(1).Infof("missing memory for node %q, skipping", nodeName)
 			continue
 		}
 

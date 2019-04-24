@@ -27,8 +27,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/common/model"
+	"k8s.io/klog"
 )
 
 // APIClient is a raw client to the Prometheus Query API.
@@ -70,8 +70,8 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 		return APIResponse{}, err
 	}
 
-	if glog.V(6) {
-		glog.Infof("%s %s %s", verb, u.String(), resp.Status)
+	if klog.V(6) {
+		klog.Infof("%s %s %s", verb, u.String(), resp.Status)
 	}
 
 	code := resp.StatusCode
@@ -85,12 +85,12 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	}
 
 	var body io.Reader = resp.Body
-	if glog.V(8) {
+	if klog.V(8) {
 		data, err := ioutil.ReadAll(body)
 		if err != nil {
 			return APIResponse{}, fmt.Errorf("unable to log response body: %v", err)
 		}
-		glog.Infof("Response Body: %s", string(data))
+		klog.Infof("Response Body: %s", string(data))
 		body = bytes.NewReader(data)
 	}
 
