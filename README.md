@@ -185,3 +185,9 @@ queries.  The adapter only considers metrics with datapoints in the window
 `[now-discoveryInterval, now]` (in order to only capture metrics that are
 still present), so make sure that your discovery interval is at least as
 large as your collection interval.
+
+### I get errors when query namespace prefixed metrics?
+
+I have namespace prefixed metrics like `{ "name": "namespaces/node_memory_PageTables_bytes", "singularName": "", "namespaced": false, "kind": "MetricValueList", "verbs": [ "get" ] }`, but I get error `Error from server (InternalError): Internal error occurred: unable to list matching resources` when access with `kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/*/node_memory_PageTables_bytes` .
+
+Actually namespace prefixed metrics are special, we should access them with `kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/*/metrics/node_memory_PageTables_bytes`.
