@@ -22,7 +22,9 @@ import (
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	pmodel "github.com/prometheus/common/model"
+	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 type resourceConverterMock struct {
@@ -41,38 +43,38 @@ func (rcm *resourceConverterMock) LabelForResource(gr schema.GroupResource) (pmo
 	return pmodel.LabelName(gr.Resource), nil
 }
 
+type checkFunc func(prom.Selector, error) error
+
+func hasError(want error) checkFunc {
+	return func(_ prom.Selector, got error) error {
+		if want != got {
+			return fmt.Errorf("got error %v, want %v", got, want)
+		}
+		return nil
+	}
+}
+
+func hasSelector(want string) checkFunc {
+	return func(got prom.Selector, _ error) error {
+		if prom.Selector(want) != got {
+			return fmt.Errorf("got selector %q, want %q", got, want)
+		}
+		return nil
+	}
+}
+
+func checks(cs ...checkFunc) checkFunc {
+	return func(s prom.Selector, e error) error {
+		for _, c := range cs {
+			if err := c(s, e); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 func TestBuildSelector(t *testing.T) {
-	type checkFunc func(prom.Selector, error) error
-
-	hasError := func(want error) checkFunc {
-		return func(_ prom.Selector, got error) error {
-			if want != got {
-				return fmt.Errorf("got error %v, want %v", got, want)
-			}
-			return nil
-		}
-	}
-
-	hasSelector := func(want string) checkFunc {
-		return func(got prom.Selector, _ error) error {
-			if prom.Selector(want) != got {
-				return fmt.Errorf("got selector %q, want %q", got, want)
-			}
-			return nil
-		}
-	}
-
-	checks := func(cs ...checkFunc) checkFunc {
-		return func(s prom.Selector, e error) error {
-			for _, c := range cs {
-				if err := c(s, e); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}
-
 	mustNewQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
 		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced})
 		if err != nil {
@@ -184,7 +186,7 @@ func TestBuildSelector(t *testing.T) {
 		},
 
 		{
-			name: "multiple GroupBySlice values",
+			name: "multiple GroupBy values",
 
 			mq:           mustNewQuery(`<<.GroupBy>>`, false),
 			resource:     schema.GroupResource{Group: "group", Resource: "resource"},
@@ -209,7 +211,7 @@ func TestBuildSelector(t *testing.T) {
 		},
 
 		{
-			name: "multiple GroupBy values",
+			name: "multiple GroupBySlice values",
 
 			mq:           mustNewQuery(`<<.GroupBySlice>>`, false),
 			resource:     schema.GroupResource{Group: "group", Resource: "resource"},
@@ -225,6 +227,139 @@ func TestBuildSelector(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			selector, err := tc.mq.Build(tc.series, tc.resource, tc.namespace, tc.extraGroupBy, tc.names...)
+
+			if err := tc.check(selector, err); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+func TestBuildExternalSelector(t *testing.T) {
+	mustNewQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mq
+	}
+
+	mustNewLabelRequirement := func(key string, op selection.Operator, vals []string) *labels.Requirement {
+		req, err := labels.NewRequirement(key, op, vals)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return req
+	}
+
+	tests := []struct {
+		name string
+		mq   MetricsQuery
+
+		series         string
+		namespace      string
+		groupBy        string
+		groupBySlice   []string
+		metricSelector labels.Selector
+
+		check checkFunc
+	}{
+		{
+			name: "series",
+
+			mq:             mustNewQuery(`series <<.Series>>`, false),
+			series:         "foo",
+			metricSelector: labels.NewSelector(),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("series foo"),
+			),
+		},
+		{
+			name: "single GroupBy value",
+
+			mq:             mustNewQuery(`<<.GroupBy>>`, false),
+			groupBy:        "foo",
+			metricSelector: labels.NewSelector(),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("foo"),
+			),
+		},
+		{
+			name: "multiple GroupBySlice values",
+
+			mq:             mustNewQuery(`<<.GroupBySlice>>`, false),
+			groupBySlice:   []string{"foo", "bar"},
+			metricSelector: labels.NewSelector(),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("[foo bar]"),
+			),
+		},
+		{
+			name: "single LabelMatchers value",
+
+			mq: mustNewQuery(`<<.LabelMatchers>>`, false),
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar"`),
+			),
+		},
+		{
+			name: "multiple LabelMatchers value",
+
+			mq: mustNewQuery(`<<.LabelMatchers>>`, false),
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+				*mustNewLabelRequirement("qux", selection.In, []string{"bar", "baz"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar",qux=~"bar|baz"`),
+			),
+		},
+		{
+			name: "single LabelValuesByName value",
+
+			mq: mustNewQuery(`<<.LabelValuesByName>>`, false),
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("map[foo:bar]"),
+			),
+		},
+		{
+			name: "multiple LabelValuesByName",
+
+			mq: mustNewQuery(`<<.LabelValuesByName>>`, false),
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+				*mustNewLabelRequirement("qux", selection.In, []string{"bar", "baz"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("map[foo:bar qux:bar|baz]"),
+			),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			selector, err := tc.mq.BuildExternal(tc.series, tc.namespace, tc.groupBy, tc.groupBySlice, tc.metricSelector)
+			t.Logf("selector: '%v'", selector)
 
 			if err := tc.check(selector, err); err != nil {
 				t.Error(err)
