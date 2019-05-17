@@ -74,7 +74,7 @@ type metricsQuery struct {
 type queryTemplateArgs struct {
 	Series            string
 	LabelMatchers     string
-	LabelValuesByName map[string][]string
+	LabelValuesByName map[string]string
 	GroupBy           string
 	GroupBySlice      []string
 }
@@ -87,7 +87,7 @@ type queryPart struct {
 
 func (q *metricsQuery) Build(series string, resource schema.GroupResource, namespace string, extraGroupBy []string, names ...string) (prom.Selector, error) {
 	var exprs []string
-	valuesByName := map[string][]string{}
+	valuesByName := map[string]string{}
 
 	if namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
@@ -95,21 +95,23 @@ func (q *metricsQuery) Build(series string, resource schema.GroupResource, names
 			return "", err
 		}
 		exprs = append(exprs, prom.LabelEq(string(namespaceLbl), namespace))
-		valuesByName[string(namespaceLbl)] = []string{namespace}
+		valuesByName[string(namespaceLbl)] = namespace
 	}
 
 	resourceLbl, err := q.resConverter.LabelForResource(resource)
 	if err != nil {
 		return "", err
 	}
+
 	matcher := prom.LabelEq
-	targetValue := names[0]
+	targetValue := strings.Join(names, "|")
+
 	if len(names) > 1 {
 		matcher = prom.LabelMatches
-		targetValue = strings.Join(names, "|")
 	}
+
 	exprs = append(exprs, matcher(string(resourceLbl), targetValue))
-	valuesByName[string(resourceLbl)] = names
+	valuesByName[string(resourceLbl)] = targetValue
 
 	groupBy := make([]string, 0, len(extraGroupBy)+1)
 	groupBy = append(groupBy, string(resourceLbl))
@@ -191,7 +193,7 @@ func (q *metricsQuery) convertRequirement(requirement labels.Requirement) queryP
 	}
 }
 
-func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[string][]string, error) {
+func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[string]string, error) {
 	// We've take the approach here that if we can't perfectly map their query into a Prometheus
 	// query that we should abandon the effort completely.
 	// The concern is that if we don't get a perfect match on their query parameters, the query result
@@ -203,8 +205,8 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 	var exprs []string
 
 	// Contains the list of label values we're targeting, by namespace.
-	// e.g. "some_label" => ["value-one", "value-two"]
-	valuesByName := map[string][]string{}
+	// e.g. "some_label" => "value-one|value-two"
+	valuesByName := map[string]string{}
 
 	// Convert our query parts into template arguments.
 	for _, qPart := range queryParts {
@@ -231,7 +233,7 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 
 		expression := matcher(qPart.labelName, targetValue)
 		exprs = append(exprs, expression)
-		valuesByName[qPart.labelName] = qPart.values
+		valuesByName[qPart.labelName] = strings.Join(qPart.values, "|")
 	}
 
 	return exprs, valuesByName, nil
