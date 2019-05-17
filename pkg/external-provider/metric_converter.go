@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/prometheus/common/model"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ import (
 // MetricConverter provides a unified interface for converting the results of
 // Prometheus queries into external metric types.
 type MetricConverter interface {
-	Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error)
+	Convert(info provider.ExternalMetricInfo, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error)
 }
 
 type metricConverter struct {
@@ -39,23 +40,23 @@ func NewMetricConverter() MetricConverter {
 	return &metricConverter{}
 }
 
-func (c *metricConverter) Convert(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *metricConverter) Convert(info provider.ExternalMetricInfo, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type == model.ValScalar {
-		return c.convertScalar(queryResult)
+		return c.convertScalar(info, queryResult)
 	}
 
 	if queryResult.Type == model.ValVector {
-		return c.convertVector(queryResult)
+		return c.convertVector(info, queryResult)
 	}
 
 	return nil, errors.New("encountered an unexpected query result type")
 }
 
-func (c *metricConverter) convertSample(sample *model.Sample) (*external_metrics.ExternalMetricValue, error) {
+func (c *metricConverter) convertSample(info provider.ExternalMetricInfo, sample *model.Sample) (*external_metrics.ExternalMetricValue, error) {
 	labels := c.convertLabels(sample.Metric)
 
 	singleMetric := external_metrics.ExternalMetricValue{
-		MetricName: string(sample.Metric[model.LabelName("__name__")]),
+		MetricName: info.Metric,
 		Timestamp: metav1.Time{
 			sample.Timestamp.Time(),
 		},
@@ -76,7 +77,7 @@ func (c *metricConverter) convertLabels(inLabels model.Metric) map[string]string
 	return outLabels
 }
 
-func (c *metricConverter) convertVector(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *metricConverter) convertVector(info provider.ExternalMetricInfo, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type != model.ValVector {
 		return nil, errors.New("incorrect query result type")
 	}
@@ -98,7 +99,7 @@ func (c *metricConverter) convertVector(queryResult prom.QueryResult) (*external
 	}
 
 	for _, val := range toConvert {
-		singleMetric, err := c.convertSample(val)
+		singleMetric, err := c.convertSample(info, val)
 
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert vector: %v", err)
@@ -113,7 +114,7 @@ func (c *metricConverter) convertVector(queryResult prom.QueryResult) (*external
 	return &metricValueList, nil
 }
 
-func (c *metricConverter) convertScalar(queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
+func (c *metricConverter) convertScalar(info provider.ExternalMetricInfo, queryResult prom.QueryResult) (*external_metrics.ExternalMetricValueList, error) {
 	if queryResult.Type != model.ValScalar {
 		return nil, errors.New("scalarConverter can only convert scalar query results")
 	}
@@ -127,6 +128,7 @@ func (c *metricConverter) convertScalar(queryResult prom.QueryResult) (*external
 	result := external_metrics.ExternalMetricValueList{
 		Items: []external_metrics.ExternalMetricValue{
 			{
+				MetricName: info.Metric,
 				Timestamp: metav1.Time{
 					toConvert.Timestamp.Time(),
 				},
