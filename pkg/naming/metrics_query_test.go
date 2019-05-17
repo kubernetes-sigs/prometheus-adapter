@@ -34,7 +34,7 @@ type resourceConverterMock struct {
 // ResourcesForSeries is a mock that returns a single group resource,
 // namely the series as a resource itself.
 func (rcm *resourceConverterMock) ResourcesForSeries(series prom.Series) (res []schema.GroupResource, namespaced bool) {
-	return []schema.GroupResource{{Resource: series.Name}}, false
+	return []schema.GroupResource{{Resource: series.Name}}, rcm.namespaced
 }
 
 // LabelForResource is a mock that returns the label name,
@@ -236,8 +236,8 @@ func TestBuildSelector(t *testing.T) {
 }
 
 func TestBuildExternalSelector(t *testing.T) {
-	mustNewQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced})
+	mustNewQuery := func(queryTemplate string) MetricsQuery {
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -267,7 +267,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		{
 			name: "series",
 
-			mq:             mustNewQuery(`series <<.Series>>`, false),
+			mq:             mustNewQuery(`series <<.Series>>`),
 			series:         "foo",
 			metricSelector: labels.NewSelector(),
 
@@ -279,7 +279,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		{
 			name: "single GroupBy value",
 
-			mq:             mustNewQuery(`<<.GroupBy>>`, false),
+			mq:             mustNewQuery(`<<.GroupBy>>`),
 			groupBy:        "foo",
 			metricSelector: labels.NewSelector(),
 
@@ -291,7 +291,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		{
 			name: "multiple GroupBySlice values",
 
-			mq:             mustNewQuery(`<<.GroupBySlice>>`, false),
+			mq:             mustNewQuery(`<<.GroupBySlice>>`),
 			groupBySlice:   []string{"foo", "bar"},
 			metricSelector: labels.NewSelector(),
 
@@ -301,9 +301,22 @@ func TestBuildExternalSelector(t *testing.T) {
 			),
 		},
 		{
+			name: "multiple GroupBySlice values with namespace",
+
+			mq:             mustNewQuery(`<<index .LabelValuesByName "namespaces">> <<.GroupBySlice>>`),
+			namespace:      "default",
+			groupBySlice:   []string{"foo", "bar"},
+			metricSelector: labels.NewSelector(),
+
+			check: checks(
+				hasError(nil),
+				hasSelector("default [foo bar]"),
+			),
+		},
+		{
 			name: "single LabelMatchers value",
 
-			mq: mustNewQuery(`<<.LabelMatchers>>`, false),
+			mq: mustNewQuery(`<<.LabelMatchers>>`),
 			metricSelector: labels.NewSelector().Add(
 				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
 			),
@@ -314,9 +327,23 @@ func TestBuildExternalSelector(t *testing.T) {
 			),
 		},
 		{
+			name: "single LabelMatchers value with namespace",
+
+			mq:        mustNewQuery(`<<.LabelMatchers>>`),
+			namespace: "default",
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar",namespaces="default"`),
+			),
+		},
+		{
 			name: "multiple LabelMatchers value",
 
-			mq: mustNewQuery(`<<.LabelMatchers>>`, false),
+			mq: mustNewQuery(`<<.LabelMatchers>>`),
 			metricSelector: labels.NewSelector().Add(
 				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
 				*mustNewLabelRequirement("qux", selection.In, []string{"bar", "baz"}),
@@ -330,7 +357,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		{
 			name: "single LabelValuesByName value",
 
-			mq: mustNewQuery(`<<.LabelValuesByName>>`, false),
+			mq: mustNewQuery(`<<.LabelValuesByName>>`),
 			metricSelector: labels.NewSelector().Add(
 				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
 			),
@@ -343,7 +370,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		{
 			name: "single LabelValuesByName with multiple selectors",
 
-			mq: mustNewQuery(`<<.LabelValuesByName>>`, false),
+			mq: mustNewQuery(`<<.LabelValuesByName>>`),
 			metricSelector: labels.NewSelector().Add(
 				*mustNewLabelRequirement("foo", selection.In, []string{"bar", "baz"}),
 			),

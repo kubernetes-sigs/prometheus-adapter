@@ -142,6 +142,19 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 	// Build up the query parts from the selector.
 	queryParts = append(queryParts, q.createQueryPartsFromSelector(metricSelector)...)
 
+	if namespace != "" {
+		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
+		if err != nil {
+			return "", err
+		}
+
+		queryParts = append(queryParts, queryPart{
+			labelName: string(namespaceLbl),
+			values:    []string{namespace},
+			operator:  selection.Equals,
+		})
+	}
+
 	// Convert our query parts into the types we need for our template.
 	exprs, valuesByName, err := q.processQueryParts(queryParts)
 
