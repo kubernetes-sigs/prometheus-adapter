@@ -59,7 +59,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 		// don't leak implementation details to the user
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
-	return p.metricConverter.Convert(queryResults)
+	return p.metricConverter.Convert(info, queryResults)
 }
 
 func (p *externalPrometheusProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
