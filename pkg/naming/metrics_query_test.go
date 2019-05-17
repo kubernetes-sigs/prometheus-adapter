@@ -341,17 +341,16 @@ func TestBuildExternalSelector(t *testing.T) {
 			),
 		},
 		{
-			name: "multiple LabelValuesByName",
+			name: "single LabelValuesByName with multiple selectors",
 
 			mq: mustNewQuery(`<<.LabelValuesByName>>`, false),
 			metricSelector: labels.NewSelector().Add(
-				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
-				*mustNewLabelRequirement("qux", selection.In, []string{"bar", "baz"}),
+				*mustNewLabelRequirement("foo", selection.In, []string{"bar", "baz"}),
 			),
 
 			check: checks(
 				hasError(nil),
-				hasSelector("map[foo:bar qux:bar|baz]"),
+				hasSelector("map[foo:bar|baz]"),
 			),
 		},
 	}
