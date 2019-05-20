@@ -2,6 +2,7 @@ REGISTRY?=directxman12
 IMAGE?=k8s-prometheus-adapter
 TEMP_DIR:=$(shell mktemp -d)
 ARCH?=amd64
+GOOS=linux
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=./_output
@@ -32,7 +33,7 @@ all: $(OUT_DIR)/$(ARCH)/adapter
 
 src_deps=$(shell find pkg cmd -type f -name "*.go")
 $(OUT_DIR)/%/adapter: $(src_deps)
-	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
+	CGO_ENABLED=0 GOARCH=$* GOOS=$(GOOS) go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
 	
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
