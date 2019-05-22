@@ -71,7 +71,7 @@ you can use the included `config-gen` tool to generate a configuration that matc
 the old implicit ruleset:
 
 ```shell
-$ go run cmd/config-gen main.go [--rate-interval=<duration>] [--label-prefix=<prefix>]
+$ go run cmd/config-gen/main.go [--rate-interval=<duration>] [--label-prefix=<prefix>]
 ```
 
 Example
