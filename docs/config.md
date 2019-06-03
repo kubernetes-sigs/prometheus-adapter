@@ -134,7 +134,7 @@ Naming
 ------
 
 Naming governs the process of converting a Prometheus metric name into
-a metric in the custom metrics API, and vice version.  It's controlled by
+a metric in the custom metrics API, and vice versa.  It's controlled by
 the `name` field.
 
 Naming is controlled by specifying a pattern to extract an API name from
