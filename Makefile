@@ -62,14 +62,9 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
 	chmod +x manifest-tool
 
-vendor: Gopkg.lock
-ifeq ($(VENDOR_DOCKERIZED),1)
-	docker run -it -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -w /go/src/github.com/directxman12/k8s-prometheus-adapter golang:1.10 /bin/bash -c "\
-		curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh \
-		&& dep ensure -vendor-only"
-else
-	dep ensure -vendor-only -v
-endif
+vendor:
+	go mod tidy
+	go mod vendor
 
 test:
 	CGO_ENABLED=0 go test ./pkg/...
@@ -80,4 +75,9 @@ verify-gofmt:
 gofmt:
 	./hack/gofmt-all.sh
 
-verify: verify-gofmt test
+go-mod:
+	go mod tidy
+	go mod vendor
+	go mod verify
+
+verify: verify-gofmt go-mod test
