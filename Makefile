@@ -5,10 +5,11 @@ ARCH?=amd64
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=./_output
-VENDOR_DOCKERIZED=0
 
 VERSION?=latest
-GOIMAGE=golang:1.10
+GOIMAGE=golang:1.12
+GO111MODULE=on
+export GO111MODULE
 
 ifeq ($(ARCH),amd64)
 	BASEIMAGE?=busybox
