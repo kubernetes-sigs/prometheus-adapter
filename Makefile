@@ -33,7 +33,7 @@ all: $(OUT_DIR)/$(ARCH)/adapter
 
 src_deps=$(shell find pkg cmd -type f -name "*.go")
 $(OUT_DIR)/%/adapter: $(src_deps)
-	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
+	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter ./cmd/adapter
 	
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
@@ -63,10 +63,6 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
 	chmod +x manifest-tool
 
-vendor:
-	go mod tidy
-	go mod vendor
-
 test:
 	CGO_ENABLED=0 go test ./pkg/...
 
@@ -78,7 +74,6 @@ gofmt:
 
 go-mod:
 	go mod tidy
-	go mod vendor
 	go mod verify
 
 verify: verify-gofmt go-mod test
