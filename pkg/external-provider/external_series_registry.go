@@ -14,6 +14,7 @@ limitations under the License.
 package provider
 
 import (
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"sync"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -34,6 +35,9 @@ type ExternalSeriesRegistry interface {
 
 // overridableSeriesRegistry is a basic SeriesRegistry
 type externalSeriesRegistry struct {
+	// registry name is used for metrics &c
+	name string
+
 	// We lock when reading/writing metrics, and metricsInfo to prevent inconsistencies.
 	mu sync.RWMutex
 
@@ -100,6 +104,7 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	metrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(apiMetricsCache)))
 	r.metrics = apiMetricsCache
 	r.metricsInfo = rawMetricsCache
 

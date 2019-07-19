@@ -58,6 +58,10 @@ adapter talks to Prometheus and the main Kubernetes cluster:
   metrics in the custom metrics API.  More information about this file can be found in
   [docs/config.md](docs/config.md).
 
+- `--metrics-port=N`: This changes the port on which k8s-prometheus-adapter exposes
+  metrics about its own operations. The default is port `9593`. Metrics are exposed
+  on this port at `/metrics`.
+
 Presentation
 ------------
 

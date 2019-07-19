@@ -19,12 +19,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/errors"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers"
 	pmodel "github.com/prometheus/common/model"
-	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +65,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interfa
 		namers:         namers,
 
 		SeriesRegistry: &basicSeriesRegistry{
+			name:   "custom",
 			mapper: mapper,
 		},
 	}
@@ -97,7 +99,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.CustomMetricInfo, namespace string, names []string) (*custom_metrics.MetricValueList, error) {
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
-		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, errors.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 	res := []custom_metrics.MetricValue{}
 
@@ -121,7 +123,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Cu
 func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
 	query, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
-		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, errors.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	// TODO: use an actual context
@@ -129,12 +131,12 @@ func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespac
 	if err != nil {
 		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
-		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
+		return nil, errors.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
 	if queryResults.Type != pmodel.ValVector {
 		klog.Errorf("unexpected results from prometheus: expected %s, got %s on results %v", pmodel.ValVector, queryResults.Type, queryResults)
-		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
+		return nil, errors.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
 	return *queryResults.Vector, nil
@@ -154,7 +156,7 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 
 	namedValues, found := p.MatchValuesToNames(info, queryResults)
 	if !found {
-		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
+		return nil, errors.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	if len(namedValues) > 1 {
@@ -177,7 +179,7 @@ func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labe
 	if err != nil {
 		klog.Errorf("unable to list matching resource names: %v", err)
 		// don't leak implementation details to the user
-		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
+		return nil, errors.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
 
 	// construct the actual query
@@ -252,6 +254,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 	// iterate through, blocking until we've got all results
 	for range l.namers {
 		if err := <-errs; err != nil {
+			metrics.PrometheusUp.Set(0)
 			return fmt.Errorf("unable to update list of all metrics: %v", err)
 		}
 		if ss := <-selectorSeriesChan; ss.series != nil {
@@ -259,6 +262,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 		}
 	}
 	close(errs)
+	metrics.PrometheusUp.Set(1)
 
 	newSeries := make([][]prom.Series, len(l.namers))
 	for i, namer := range l.namers {

@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -65,6 +66,8 @@ type PrometheusAdapter struct {
 	MetricsRelistInterval time.Duration
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
+	// MetricsPort is the port on which the adapter itself will expose metrics
+	MetricsPort int16
 
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
@@ -124,6 +127,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
 		"period for which to query the set of available metrics from Prometheus")
+	cmd.Flags().Int16Var(&cmd.MetricsPort, "metrics-port", 9593, "port on which to expose prometheus "+
+		"metrics about k8s-prometheus-adapter")
 }
 
 func (cmd *PrometheusAdapter) loadConfig() error {
@@ -234,6 +239,14 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 	return nil
 }
 
+func (cmd *PrometheusAdapter) runMetrics() {
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.Handler())
+		klog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cmd.MetricsPort), mux))
+	}()
+}
+
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
@@ -288,6 +301,8 @@ func main() {
 	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
 		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
+
+	cmd.runMetrics()
 
 	// run the server
 	if err := cmd.Run(wait.NeverStop); err != nil {

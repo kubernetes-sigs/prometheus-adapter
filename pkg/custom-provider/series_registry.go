@@ -18,6 +18,7 @@ package provider
 
 import (
 	"fmt"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"sync"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -66,6 +67,9 @@ type seriesInfo struct {
 
 // overridableSeriesRegistry is a basic SeriesRegistry
 type basicSeriesRegistry struct {
+	// registry name is used for metrics &c
+	name string
+
 	mu sync.RWMutex
 
 	// info maps metric info to information about the corresponding series
@@ -122,6 +126,7 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	metrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(newMetrics)))
 	r.info = newInfo
 	r.metrics = newMetrics
 

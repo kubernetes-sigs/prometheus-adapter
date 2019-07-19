@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"io/ioutil"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // FromFile loads the configuration from a particular file.
@@ -28,5 +29,7 @@ func FromYAML(contents []byte) (*MetricsDiscoveryConfig, error) {
 	if err := yaml.UnmarshalStrict(contents, &cfg); err != nil {
 		return nil, fmt.Errorf("unable to parse metrics discovery config: %v", err)
 	}
+	metrics.Rules.WithLabelValues("normal").Set(float64(len(cfg.Rules)))
+	metrics.Rules.WithLabelValues("external").Set(float64(len(cfg.ExternalRules)))
 	return &cfg, nil
 }

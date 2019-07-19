@@ -16,6 +16,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/errors"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,7 +26,6 @@ import (
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 
-	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 
@@ -45,11 +45,11 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 
 	if err != nil {
 		klog.Errorf("unable to generate a query for the metric: %v", err)
-		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
+		return nil, errors.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
 	if !found {
-		return nil, provider.NewMetricNotFoundError(p.selectGroupResource(namespace), info.Metric)
+		return nil, errors.NewMetricNotFoundError(p.selectGroupResource(namespace), info.Metric)
 	}
 	// Here is where we're making the query, need to be before here xD
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), selector)
@@ -57,7 +57,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricS
 	if err != nil {
 		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
-		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
+		return nil, errors.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 	return p.metricConverter.Convert(info, queryResults)
 }
