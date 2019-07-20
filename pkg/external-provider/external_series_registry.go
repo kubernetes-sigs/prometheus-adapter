@@ -14,8 +14,9 @@ limitations under the License.
 package provider
 
 import (
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"sync"
+
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"

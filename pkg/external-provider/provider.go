@@ -16,8 +16,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/errors"
 	"time"
+
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 

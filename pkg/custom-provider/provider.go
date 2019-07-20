@@ -19,9 +19,10 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/errors"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
-	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers"

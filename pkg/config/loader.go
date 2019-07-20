@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 	"io/ioutil"
 	"os"
+
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 
 	"gopkg.in/yaml.v2"
 )
