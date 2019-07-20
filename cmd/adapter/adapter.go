@@ -275,6 +275,8 @@ func main() {
 		klog.Fatalf("unable to load metrics discovery config: %v", err)
 	}
 
+	cmd.runMetrics()
+
 	// construct the provider
 	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
 	if err != nil {
@@ -301,8 +303,6 @@ func main() {
 	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
 		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
-
-	cmd.runMetrics()
 
 	// run the server
 	if err := cmd.Run(wait.NeverStop); err != nil {
