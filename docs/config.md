@@ -85,7 +85,7 @@ For example:
 # match all cAdvisor metrics that aren't measured in seconds
 seriesQuery: '{__name__=~"^container_.*_total",container_name!="POD",namespace!="",pod_name!=""}'
 seriesFilters:
-  isNot: "^container_.*_seconds_total"
+  - isNot: "^container_.*_seconds_total"
 ```
 
 Association
