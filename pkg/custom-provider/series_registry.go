@@ -79,6 +79,8 @@ type basicSeriesRegistry struct {
 	metrics []provider.CustomMetricInfo
 
 	mapper apimeta.RESTMapper
+
+	serviceMetrics *metrics.ServiceMetrics
 }
 
 func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers []naming.MetricNamer) error {
@@ -127,7 +129,9 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	metrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(newMetrics)))
+	if r.serviceMetrics != nil {
+		r.serviceMetrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(newMetrics)))
+	}
 	r.info = newInfo
 	r.metrics = newMetrics
 

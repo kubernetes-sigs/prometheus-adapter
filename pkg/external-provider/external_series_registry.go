@@ -46,6 +46,8 @@ type externalSeriesRegistry struct {
 	metrics []provider.ExternalMetricInfo
 	// metricsInfo is a lookup from a metric to SeriesConverter for the sake of generating queries
 	metricsInfo map[string]seriesInfo
+
+	serviceMetrics *metrics.ServiceMetrics
 }
 
 type seriesInfo struct {
@@ -57,10 +59,11 @@ type seriesInfo struct {
 }
 
 // NewExternalSeriesRegistry creates an ExternalSeriesRegistry driven by the data from the provided MetricLister.
-func NewExternalSeriesRegistry(lister MetricListerWithNotification) ExternalSeriesRegistry {
+func NewExternalSeriesRegistry(lister MetricListerWithNotification, serviceMetrics *metrics.ServiceMetrics) ExternalSeriesRegistry {
 	var registry = externalSeriesRegistry{
-		metrics:     make([]provider.ExternalMetricInfo, 0),
-		metricsInfo: map[string]seriesInfo{},
+		metrics:        make([]provider.ExternalMetricInfo, 0),
+		metricsInfo:    map[string]seriesInfo{},
+		serviceMetrics: serviceMetrics,
 	}
 
 	lister.AddNotificationReceiver(registry.filterAndStoreMetrics)
@@ -105,7 +108,9 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	metrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(apiMetricsCache)))
+	if r.serviceMetrics != nil {
+		r.serviceMetrics.RegistryMetrics.WithLabelValues(r.name).Set(float64(len(apiMetricsCache)))
+	}
 	r.metrics = apiMetricsCache
 	r.metricsInfo = rawMetricsCache
 

@@ -52,14 +52,15 @@ type Runnable interface {
 }
 
 type prometheusProvider struct {
-	mapper     apimeta.RESTMapper
-	kubeClient dynamic.Interface
-	promClient prom.Client
+	mapper         apimeta.RESTMapper
+	kubeClient     dynamic.Interface
+	promClient     prom.Client
+	serviceMetrics *metrics.ServiceMetrics
 
 	SeriesRegistry
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration, serviceMetrics *metrics.ServiceMetrics) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		maxAge:         maxAge,
@@ -67,15 +68,19 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interfa
 		namers:         namers,
 
 		SeriesRegistry: &basicSeriesRegistry{
-			name:   "custom",
-			mapper: mapper,
+			name:           "custom",
+			mapper:         mapper,
+			serviceMetrics: serviceMetrics,
 		},
+
+		serviceMetrics: serviceMetrics,
 	}
 
 	return &prometheusProvider{
-		mapper:     mapper,
-		kubeClient: kubeClient,
-		promClient: promClient,
+		mapper:         mapper,
+		kubeClient:     kubeClient,
+		promClient:     promClient,
+		serviceMetrics: serviceMetrics,
 
 		SeriesRegistry: lister,
 	}, lister
@@ -101,7 +106,9 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.CustomMetricInfo, namespace string, names []string) (*custom_metrics.MetricValueList, error) {
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
-		metrics.Errors.WithLabelValues("not_found").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("not_found").Inc()
+		}
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 	res := []custom_metrics.MetricValue{}
@@ -126,7 +133,9 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Cu
 func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespace string, names ...string) (pmodel.Vector, error) {
 	query, found := p.QueryForMetric(info, namespace, names...)
 	if !found {
-		metrics.Errors.WithLabelValues("not_found").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("not_found").Inc()
+		}
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
@@ -134,14 +143,18 @@ func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespac
 	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), query)
 	if err != nil {
 		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("internal").Inc()
+		}
 		// don't leak implementation details to the user
-		metrics.Errors.WithLabelValues("internal").Inc()
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
 	if queryResults.Type != pmodel.ValVector {
 		klog.Errorf("unexpected results from prometheus: expected %s, got %s on results %v", pmodel.ValVector, queryResults.Type, queryResults)
-		metrics.Errors.WithLabelValues("internal").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("internal").Inc()
+		}
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to fetch metrics"))
 	}
 
@@ -157,13 +170,17 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 
 	// associate the metrics
 	if len(queryResults) < 1 {
-		metrics.Errors.WithLabelValues("not_found").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("not_found").Inc()
+		}
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}
 
 	namedValues, found := p.MatchValuesToNames(info, queryResults)
 	if !found {
-		metrics.Errors.WithLabelValues("not_found").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("not_found").Inc()
+		}
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
@@ -174,7 +191,9 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 	resultValue, nameFound := namedValues[name.Name]
 	if !nameFound {
 		klog.Errorf("None of the results returned by when fetching metric %s for %q matched the resource name", info.String(), name)
-		metrics.Errors.WithLabelValues("not_found").Inc()
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("not_found").Inc()
+		}
 		return nil, provider.NewMetricNotFoundForError(info.GroupResource, info.Metric, name.Name)
 	}
 
@@ -187,8 +206,10 @@ func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labe
 	resourceNames, err := helpers.ListObjectNames(p.mapper, p.kubeClient, namespace, selector, info)
 	if err != nil {
 		klog.Errorf("unable to list matching resource names: %v", err)
+		if p.serviceMetrics != nil {
+			p.serviceMetrics.Errors.WithLabelValues("internal").Inc()
+		}
 		// don't leak implementation details to the user
-		metrics.Errors.WithLabelValues("internal").Inc()
 		return nil, apierr.NewInternalError(fmt.Errorf("unable to list matching resources"))
 	}
 
@@ -209,6 +230,7 @@ type cachingMetricsLister struct {
 	updateInterval time.Duration
 	maxAge         time.Duration
 	namers         []naming.MetricNamer
+	serviceMetrics *metrics.ServiceMetrics
 }
 
 func (l *cachingMetricsLister) Run() {
@@ -264,7 +286,9 @@ func (l *cachingMetricsLister) updateMetrics() error {
 	// iterate through, blocking until we've got all results
 	for range l.namers {
 		if err := <-errs; err != nil {
-			metrics.PrometheusUp.Set(0)
+			if l.serviceMetrics != nil {
+				l.serviceMetrics.PrometheusUp.Set(0)
+			}
 			return fmt.Errorf("unable to update list of all metrics: %v", err)
 		}
 		if ss := <-selectorSeriesChan; ss.series != nil {
@@ -272,7 +296,9 @@ func (l *cachingMetricsLister) updateMetrics() error {
 		}
 	}
 	close(errs)
-	metrics.PrometheusUp.Set(1)
+	if l.serviceMetrics != nil {
+		l.serviceMetrics.PrometheusUp.Set(1)
+	}
 
 	newSeries := make([][]prom.Series, len(l.namers))
 	for i, namer := range l.namers {

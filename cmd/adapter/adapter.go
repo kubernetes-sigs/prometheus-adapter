@@ -27,7 +27,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/metrics"
 
 	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -68,9 +68,11 @@ type PrometheusAdapter struct {
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
 	// MetricsPort is the port on which the adapter itself will expose metrics
-	MetricsPort int16
+	MetricsPort uint16
 
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
+
+	ServiceMetrics *metrics.ServiceMetrics
 }
 
 func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
@@ -128,7 +130,7 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
 		"period for which to query the set of available metrics from Prometheus")
-	cmd.Flags().Int16Var(&cmd.MetricsPort, "metrics-port", 9593, "port on which to expose prometheus "+
+	cmd.Flags().Uint16Var(&cmd.MetricsPort, "metrics-port", 9593, "port on which to expose prometheus "+
 		"metrics about k8s-prometheus-adapter")
 }
 
@@ -142,12 +144,17 @@ func (cmd *PrometheusAdapter) loadConfig() error {
 		return fmt.Errorf("unable to load metrics discovery configuration: %v", err)
 	}
 
+	if cmd.ServiceMetrics != nil {
+		cmd.ServiceMetrics.Rules.WithLabelValues("normal").Set(float64(len(metricsConfig.Rules)))
+		cmd.ServiceMetrics.Rules.WithLabelValues("external").Set(float64(len(metricsConfig.ExternalRules)))
+	}
+
 	cmd.metricsConfig = metricsConfig
 
 	return nil
 }
 
-func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
+func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}, serviceMetrics *metrics.ServiceMetrics) (provider.CustomMetricsProvider, error) {
 	if len(cmd.metricsConfig.Rules) == 0 {
 		return nil, nil
 	}
@@ -173,7 +180,8 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// construct the provider and start it
-	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge)
+	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers,
+		cmd.MetricsRelistInterval, cmd.MetricsMaxAge, serviceMetrics)
 	runner.RunUntil(stopCh)
 
 	return cmProvider, nil
@@ -197,7 +205,8 @@ func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopC
 	}
 
 	// construct the provider and start it
-	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval)
+	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval,
+		cmd.ServiceMetrics)
 	runner.RunUntil(stopCh)
 
 	return emProvider, nil
@@ -241,22 +250,23 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 }
 
 func (cmd *PrometheusAdapter) runMetrics() {
-	go func() {
-		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.Handler())
-		klog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cmd.MetricsPort), mux))
-	}()
 }
 
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
+	serviceMetrics, err := metrics.NewMetrics()
+	if err != nil {
+		klog.Fatalf("unable to construct Metrics registry: %v", err)
+	}
+
 	// set up flags
 	cmd := &PrometheusAdapter{
 		PrometheusURL:         "https://localhost",
 		MetricsRelistInterval: 10 * time.Minute,
 		MetricsMaxAge:         20 * time.Minute,
+		ServiceMetrics:        serviceMetrics,
 	}
 	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
@@ -276,10 +286,10 @@ func main() {
 		klog.Fatalf("unable to load metrics discovery config: %v", err)
 	}
 
-	cmd.runMetrics()
+	serviceMetrics.Run(cmd.MetricsPort)
 
 	// construct the provider
-	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
+	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop, serviceMetrics)
 	if err != nil {
 		klog.Fatalf("unable to construct custom metrics provider: %v", err)
 	}
