@@ -66,7 +66,7 @@ func NewMetrics() (*ServiceMetrics, error) {
 func (m *ServiceMetrics) Run(port uint16) {
 	go func() {
 		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.Handler())
+		mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
 		klog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), mux))
 	}()
 }
