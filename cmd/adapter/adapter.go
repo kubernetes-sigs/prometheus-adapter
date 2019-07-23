@@ -145,7 +145,7 @@ func (cmd *PrometheusAdapter) loadConfig() error {
 	}
 
 	if cmd.ServiceMetrics != nil {
-		cmd.ServiceMetrics.Rules.WithLabelValues("normal").Set(float64(len(metricsConfig.Rules)))
+		cmd.ServiceMetrics.Rules.WithLabelValues("resource").Set(float64(len(metricsConfig.Rules)))
 		cmd.ServiceMetrics.Rules.WithLabelValues("external").Set(float64(len(metricsConfig.ExternalRules)))
 	}
 
