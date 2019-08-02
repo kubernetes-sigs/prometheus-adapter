@@ -199,7 +199,7 @@ spec:
     matchLabels:
       app: sample-app
   endpoints: 
-  - port: http
+  - port: 80-8080
 ```
 
 </details>
