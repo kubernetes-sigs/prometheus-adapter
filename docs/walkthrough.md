@@ -178,7 +178,7 @@ in for `prom` when it appears.
 ### Monitoring Your Application
 
 In order to monitor your application, you'll need to set up
-a ServiceMonitor pointing at the application.  Assuming you've set up your
+a ServiceMonitor pointing at the service for the application.  Assuming you've set up your
 Prometheus instance to use ServiceMonitors with the `app: sample-app`
 label, create a ServiceMonitor to monitor the app's metrics via the
 service:
