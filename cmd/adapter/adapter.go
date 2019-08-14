@@ -250,8 +250,8 @@ func main() {
 		klog.Fatalf("unable to parse flags: %v", err)
 	}
 
-	// if --metrics-max-age is not set, make it equal to --metrics-relist-interval 
-	if cmd.MetricsMaxAge == 0 * time.Second {
+	// if --metrics-max-age is not set, make it equal to --metrics-relist-interval
+	if cmd.MetricsMaxAge == 0*time.Second {
 		cmd.MetricsMaxAge = cmd.MetricsRelistInterval
 	}
 
