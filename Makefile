@@ -1,6 +1,5 @@
 REGISTRY?=directxman12
 IMAGE?=k8s-prometheus-adapter
-TEMP_DIR:=$(shell mktemp -d)
 ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
@@ -27,6 +26,13 @@ ifeq ($(ARCH),s390x)
 	BASEIMAGE?=s390x/busybox
 endif
 
+ifeq ($(shell go env GOOS),darwin)
+	TEMP_DIR:=/private$(shell mktemp -d)
+else
+	TEMP_DIR:=$(shell mktemp -d)
+endif
+	
+
 .PHONY: all docker-build push-% push test verify-gofmt gofmt verify build-local-image
 
 all: $(OUT_DIR)/$(ARCH)/adapter
@@ -37,7 +43,7 @@ $(OUT_DIR)/%/adapter: $(src_deps)
 	
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
+	cd $(TEMP_DIR) && sed -i.bak "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile && rm Dockerfile.bak
 
 	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) $(GOIMAGE) /bin/bash -c "\
 		CGO_ENABLED=0 go build -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
@@ -48,7 +54,7 @@ docker-build:
 build-local-image: $(OUT_DIR)/$(ARCH)/adapter
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cp  $(OUT_DIR)/$(ARCH)/adapter $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|scratch|g" Dockerfile
+	cd $(TEMP_DIR) && sed -i.bak "s|BASEIMAGE|scratch|g" Dockerfile && rm Dockerfile.bak
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 	rm -rf $(TEMP_DIR)
 
