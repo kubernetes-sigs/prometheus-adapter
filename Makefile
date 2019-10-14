@@ -34,7 +34,7 @@ all: $(OUT_DIR)/$(ARCH)/adapter
 src_deps=$(shell find pkg cmd -type f -name "*.go")
 $(OUT_DIR)/%/adapter: $(src_deps)
 	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
-	
+
 docker-build:
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
@@ -48,7 +48,7 @@ docker-build:
 build-local-image: $(OUT_DIR)/$(ARCH)/adapter
 	cp deploy/Dockerfile $(TEMP_DIR)
 	cp  $(OUT_DIR)/$(ARCH)/adapter $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|scratch|g" Dockerfile
+	cd $(TEMP_DIR) && sed -i- "s|BASEIMAGE|scratch|g" Dockerfile && rm Dockerfile-
 	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 	rm -rf $(TEMP_DIR)
 
