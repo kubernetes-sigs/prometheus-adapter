@@ -104,6 +104,8 @@ type metricNamer struct {
 	seriesMatchers []*ReMatcher
 
 	ResourceConverter
+
+	options config.Options
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -133,7 +135,7 @@ func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResourc
 func (n *metricNamer) QueryForExternalSeries(series string, namespace string, metricSelector labels.Selector) (prom.Selector, error) {
 	//test := prom.Selector()
 	//return test, nil
-	return n.metricsQuery.BuildExternal(series, namespace, "", []string{}, metricSelector)
+	return n.metricsQuery.BuildExternal(series, namespace, "", []string{}, metricSelector, n.options)
 }
 
 func (n *metricNamer) MetricNameForSeries(series prom.Series) (string, error) {
@@ -208,6 +210,7 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 			nameAs:            nameAs,
 			seriesMatchers:    seriesMatchers,
 			ResourceConverter: resConv,
+			options:           rule.Options,
 		}
 
 		namers[i] = namer

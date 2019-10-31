@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 )
 
 // MetricsQuery represents a compiled metrics query for some set of
@@ -40,7 +41,7 @@ type MetricsQuery interface {
 	// where we need to scope down more specifically than just the group-resource
 	// (e.g. container metrics).
 	Build(series string, groupRes schema.GroupResource, namespace string, extraGroupBy []string, resourceNames ...string) (prom.Selector, error)
-	BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector) (prom.Selector, error)
+	BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector, options config.Options) (prom.Selector, error)
 }
 
 // NewMetricsQuery constructs a new MetricsQuery by compiling the given Go template.
@@ -136,13 +137,13 @@ func (q *metricsQuery) Build(series string, resource schema.GroupResource, names
 	return prom.Selector(queryBuff.String()), nil
 }
 
-func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector) (prom.Selector, error) {
+func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector, options config.Options) (prom.Selector, error) {
 	queryParts := []queryPart{}
 
 	// Build up the query parts from the selector.
 	queryParts = append(queryParts, q.createQueryPartsFromSelector(metricSelector)...)
 
-	if namespace != "" {
+	if namespace != "" && options.DetatchFromNamespace != true {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err

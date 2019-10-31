@@ -38,6 +38,9 @@ type DiscoveryRule struct {
 	// `.GroupBy` is the comma-separated expected group-by label names. The delimeters
 	// are `<<` and `>>`.
 	MetricsQuery string `yaml:"metricsQuery,omitempty"`
+	// Options specifies additional parameters that are taken into account
+	// when configuring a rule. These can be used to fine-tune the retrieval of metrics
+	Options Options `yaml:"options,omitempty"`
 }
 
 // RegexFilter is a filter that matches positively or negatively against a regex.
@@ -78,6 +81,13 @@ type NameMapping struct {
 	// to $0 if no capture groups are present in Matches, or $1
 	// if only one is present, and will error if multiple are.
 	As string `yaml:"as"`
+}
+
+// Option describes a set of customisations for retrieving metrics
+type Options struct {
+	// option to allow cross-namespace metrics. Used to determine whether to
+	// append the namespace as a label selector when retrieving metrics
+	DetatchFromNamespace bool `yaml:"detachFromNamespace,omitempty"`
 }
 
 // ResourceRules describe the rules for querying resource metrics

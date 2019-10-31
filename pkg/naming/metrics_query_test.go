@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	pmodel "github.com/prometheus/common/model"
 	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -261,6 +262,7 @@ func TestBuildExternalSelector(t *testing.T) {
 		groupBy        string
 		groupBySlice   []string
 		metricSelector labels.Selector
+		options        config.Options
 
 		check checkFunc
 	}{
@@ -341,6 +343,36 @@ func TestBuildExternalSelector(t *testing.T) {
 			),
 		},
 		{
+			name: "single LabelMatchers value with namespace - detached namespace",
+
+			mq:        mustNewQuery(`<<.LabelMatchers>>`),
+			namespace: "default",
+			options:   config.Options{DetatchFromNamespace: true},
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar"`),
+			),
+		},
+		{
+			name: "single LabelMatchers value with namespace - explicit attached namespace",
+
+			mq:        mustNewQuery(`<<.LabelMatchers>>`),
+			namespace: "default",
+			options:   config.Options{DetatchFromNamespace: false},
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar",namespaces="default"`),
+			),
+		},
+		{
 			name: "multiple LabelMatchers value",
 
 			mq: mustNewQuery(`<<.LabelMatchers>>`),
@@ -384,7 +416,7 @@ func TestBuildExternalSelector(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			selector, err := tc.mq.BuildExternal(tc.series, tc.namespace, tc.groupBy, tc.groupBySlice, tc.metricSelector)
+			selector, err := tc.mq.BuildExternal(tc.series, tc.namespace, tc.groupBy, tc.groupBySlice, tc.metricSelector, tc.options)
 			t.Logf("selector: '%v'", selector)
 
 			if err := tc.check(selector, err); err != nil {
