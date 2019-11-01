@@ -16,6 +16,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -55,12 +56,21 @@ func (c *metricConverter) Convert(info provider.ExternalMetricInfo, queryResult 
 func (c *metricConverter) convertSample(info provider.ExternalMetricInfo, sample *model.Sample) (*external_metrics.ExternalMetricValue, error) {
 	labels := c.convertLabels(sample.Metric)
 
+	intQuantity := int64(0)
+	if float64(sample.Value) == math.Inf(+1) {
+		intQuantity = math.MaxInt64
+	} else if float64(sample.Value) == math.Inf(-1) {
+		intQuantity = math.MinInt64
+	} else {
+		intQuantity = int64(sample.Value * 1000.0)
+	}
+
 	singleMetric := external_metrics.ExternalMetricValue{
 		MetricName: info.Metric,
 		Timestamp: metav1.Time{
 			sample.Timestamp.Time(),
 		},
-		Value:        *resource.NewMilliQuantity(int64(sample.Value*1000.0), resource.DecimalSI),
+		Value:        *resource.NewMilliQuantity(intQuantity, resource.DecimalSI),
 		MetricLabels: labels,
 	}
 
