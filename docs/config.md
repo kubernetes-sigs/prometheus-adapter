@@ -119,7 +119,7 @@ group-resource. For instance:
 
 ```yaml
 # the microservice label corresponds to the apps.deployment resource
-resource:
+resources:
   overrides:
     microservice: {group: "apps", resource: "deployment"}
 ```
