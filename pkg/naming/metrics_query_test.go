@@ -373,6 +373,21 @@ func TestBuildExternalSelector(t *testing.T) {
 			),
 		},
 		{
+			name: "single LabelMatchers value with namespace alt - explicit attached namespace",
+
+			mq:        mustNewQuery(`<<.LabelMatchers>>`),
+			namespace: "staging",
+			options:   config.Options{DetatchFromNamespace: false},
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("foo", selection.Equals, []string{"bar"}),
+			),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`foo="bar",namespaces="staging"`),
+			),
+		},
+		{
 			name: "multiple LabelMatchers value",
 
 			mq: mustNewQuery(`<<.LabelMatchers>>`),
