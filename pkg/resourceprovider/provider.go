@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -347,10 +348,10 @@ func (p *resourceProvider) runQuery(now pmodel.Time, queryInfo resourceQuery, re
 
 	// build the query, which needs the special "container" group by if this is for pod metrics
 	if resource == nodeResource {
-		query, err = queryInfo.nodeQuery.Build("", resource, namespace, nil, names...)
+		query, err = queryInfo.nodeQuery.Build("", resource, namespace, nil, labels.Everything(), names...)
 	} else {
 		extraGroupBy := []string{queryInfo.containerLabel}
-		query, err = queryInfo.contQuery.Build("", resource, namespace, extraGroupBy, names...)
+		query, err = queryInfo.contQuery.Build("", resource, namespace, extraGroupBy, labels.Everything(), names...)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct query: %v", err)
