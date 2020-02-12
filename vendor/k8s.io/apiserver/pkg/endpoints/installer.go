@@ -512,6 +512,11 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	//
 	// test/integration/auth_test.go is currently the most comprehensive status code test
 
+	for _, s := range a.group.Serializer.SupportedMediaTypes() {
+		if len(s.MediaTypeSubType) == 0 || len(s.MediaTypeType) == 0 {
+			return nil, fmt.Errorf("all serializers in the group Serializer must have MediaTypeType and MediaTypeSubType set: %s", s.MediaType)
+		}
+	}
 	mediaTypes, streamMediaTypes := negotiation.MediaTypesForSerializer(a.group.Serializer)
 	allMediaTypes := append(mediaTypes, streamMediaTypes...)
 	ws.Produces(allMediaTypes...)
@@ -526,6 +531,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		Typer:           a.group.Typer,
 		UnsafeConvertor: a.group.UnsafeConvertor,
 		Authorizer:      a.group.Authorizer,
+
+		EquivalentResourceMapper: a.group.EquivalentResourceRegistry,
 
 		// TODO: Check for the interface on storage
 		TableConvertor: tableProvider,
@@ -801,6 +808,13 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
 				Writes(versionedStatus).
 				Returns(http.StatusOK, "OK", versionedStatus)
+			if isCollectionDeleter {
+				route.Reads(versionedDeleterObject)
+				route.ParameterNamed("body").Required(false)
+				if err := AddObjectParams(ws, route, versionedDeleteOptions); err != nil {
+					return nil, err
+				}
+			}
 			if err := AddObjectParams(ws, route, versionedListOptions); err != nil {
 				return nil, err
 			}
@@ -912,6 +926,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		apiResource.Version = gvk.Version
 		apiResource.Kind = gvk.Kind
 	}
+
+	// Record the existence of the GVR and the corresponding GVK
+	a.group.EquivalentResourceRegistry.RegisterKindFor(reqScope.Resource, reqScope.Subresource, fqKindToRegister)
 
 	return &apiResource, nil
 }
@@ -1071,60 +1088,60 @@ func isVowel(c rune) bool {
 
 func restfulListResource(r rest.Lister, rw rest.Watcher, scope handlers.RequestScope, forceWatch bool, minRequestTimeout time.Duration) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.ListResource(r, rw, scope, forceWatch, minRequestTimeout)(res.ResponseWriter, req.Request)
+		handlers.ListResource(r, rw, &scope, forceWatch, minRequestTimeout)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulCreateNamedResource(r rest.NamedCreater, scope handlers.RequestScope, admit admission.Interface) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.CreateNamedResource(r, scope, admit)(res.ResponseWriter, req.Request)
+		handlers.CreateNamedResource(r, &scope, admit)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulCreateResource(r rest.Creater, scope handlers.RequestScope, admit admission.Interface) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.CreateResource(r, scope, admit)(res.ResponseWriter, req.Request)
+		handlers.CreateResource(r, &scope, admit)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulDeleteResource(r rest.GracefulDeleter, allowsOptions bool, scope handlers.RequestScope, admit admission.Interface) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.DeleteResource(r, allowsOptions, scope, admit)(res.ResponseWriter, req.Request)
+		handlers.DeleteResource(r, allowsOptions, &scope, admit)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulDeleteCollection(r rest.CollectionDeleter, checkBody bool, scope handlers.RequestScope, admit admission.Interface) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.DeleteCollection(r, checkBody, scope, admit)(res.ResponseWriter, req.Request)
+		handlers.DeleteCollection(r, checkBody, &scope, admit)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulUpdateResource(r rest.Updater, scope handlers.RequestScope, admit admission.Interface) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.UpdateResource(r, scope, admit)(res.ResponseWriter, req.Request)
+		handlers.UpdateResource(r, &scope, admit)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulPatchResource(r rest.Patcher, scope handlers.RequestScope, admit admission.Interface, supportedTypes []string) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.PatchResource(r, scope, admit, supportedTypes)(res.ResponseWriter, req.Request)
+		handlers.PatchResource(r, &scope, admit, supportedTypes)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulGetResource(r rest.Getter, e rest.Exporter, scope handlers.RequestScope) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.GetResource(r, e, scope)(res.ResponseWriter, req.Request)
+		handlers.GetResource(r, e, &scope)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulGetResourceWithOptions(r rest.GetterWithOptions, scope handlers.RequestScope, isSubresource bool) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.GetResourceWithOptions(r, scope, isSubresource)(res.ResponseWriter, req.Request)
+		handlers.GetResourceWithOptions(r, &scope, isSubresource)(res.ResponseWriter, req.Request)
 	}
 }
 
 func restfulConnectResource(connecter rest.Connecter, scope handlers.RequestScope, admit admission.Interface, restPath string, isSubresource bool) restful.RouteFunction {
 	return func(req *restful.Request, res *restful.Response) {
-		handlers.ConnectResource(connecter, scope, admit, restPath, isSubresource)(res.ResponseWriter, req.Request)
+		handlers.ConnectResource(connecter, &scope, admit, restPath, isSubresource)(res.ResponseWriter, req.Request)
 	}
 }
