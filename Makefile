@@ -7,7 +7,7 @@ ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=./_output
 
 VERSION?=latest
-GOIMAGE=golang:1.12
+GOIMAGE=golang:1.13
 GO111MODULE=on
 export GO111MODULE
 

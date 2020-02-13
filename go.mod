@@ -1,6 +1,6 @@
 module github.com/directxman12/k8s-prometheus-adapter
 
-go 1.12
+go 1.13
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
