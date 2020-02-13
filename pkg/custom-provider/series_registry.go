@@ -22,6 +22,7 @@ import (
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/labels"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
@@ -51,7 +52,7 @@ type SeriesRegistry interface {
 	ListAllMetrics() []provider.CustomMetricInfo
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
-	QueryForMetric(info provider.CustomMetricInfo, namespace string, resourceNames ...string) (query prom.Selector, found bool)
+	QueryForMetric(info provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, resourceNames ...string) (query prom.Selector, found bool)
 	// MatchValuesToNames matches result values to resource names for the given metric and value set
 	MatchValuesToNames(metricInfo provider.CustomMetricInfo, values pmodel.Vector) (matchedValues map[string]pmodel.SampleValue, found bool)
 }
@@ -135,7 +136,7 @@ func (r *basicSeriesRegistry) ListAllMetrics() []provider.CustomMetricInfo {
 	return r.metrics
 }
 
-func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInfo, namespace string, resourceNames ...string) (prom.Selector, bool) {
+func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, resourceNames ...string) (prom.Selector, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -156,7 +157,7 @@ func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInf
 		return "", false
 	}
 
-	query, err := info.namer.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, resourceNames...)
+	query, err := info.namer.QueryForSeries(info.seriesName, metricInfo.GroupResource, namespace, metricSelector, resourceNames...)
 	if err != nil {
 		klog.Errorf("unable to construct query for metric %s: %v", metricInfo.String(), err)
 		return "", false

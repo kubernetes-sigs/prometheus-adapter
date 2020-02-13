@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/metrics"
@@ -124,22 +125,22 @@ var _ = Describe("Resource Metrics Provider", func() {
 			{Namespace: "other-ns", Name: "pod27"},
 		}
 		fakeProm.QueryResults = map[prom.Selector]prom.QueryResult{
-			mustBuild(cpuQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, "pod1", "pod3")): buildQueryRes("container_cpu_usage_seconds_total",
+			mustBuild(cpuQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod1", "pod3")): buildQueryRes("container_cpu_usage_seconds_total",
 				buildPodSample("some-ns", "pod1", "cont1", 1100.0, 10),
 				buildPodSample("some-ns", "pod1", "cont2", 1110.0, 20),
 				buildPodSample("some-ns", "pod3", "cont1", 1300.0, 10),
 				buildPodSample("some-ns", "pod3", "cont2", 1310.0, 20),
 			),
-			mustBuild(cpuQueries.contQuery.Build("", podResource, "other-ns", []string{cpuQueries.containerLabel}, "pod27")): buildQueryRes("container_cpu_usage_seconds_total",
+			mustBuild(cpuQueries.contQuery.Build("", podResource, "other-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod27")): buildQueryRes("container_cpu_usage_seconds_total",
 				buildPodSample("other-ns", "pod27", "cont1", 2200.0, 270),
 			),
-			mustBuild(memQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, "pod1", "pod3")): buildQueryRes("container_memory_working_set_bytes",
+			mustBuild(memQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod1", "pod3")): buildQueryRes("container_memory_working_set_bytes",
 				buildPodSample("some-ns", "pod1", "cont1", 3100.0, 11),
 				buildPodSample("some-ns", "pod1", "cont2", 3110.0, 21),
 				buildPodSample("some-ns", "pod3", "cont1", 3300.0, 11),
 				buildPodSample("some-ns", "pod3", "cont2", 3310.0, 21),
 			),
-			mustBuild(memQueries.contQuery.Build("", podResource, "other-ns", []string{cpuQueries.containerLabel}, "pod27")): buildQueryRes("container_memory_working_set_bytes",
+			mustBuild(memQueries.contQuery.Build("", podResource, "other-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod27")): buildQueryRes("container_memory_working_set_bytes",
 				buildPodSample("other-ns", "pod27", "cont1", 4200.0, 271),
 			),
 		}
@@ -173,11 +174,11 @@ var _ = Describe("Resource Metrics Provider", func() {
 
 	It("should return nil metrics for missing pods, but still return partial results", func() {
 		fakeProm.QueryResults = map[prom.Selector]prom.QueryResult{
-			mustBuild(cpuQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, "pod1", "pod-nonexistant")): buildQueryRes("container_cpu_usage_seconds_total",
+			mustBuild(cpuQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod1", "pod-nonexistant")): buildQueryRes("container_cpu_usage_seconds_total",
 				buildPodSample("some-ns", "pod1", "cont1", 1100.0, 10),
 				buildPodSample("some-ns", "pod1", "cont2", 1110.0, 20),
 			),
-			mustBuild(memQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, "pod1", "pod-nonexistant")): buildQueryRes("container_memory_working_set_bytes",
+			mustBuild(memQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod1", "pod-nonexistant")): buildQueryRes("container_memory_working_set_bytes",
 				buildPodSample("some-ns", "pod1", "cont1", 3100.0, 11),
 				buildPodSample("some-ns", "pod1", "cont2", 3110.0, 21),
 			),
@@ -205,11 +206,11 @@ var _ = Describe("Resource Metrics Provider", func() {
 
 	It("should be able to list metrics for nodes", func() {
 		fakeProm.QueryResults = map[prom.Selector]prom.QueryResult{
-			mustBuild(cpuQueries.nodeQuery.Build("", nodeResource, "", nil, "node1", "node2")): buildQueryRes("container_cpu_usage_seconds_total",
+			mustBuild(cpuQueries.nodeQuery.Build("", nodeResource, "", nil, labels.Everything(), "node1", "node2")): buildQueryRes("container_cpu_usage_seconds_total",
 				buildNodeSample("node1", 1100.0, 10),
 				buildNodeSample("node2", 1200.0, 14),
 			),
-			mustBuild(memQueries.nodeQuery.Build("", nodeResource, "", nil, "node1", "node2")): buildQueryRes("container_memory_working_set_bytes",
+			mustBuild(memQueries.nodeQuery.Build("", nodeResource, "", nil, labels.Everything(), "node1", "node2")): buildQueryRes("container_memory_working_set_bytes",
 				buildNodeSample("node1", 2100.0, 11),
 				buildNodeSample("node2", 2200.0, 12),
 			),
@@ -233,11 +234,11 @@ var _ = Describe("Resource Metrics Provider", func() {
 
 	It("should return nil metrics for missing nodes, but still return partial results", func() {
 		fakeProm.QueryResults = map[prom.Selector]prom.QueryResult{
-			mustBuild(cpuQueries.nodeQuery.Build("", nodeResource, "", nil, "node1", "node2", "node3")): buildQueryRes("container_cpu_usage_seconds_total",
+			mustBuild(cpuQueries.nodeQuery.Build("", nodeResource, "", nil, labels.Everything(), "node1", "node2", "node3")): buildQueryRes("container_cpu_usage_seconds_total",
 				buildNodeSample("node1", 1100.0, 10),
 				buildNodeSample("node2", 1200.0, 14),
 			),
-			mustBuild(memQueries.nodeQuery.Build("", nodeResource, "", nil, "node1", "node2", "node3")): buildQueryRes("container_memory_working_set_bytes",
+			mustBuild(memQueries.nodeQuery.Build("", nodeResource, "", nil, labels.Everything(), "node1", "node2", "node3")): buildQueryRes("container_memory_working_set_bytes",
 				buildNodeSample("node1", 2100.0, 11),
 				buildNodeSample("node2", 2200.0, 12),
 			),

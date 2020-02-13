@@ -83,23 +83,33 @@ func TestBuildSelector(t *testing.T) {
 		return mq
 	}
 
+	mustNewLabelRequirement := func(key string, op selection.Operator, vals []string) *labels.Requirement {
+		req, err := labels.NewRequirement(key, op, vals)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return req
+	}
+
 	tests := []struct {
 		name string
 		mq   MetricsQuery
 
-		series       string
-		resource     schema.GroupResource
-		namespace    string
-		extraGroupBy []string
-		names        []string
+		series         string
+		resource       schema.GroupResource
+		namespace      string
+		extraGroupBy   []string
+		metricSelector labels.Selector
+		names          []string
 
 		check checkFunc
 	}{
 		{
 			name: "series",
 
-			mq:     mustNewQuery(`series <<.Series>>`, false),
-			series: "foo",
+			mq:             mustNewQuery(`series <<.Series>>`, false),
+			metricSelector: labels.NewSelector(),
+			series:         "foo",
 
 			check: checks(
 				hasError(nil),
@@ -110,9 +120,10 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "multiple LabelMatchers values",
 
-			mq:       mustNewQuery(`<<.LabelMatchers>>`, false),
-			resource: schema.GroupResource{Group: "group", Resource: "resource"},
-			names:    []string{"bar", "baz"},
+			mq:             mustNewQuery(`<<.LabelMatchers>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			names:          []string{"bar", "baz"},
 
 			check: checks(
 				hasError(nil),
@@ -123,9 +134,10 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "single LabelMatchers value",
 
-			mq:       mustNewQuery(`<<.LabelMatchers>>`, false),
-			resource: schema.GroupResource{Group: "group", Resource: "resource"},
-			names:    []string{"bar"},
+			mq:             mustNewQuery(`<<.LabelMatchers>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			names:          []string{"bar"},
 
 			check: checks(
 				hasError(nil),
@@ -134,11 +146,28 @@ func TestBuildSelector(t *testing.T) {
 		},
 
 		{
-			name: "single LabelValuesByName value",
+			name: "LabelMatchers with additional metrics filter",
 
-			mq:       mustNewQuery(`<<index .LabelValuesByName "resource">>`, false),
+			mq: mustNewQuery(`<<.LabelMatchers>>`, false),
+			metricSelector: labels.NewSelector().Add(
+				*mustNewLabelRequirement("metric1", selection.Equals, []string{"value1"}),
+			),
 			resource: schema.GroupResource{Group: "group", Resource: "resource"},
 			names:    []string{"bar"},
+
+			check: checks(
+				hasError(nil),
+				hasSelector(`metric1="value1",resource="bar"`),
+			),
+		},
+
+		{
+			name: "single LabelValuesByName value",
+
+			mq:             mustNewQuery(`<<index .LabelValuesByName "resource">>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			names:          []string{"bar"},
 
 			check: checks(
 				hasError(nil),
@@ -149,9 +178,10 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "multiple LabelValuesByName values",
 
-			mq:       mustNewQuery(`<<index .LabelValuesByName "resource">>`, false),
-			resource: schema.GroupResource{Group: "group", Resource: "resource"},
-			names:    []string{"bar", "baz"},
+			mq:             mustNewQuery(`<<index .LabelValuesByName "resource">>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			names:          []string{"bar", "baz"},
 
 			check: checks(
 				hasError(nil),
@@ -162,10 +192,11 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "multiple LabelValuesByName values with namespace",
 
-			mq:        mustNewQuery(`<<index .LabelValuesByName "namespaces">> <<index .LabelValuesByName "resource">>`, true),
-			resource:  schema.GroupResource{Group: "group", Resource: "resource"},
-			namespace: "default",
-			names:     []string{"bar", "baz"},
+			mq:             mustNewQuery(`<<index .LabelValuesByName "namespaces">> <<index .LabelValuesByName "resource">>`, true),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			namespace:      "default",
+			names:          []string{"bar", "baz"},
 
 			check: checks(
 				hasError(nil),
@@ -176,8 +207,9 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "single GroupBy value",
 
-			mq:       mustNewQuery(`<<.GroupBy>>`, false),
-			resource: schema.GroupResource{Group: "group", Resource: "resource"},
+			mq:             mustNewQuery(`<<.GroupBy>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
 
 			check: checks(
 				hasError(nil),
@@ -188,9 +220,10 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "multiple GroupBy values",
 
-			mq:           mustNewQuery(`<<.GroupBy>>`, false),
-			resource:     schema.GroupResource{Group: "group", Resource: "resource"},
-			extraGroupBy: []string{"extra", "groups"},
+			mq:             mustNewQuery(`<<.GroupBy>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			extraGroupBy:   []string{"extra", "groups"},
 
 			check: checks(
 				hasError(nil),
@@ -201,8 +234,9 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "single GroupBySlice value",
 
-			mq:       mustNewQuery(`<<.GroupBySlice>>`, false),
-			resource: schema.GroupResource{Group: "group", Resource: "resource"},
+			mq:             mustNewQuery(`<<.GroupBySlice>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
 
 			check: checks(
 				hasError(nil),
@@ -213,9 +247,10 @@ func TestBuildSelector(t *testing.T) {
 		{
 			name: "multiple GroupBySlice values",
 
-			mq:           mustNewQuery(`<<.GroupBySlice>>`, false),
-			resource:     schema.GroupResource{Group: "group", Resource: "resource"},
-			extraGroupBy: []string{"extra", "groups"},
+			mq:             mustNewQuery(`<<.GroupBySlice>>`, false),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			extraGroupBy:   []string{"extra", "groups"},
 
 			check: checks(
 				hasError(nil),
@@ -226,7 +261,7 @@ func TestBuildSelector(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			selector, err := tc.mq.Build(tc.series, tc.resource, tc.namespace, tc.extraGroupBy, tc.names...)
+			selector, err := tc.mq.Build(tc.series, tc.resource, tc.namespace, tc.extraGroupBy, tc.metricSelector, tc.names...)
 
 			if err := tc.check(selector, err); err != nil {
 				t.Error(err)

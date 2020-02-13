@@ -1,7 +1,7 @@
 language: go
 
 go:
-- '1.12'
+- '1.13'
 
 # blech, Travis downloads with capitals in DirectXMan12, which confuses go
 go_import_path: github.com/directxman12/k8s-prometheus-adapter

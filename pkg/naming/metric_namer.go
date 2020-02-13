@@ -45,7 +45,7 @@ type MetricNamer interface {
 	MetricNameForSeries(series prom.Series) (string, error)
 	// QueryForSeries returns the query for a given series (not API metric name), with
 	// the given namespace name (if relevant), resource, and resource names.
-	QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error)
+	QueryForSeries(series string, resource schema.GroupResource, namespace string, metricSelector labels.Selector, names ...string) (prom.Selector, error)
 	// QueryForExternalSeries returns the query for a given series (not API metric name), with
 	// the given namespace name (if relevant), resource, and resource names.
 	QueryForExternalSeries(series string, namespace string, targetLabels labels.Selector) (prom.Selector, error)
@@ -126,8 +126,8 @@ SeriesLoop:
 	return finalSeries
 }
 
-func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResource, namespace string, names ...string) (prom.Selector, error) {
-	return n.metricsQuery.Build(series, resource, namespace, nil, names...)
+func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResource, namespace string, metricSelector labels.Selector, names ...string) (prom.Selector, error) {
+	return n.metricsQuery.Build(series, resource, namespace, nil, metricSelector, names...)
 }
 
 func (n *metricNamer) QueryForExternalSeries(series string, namespace string, metricSelector labels.Selector) (prom.Selector, error) {

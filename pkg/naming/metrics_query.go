@@ -39,7 +39,7 @@ type MetricsQuery interface {
 	// is considered to be root-scoped.  extraGroupBy may be used for cases
 	// where we need to scope down more specifically than just the group-resource
 	// (e.g. container metrics).
-	Build(series string, groupRes schema.GroupResource, namespace string, extraGroupBy []string, resourceNames ...string) (prom.Selector, error)
+	Build(series string, groupRes schema.GroupResource, namespace string, extraGroupBy []string, metricSelector labels.Selector, resourceNames ...string) (prom.Selector, error)
 	BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector) (prom.Selector, error)
 }
 
@@ -85,17 +85,25 @@ type queryPart struct {
 	operator  selection.Operator
 }
 
-func (q *metricsQuery) Build(series string, resource schema.GroupResource, namespace string, extraGroupBy []string, names ...string) (prom.Selector, error) {
-	var exprs []string
-	valuesByName := map[string]string{}
+func (q *metricsQuery) Build(series string, resource schema.GroupResource, namespace string, extraGroupBy []string, metricSelector labels.Selector, names ...string) (prom.Selector, error) {
+	queryParts := q.createQueryPartsFromSelector(metricSelector)
 
 	if namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err
 		}
-		exprs = append(exprs, prom.LabelEq(string(namespaceLbl), namespace))
-		valuesByName[string(namespaceLbl)] = namespace
+
+		queryParts = append(queryParts, queryPart{
+			labelName: string(namespaceLbl),
+			values:    []string{namespace},
+			operator:  selection.Equals,
+		})
+	}
+
+	exprs, valuesByName, err := q.processQueryParts(queryParts)
+	if err != nil {
+		return "", err
 	}
 
 	resourceLbl, err := q.resConverter.LabelForResource(resource)
