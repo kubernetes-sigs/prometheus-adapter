@@ -31,6 +31,7 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
+	"k8s.io/apiserver/pkg/server/options/encryptionconfig"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
@@ -160,7 +161,7 @@ func (s *EtcdOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.StorageConfig.Transport.CertFile, "etcd-certfile", s.StorageConfig.Transport.CertFile,
 		"SSL certification file used to secure etcd communication.")
 
-	fs.StringVar(&s.StorageConfig.Transport.CAFile, "etcd-cafile", s.StorageConfig.Transport.CAFile,
+	fs.StringVar(&s.StorageConfig.Transport.TrustedCAFile, "etcd-cafile", s.StorageConfig.Transport.TrustedCAFile,
 		"SSL Certificate Authority file used to secure etcd communication.")
 
 	fs.StringVar(&s.EncryptionProviderConfigFilepath, "experimental-encryption-provider-config", s.EncryptionProviderConfigFilepath,
@@ -201,9 +202,18 @@ func (s *EtcdOptions) addEtcdHealthEndpoint(c *server.Config) error {
 	if err != nil {
 		return err
 	}
-	c.HealthzChecks = append(c.HealthzChecks, healthz.NamedCheck("etcd", func(r *http.Request) error {
+	c.AddHealthChecks(healthz.NamedCheck("etcd", func(r *http.Request) error {
 		return healthCheck()
 	}))
+
+	if s.EncryptionProviderConfigFilepath != "" {
+		kmsPluginHealthzChecks, err := encryptionconfig.GetKMSPluginHealthzCheckers(s.EncryptionProviderConfigFilepath)
+		if err != nil {
+			return err
+		}
+		c.AddHealthChecks(kmsPluginHealthzChecks...)
+	}
+
 	return nil
 }
 
