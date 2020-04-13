@@ -1,10 +1,9 @@
 REGISTRY?=directxman12
 IMAGE?=k8s-prometheus-adapter
-TEMP_DIR:=$(shell mktemp -d)
 ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
-OUT_DIR?=./_output
+OUT_DIR?=$(PWD)/_output
 
 VERSION?=latest
 GOIMAGE=golang:1.13
@@ -34,23 +33,19 @@ all: $(OUT_DIR)/$(ARCH)/adapter
 src_deps=$(shell find pkg cmd -type f -name "*.go")
 $(OUT_DIR)/%/adapter: $(src_deps)
 	CGO_ENABLED=0 GOARCH=$* go build -tags netgo -o $(OUT_DIR)/$*/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter
-	
-docker-build:
-	cp deploy/Dockerfile $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
 
-	docker run -it -v $(TEMP_DIR):/build -v $(shell pwd):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) $(GOIMAGE) /bin/bash -c "\
-		CGO_ENABLED=0 go build -tags netgo -o /build/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
+docker-build: $(OUT_DIR)/Dockerfile
+	docker run -it -v $(OUT_DIR):/build -v $(PWD):/go/src/github.com/directxman12/k8s-prometheus-adapter -e GOARCH=$(ARCH) $(GOIMAGE) /bin/bash -c "\
+		CGO_ENABLED=0 go build -tags netgo -o /build/$(ARCH)/adapter github.com/directxman12/k8s-prometheus-adapter/cmd/adapter"
 
-	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
-	rm -rf $(TEMP_DIR)
+	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) --build-arg ARCH=$(ARCH) --build-arg BASEIMAGE=$(BASEIMAGE) $(OUT_DIR)
 
-build-local-image: $(OUT_DIR)/$(ARCH)/adapter
-	cp deploy/Dockerfile $(TEMP_DIR)
-	cp  $(OUT_DIR)/$(ARCH)/adapter $(TEMP_DIR)
-	cd $(TEMP_DIR) && sed -i "s|BASEIMAGE|scratch|g" Dockerfile
-	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
-	rm -rf $(TEMP_DIR)
+$(OUT_DIR)/Dockerfile: deploy/Dockerfile
+	mkdir -p $(OUT_DIR)
+	cp deploy/Dockerfile $(OUT_DIR)/Dockerfile
+
+build-local-image: $(OUT_DIR)/Dockerfile $(OUT_DIR)/$(ARCH)/adapter
+	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) --build-arg ARCH=$(ARCH) --build-arg BASEIMAGE=scratch $(OUT_DIR)
 
 push-%:
 	$(MAKE) ARCH=$* docker-build
