@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubernetes-incubator/metrics-server/pkg/provider"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,6 +30,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	metrics "k8s.io/metrics/pkg/apis/metrics"
+	"sigs.k8s.io/metrics-server/pkg/api"
 
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
@@ -82,7 +82,7 @@ type resourceQuery struct {
 }
 
 // NewProvider constructs a new MetricsProvider to provide resource metrics from Prometheus using the given rules.
-func NewProvider(prom client.Client, mapper apimeta.RESTMapper, cfg *config.ResourceRules) (provider.MetricsProvider, error) {
+func NewProvider(prom client.Client, mapper apimeta.RESTMapper, cfg *config.ResourceRules) (api.MetricsGetter, error) {
 	cpuQuery, err := newResourceQuery(cfg.CPU, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("unable to construct querier for CPU metrics: %v", err)
@@ -119,8 +119,8 @@ type nsQueryResults struct {
 	err       error
 }
 
-// GetContainerMetrics implements the provider.MetricsProvider interface. It may return nil, nil, nil.
-func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]provider.TimeInfo, [][]metrics.ContainerMetrics, error) {
+// GetContainerMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
+func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics, error) {
 	if len(pods) == 0 {
 		return nil, nil, nil
 	}
@@ -162,7 +162,7 @@ func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) 
 
 	// convert the unorganized per-container results into results grouped
 	// together by namespace, pod, and container
-	resTimes := make([]provider.TimeInfo, len(pods))
+	resTimes := make([]api.TimeInfo, len(pods))
 	resMetrics := make([][]metrics.ContainerMetrics, len(pods))
 	for i, pod := range pods {
 		p.assignForPod(pod, resultsByNs, &resMetrics[i], &resTimes[i])
@@ -175,7 +175,7 @@ func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) 
 // from resultsByNs, and places them in MetricsProvider response format in resMetrics,
 // also recording the earliest time in resTime.  It will return without operating if
 // any data is missing.
-func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs map[string]nsQueryResults, resMetrics *[]metrics.ContainerMetrics, resTime *provider.TimeInfo) {
+func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs map[string]nsQueryResults, resMetrics *[]metrics.ContainerMetrics, resTime *api.TimeInfo) {
 	// check to make sure everything is present
 	nsRes, nsResPresent := resultsByNs[pod.Namespace]
 	if !nsResPresent {
@@ -227,7 +227,7 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 	}
 
 	// store the time in the final format
-	*resTime = provider.TimeInfo{
+	*resTime = api.TimeInfo{
 		Timestamp: earliestTs.Time(),
 		Window:    p.window,
 	}
@@ -240,8 +240,8 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 	*resMetrics = containerMetricsList
 }
 
-// GetNodeMetrics implements the provider.MetricsProvider interface. It may return nil, nil, nil.
-func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]provider.TimeInfo, []corev1.ResourceList, error) {
+// GetNodeMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
+func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList, error) {
 	if len(nodes) == 0 {
 		return nil, nil, nil
 	}
@@ -254,7 +254,7 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]provider.TimeInfo,
 		return nil, nil, qRes.err
 	}
 
-	resTimes := make([]provider.TimeInfo, len(nodes))
+	resTimes := make([]api.TimeInfo, len(nodes))
 	resMetrics := make([]corev1.ResourceList, len(nodes))
 
 	// organize the results
@@ -283,12 +283,12 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]provider.TimeInfo,
 		// use the earliest timestamp available (in order to be conservative
 		// when determining if metrics are tainted by startup)
 		if rawMem.Timestamp.Before(rawCPU.Timestamp) {
-			resTimes[i] = provider.TimeInfo{
+			resTimes[i] = api.TimeInfo{
 				Timestamp: rawMem.Timestamp.Time(),
 				Window:    p.window,
 			}
 		} else {
-			resTimes[i] = provider.TimeInfo{
+			resTimes[i] = api.TimeInfo{
 				Timestamp: rawCPU.Timestamp.Time(),
 				Window:    1 * time.Minute,
 			}

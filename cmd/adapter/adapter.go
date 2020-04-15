@@ -27,15 +27,16 @@ import (
 	"os"
 	"time"
 
-	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	resmetrics "github.com/kubernetes-incubator/metrics-server/pkg/apiserver/generic"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
+
+	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	"sigs.k8s.io/metrics-server/pkg/api"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
@@ -213,10 +214,6 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return fmt.Errorf("unable to construct resource metrics API provider: %v", err)
 	}
 
-	provCfg := &resmetrics.ProviderConfig{
-		Node: provider,
-		Pod:  provider,
-	}
 	informers, err := cmd.Informers()
 	if err != nil {
 		return err
@@ -227,7 +224,7 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return err
 	}
 
-	if err := resmetrics.InstallStorage(provCfg, informers.Core().V1(), server.GenericAPIServer); err != nil {
+	if err := api.Install(provider, informers.Core().V1(), server.GenericAPIServer); err != nil {
 		return err
 	}
 
