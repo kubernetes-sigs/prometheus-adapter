@@ -87,7 +87,8 @@ var _ = Describe("Custom Metrics Provider", func() {
 
 		By("setting the acceptible interval to now until the next update, with a bit of wiggle room")
 		startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
-		fakeProm.AcceptableInterval = pmodel.Interval{Start: startTime, End: 0}
+		endTime := pmodel.Now().Add(1*fakeProviderUpdateInterval + fakeProviderUpdateInterval/10)
+		fakeProm.AcceptableInterval = pmodel.Interval{Start: startTime, End: endTime}
 
 		By("updating the list of available metrics")
 		// don't call RunUntil to avoid timing issue
