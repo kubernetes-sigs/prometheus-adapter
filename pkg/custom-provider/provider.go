@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
@@ -83,6 +84,12 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 		return nil, err
 	}
 
+	var q *resource.Quantity
+	if math.IsNaN(float64(value)) {
+		q = resource.NewQuantity(0, resource.DecimalSI)
+	} else {
+		q = resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI)
+	}
 	return &custom_metrics.MetricValue{
 		DescribedObject: ref,
 		Metric: custom_metrics.MetricIdentifier{
@@ -90,7 +97,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 		},
 		// TODO(directxman12): use the right timestamp
 		Timestamp: metav1.Time{time.Now()},
-		Value:     *resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI),
+		Value:     *q,
 	}, nil
 }
 
