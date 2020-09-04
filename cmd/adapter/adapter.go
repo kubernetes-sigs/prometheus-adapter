@@ -239,13 +239,17 @@ func main() {
 	cmd := &PrometheusAdapter{
 		PrometheusURL:         "https://localhost",
 		MetricsRelistInterval: 10 * time.Minute,
-		MetricsMaxAge:         20 * time.Minute,
 	}
 	cmd.Name = "prometheus-metrics-adapter"
 	cmd.addFlags()
 	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the klog flags
 	if err := cmd.Flags().Parse(os.Args); err != nil {
 		klog.Fatalf("unable to parse flags: %v", err)
+	}
+
+	// if --metrics-max-age is not set, make it equal to --metrics-relist-interval
+	if cmd.MetricsMaxAge == 0*time.Second {
+		cmd.MetricsMaxAge = cmd.MetricsRelistInterval
 	}
 
 	// make the prometheus client
