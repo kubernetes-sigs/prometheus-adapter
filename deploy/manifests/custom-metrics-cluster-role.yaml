@@ -5,5 +5,6 @@ metadata:
 rules:
 - apiGroups:
   - custom.metrics.k8s.io
+  - external.metrics.k8s.io
   resources: ["*"]
   verbs: ["*"]
