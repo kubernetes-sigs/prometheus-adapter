@@ -1,0 +1,15 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+owners:
+- s-urbaniak
+- lilic
+
+approvers:
+  - prometheus-adapter-approvers
+
+reviewers:
+  - prometheus-adapter-approvers
+  - prometheus-adapter-reviewers
+
+emeritus_approvers:
+- brancz
+- directxman12
