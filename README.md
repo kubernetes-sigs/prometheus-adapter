@@ -192,3 +192,12 @@ large as your collection interval.
 I have namespace prefixed metrics like `{ "name": "namespaces/node_memory_PageTables_bytes", "singularName": "", "namespaced": false, "kind": "MetricValueList", "verbs": [ "get" ] }`, but I get error `Error from server (InternalError): Internal error occurred: unable to list matching resources` when access with `kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/*/node_memory_PageTables_bytes` .
 
 Actually namespace prefixed metrics are special, we should access them with `kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1/namespaces/*/metrics/node_memory_PageTables_bytes`.
+
+## Community, discussion, contribution, and support
+
+Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
+
+You can reach the maintainers of this project at:
+
+- [Slack](http://slack.k8s.io/)
+- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-dev)
