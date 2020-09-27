@@ -20,7 +20,7 @@ github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-swagger12 v0.0.0-20170208215640-dcef7f557305
 github.com/emicklei/go-restful-swagger12
-# github.com/evanphx/json-patch v4.5.0+incompatible
+# github.com/evanphx/json-patch v4.2.0+incompatible
 github.com/evanphx/json-patch
 # github.com/go-openapi/jsonpointer v0.19.3
 github.com/go-openapi/jsonpointer
@@ -130,7 +130,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/pkg/errors v0.9.0
+# github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
@@ -712,6 +712,16 @@ k8s.io/metrics/pkg/apis/external_metrics/v1beta1
 k8s.io/metrics/pkg/apis/metrics
 k8s.io/metrics/pkg/apis/metrics/install
 k8s.io/metrics/pkg/apis/metrics/v1beta1
+# k8s.io/sample-apiserver v0.18.5
+k8s.io/sample-apiserver/pkg/apis/wardle
+k8s.io/sample-apiserver/pkg/apis/wardle/install
+k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1
+k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1
+k8s.io/sample-apiserver/pkg/apis/wardle/validation
+k8s.io/sample-apiserver/pkg/apiserver
+k8s.io/sample-apiserver/pkg/registry
+k8s.io/sample-apiserver/pkg/registry/wardle/fischer
+k8s.io/sample-apiserver/pkg/registry/wardle/flunder
 # k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 k8s.io/utils/buffer
 k8s.io/utils/integer
