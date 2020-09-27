@@ -120,9 +120,9 @@ type nsQueryResults struct {
 }
 
 // GetContainerMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
-func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics, error) {
+func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics) {
 	if len(pods) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// TODO(directxman12): figure out how well this scales if we go to list 1000+ pods
@@ -168,7 +168,7 @@ func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) 
 		p.assignForPod(pod, resultsByNs, &resMetrics[i], &resTimes[i])
 	}
 
-	return resTimes, resMetrics, nil
+	return resTimes, resMetrics
 }
 
 // assignForPod takes the resource metrics for all containers in the given pod
@@ -240,10 +240,10 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 	*resMetrics = containerMetricsList
 }
 
-// GetNodeMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
-func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList, error) {
+// GetNodeMetrics implements the api.MetricsProvider interface. It may return nil, nil.
+func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList) {
 	if len(nodes) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	now := pmodel.Now()
@@ -251,7 +251,8 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []co
 	// run the actual query
 	qRes := p.queryBoth(now, nodeResource, "", nodes...)
 	if qRes.err != nil {
-		return nil, nil, qRes.err
+		klog.Errorf("failed querying node metrics: %v", qRes.err)
+		return nil, nil
 	}
 
 	resTimes := make([]api.TimeInfo, len(nodes))
@@ -295,7 +296,7 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []co
 		}
 	}
 
-	return resTimes, resMetrics, nil
+	return resTimes, resMetrics
 }
 
 // queryBoth queries for both CPU and memory metrics on the given
