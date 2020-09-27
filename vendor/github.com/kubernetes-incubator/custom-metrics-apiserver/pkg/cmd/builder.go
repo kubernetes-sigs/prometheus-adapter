@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	openapicommon "k8s.io/kube-openapi/pkg/common"
 
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd/server"
@@ -66,6 +67,9 @@ type AdapterBase struct {
 	// if not explicitly set.
 	FlagSet *pflag.FlagSet
 
+	// OpenAPIConfig
+	OpenAPIConfig *openapicommon.Config
+
 	// flagOnce controls initialization of the flags.
 	flagOnce sync.Once
 
@@ -88,6 +92,7 @@ func (b *AdapterBase) InstallFlags() {
 	b.flagOnce.Do(func() {
 		if b.CustomMetricsAdapterServerOptions == nil {
 			b.CustomMetricsAdapterServerOptions = server.NewCustomMetricsAdapterServerOptions()
+			b.CustomMetricsAdapterServerOptions.OpenAPIConfig = b.OpenAPIConfig
 		}
 
 		b.SecureServing.AddFlags(b.FlagSet)

@@ -230,11 +230,7 @@ func (m *podMetrics) getPodMetrics(pods ...*v1.Pod) ([]metrics.PodMetrics, error
 			Namespace: pod.Namespace,
 		}
 	}
-	timestamps, containerMetrics, err := m.metrics.GetContainerMetrics(namespacedNames...)
-	if err != nil {
-		return nil, err
-	}
-
+	timestamps, containerMetrics := m.metrics.GetContainerMetrics(namespacedNames...)
 	res := make([]metrics.PodMetrics, 0, len(pods))
 
 	for i, pod := range pods {
@@ -243,7 +239,6 @@ func (m *podMetrics) getPodMetrics(pods ...*v1.Pod) ([]metrics.PodMetrics, error
 			continue
 		}
 		if containerMetrics[i] == nil {
-			klog.Errorf("unable to fetch pod metrics for pod %s/%s: no metrics known for pod", pod.Namespace, pod.Name)
 			continue
 		}
 
