@@ -221,7 +221,10 @@ func addObjectParams(ws *restful.WebService, route *restful.RouteBuilder, obj in
 				if docable, ok := obj.(documentable); ok {
 					desc = docable.SwaggerDoc()[jsonName]
 				}
-				route.Param(ws.QueryParameter(jsonName, desc).DataType(typeToJSON(sf.Type.String())))
+
+				if route.ParameterNamed(jsonName) == nil {
+					route.Param(ws.QueryParameter(jsonName, desc).DataType(typeToJSON(sf.Type.String())))
+				}
 			}
 		}
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package helpers
 
 import (
+	"context"
 	"fmt"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -83,7 +84,7 @@ func ListObjectNames(mapper apimeta.RESTMapper, client dynamic.Interface, namesp
 		resClient = client.Resource(res)
 	}
 
-	matchingObjectsRaw, err := resClient.List(metav1.ListOptions{LabelSelector: selector.String()})
+	matchingObjectsRaw, err := resClient.List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, err
 	}

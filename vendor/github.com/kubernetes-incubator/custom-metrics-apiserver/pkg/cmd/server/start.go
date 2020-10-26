@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	openapicommon "k8s.io/kube-openapi/pkg/common"
+
+	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/apiserver"
 )
 
 type CustomMetricsAdapterServerOptions struct {
@@ -31,6 +33,9 @@ type CustomMetricsAdapterServerOptions struct {
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 	Features       *genericoptions.FeatureOptions
+
+	// OpenAPIConfig
+	OpenAPIConfig *openapicommon.Config
 }
 
 func NewCustomMetricsAdapterServerOptions() *CustomMetricsAdapterServerOptions {
@@ -63,15 +68,17 @@ func (o CustomMetricsAdapterServerOptions) Config() (*apiserver.Config, error) {
 		return nil, err
 	}
 
-	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, serverConfig.OpenAPIConfig); err != nil {
+	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, nil); err != nil {
 		return nil, err
 	}
 	if err := o.Authorization.ApplyTo(&serverConfig.Authorization); err != nil {
 		return nil, err
 	}
 
-	// TODO: we can't currently serve swagger because we don't have a good way to dynamically update it
-	// serverConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+	// enable OpenAPI schemas
+	if o.OpenAPIConfig != nil {
+		serverConfig.OpenAPIConfig = o.OpenAPIConfig
+	}
 
 	config := &apiserver.Config{
 		GenericConfig: serverConfig,

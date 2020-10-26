@@ -28,16 +28,20 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
+	"k8s.io/sample-apiserver/pkg/apiserver"
 
 	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
+	generatedopenapi "github.com/directxman12/k8s-prometheus-adapter/pkg/api/generated/openapi"
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
 	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
@@ -241,6 +245,11 @@ func main() {
 		MetricsRelistInterval: 10 * time.Minute,
 	}
 	cmd.Name = "prometheus-metrics-adapter"
+
+	cmd.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(apiserver.Scheme))
+	cmd.OpenAPIConfig.Info.Title = "prometheus-metrics-adapter"
+	cmd.OpenAPIConfig.Info.Version = "1.0.0"
+
 	cmd.addFlags()
 	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the klog flags
 	if err := cmd.Flags().Parse(os.Args); err != nil {

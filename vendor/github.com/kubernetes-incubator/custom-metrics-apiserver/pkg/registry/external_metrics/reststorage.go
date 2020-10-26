@@ -34,6 +34,7 @@ import (
 // interfaces.
 type REST struct {
 	emProvider provider.ExternalMetricsProvider
+	rest.TableConvertor
 }
 
 var _ rest.Storage = &REST{}
