@@ -99,7 +99,7 @@ all resources currently available in your cluster, you can use the
 `kubectl api-resources` command (but the list of available resources can
 change as you add or remove CRDs or aggregated API servers).  For more
 information on resources, see [Kinds, Resources, and
-Scopes](https://github.com/kubernetes-incubator/custom-metrics-apiserver/blob/master/docs/getting-started.md#kinds-resources-and-scopes)
+Scopes](https://github.com/kubernetes-sigs/custom-metrics-apiserver/blob/master/docs/getting-started.md#kinds-resources-and-scopes)
 in the custom-metrics-apiserver boilerplate guide.
 
 Now, cumulative metrics (like those that end in `_total`) aren't

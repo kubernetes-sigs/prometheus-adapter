@@ -22,8 +22,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider/helpers"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"

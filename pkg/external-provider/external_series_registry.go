@@ -16,7 +16,7 @@ package provider
 import (
 	"sync"
 
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
