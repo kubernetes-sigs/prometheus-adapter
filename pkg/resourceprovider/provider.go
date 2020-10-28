@@ -226,6 +226,17 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 		}
 	}
 
+	// check for any containers that have either memory usage or CPU usage, but not both
+	for _, containerMetric := range containerMetrics {
+		_, hasMemory := containerMetric.Usage[corev1.ResourceMemory]
+		_, hasCPU := containerMetric.Usage[corev1.ResourceCPU]
+		if hasMemory && !hasCPU {
+			containerMetric.Usage[corev1.ResourceCPU] = *resource.NewMilliQuantity(int64(0), resource.BinarySI)
+		} else if hasCPU && !hasMemory {
+			containerMetric.Usage[corev1.ResourceMemory] = *resource.NewMilliQuantity(int64(0), resource.BinarySI)
+		}
+	}
+
 	// store the time in the final format
 	*resTime = api.TimeInfo{
 		Timestamp: earliestTs.Time(),
