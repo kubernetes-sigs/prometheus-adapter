@@ -70,7 +70,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 		return APIResponse{}, err
 	}
 
-	if klog.V(6) {
+	if klog.V(6).Enabled() {
 		klog.Infof("%s %s %s", verb, u.String(), resp.Status)
 	}
 
@@ -85,7 +85,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	}
 
 	var body io.Reader = resp.Body
-	if klog.V(8) {
+	if klog.V(8).Enabled() {
 		data, err := ioutil.ReadAll(body)
 		if err != nil {
 			return APIResponse{}, fmt.Errorf("unable to log response body: %v", err)
