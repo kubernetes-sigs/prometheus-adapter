@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/sample-apiserver/pkg/apiserver"
 
 	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"

@@ -27,7 +27,7 @@ import (
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
 	pmodel "github.com/prometheus/common/model"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // NB: container metrics sourced from cAdvisor don't consistently follow naming conventions,

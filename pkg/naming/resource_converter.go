@@ -30,7 +30,7 @@ import (
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
 	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
 	pmodel "github.com/prometheus/common/model"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
