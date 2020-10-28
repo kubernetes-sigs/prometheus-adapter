@@ -22,6 +22,8 @@ github.com/emicklei/go-restful/log
 github.com/emicklei/go-restful-swagger12
 # github.com/evanphx/json-patch v4.2.0+incompatible
 github.com/evanphx/json-patch
+# github.com/go-logr/logr v0.2.0
+github.com/go-logr/logr
 # github.com/go-openapi/jsonpointer v0.19.3
 github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.19.3
@@ -694,6 +696,8 @@ k8s.io/component-base/metrics/testutil
 k8s.io/component-base/version
 # k8s.io/klog v1.0.0
 k8s.io/klog
+# k8s.io/klog/v2 v2.3.0
+k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 k8s.io/kube-openapi/pkg/builder
 k8s.io/kube-openapi/pkg/common
