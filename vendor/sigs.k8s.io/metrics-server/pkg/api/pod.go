@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +33,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	v1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/metrics"
 	_ "k8s.io/metrics/pkg/apis/metrics/install"
 )
@@ -246,12 +245,13 @@ func (m *podMetrics) getPodMetrics(pods ...*v1.Pod) ([]metrics.PodMetrics, error
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              pod.Name,
 				Namespace:         pod.Namespace,
-				CreationTimestamp: metav1.NewTime(time.Now()),
+				CreationTimestamp: metav1.NewTime(myClock.Now()),
 			},
 			Timestamp:  metav1.NewTime(timestamps[i].Timestamp),
 			Window:     metav1.Duration{Duration: timestamps[i].Window},
 			Containers: containerMetrics[i],
 		})
+		metricFreshness.WithLabelValues().Observe(myClock.Since(timestamps[i].Timestamp).Seconds())
 	}
 	return res, nil
 }
