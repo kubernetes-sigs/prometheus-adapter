@@ -34,11 +34,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/sample-apiserver/pkg/apiserver"
 
-	basecmd "github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/cmd"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
+	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
 	generatedopenapi "github.com/directxman12/k8s-prometheus-adapter/pkg/api/generated/openapi"

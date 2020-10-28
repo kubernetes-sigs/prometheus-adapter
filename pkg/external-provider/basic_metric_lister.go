@@ -22,7 +22,7 @@ import (
 	"time"
 
 	pmodel "github.com/prometheus/common/model"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
 	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"

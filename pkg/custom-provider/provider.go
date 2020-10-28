@@ -22,8 +22,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider"
-	"github.com/kubernetes-incubator/custom-metrics-apiserver/pkg/provider/helpers"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider/helpers"
 	pmodel "github.com/prometheus/common/model"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -34,7 +34,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
