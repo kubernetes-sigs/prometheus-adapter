@@ -80,7 +80,7 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201027110359-fbe475e9e9e8
+# github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201110135240-8c12d6d92362
 github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver
 github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver/endpoints/handlers
 github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver/installer

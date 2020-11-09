@@ -6,7 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1 // indirect
 	github.com/go-openapi/spec v0.19.8
 	github.com/imdario/mergo v0.3.8 // indirect
-	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201027110359-fbe475e9e9e8
+	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20201110135240-8c12d6d92362
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.7.1
