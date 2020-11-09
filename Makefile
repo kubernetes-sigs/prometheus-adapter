@@ -5,7 +5,7 @@ ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 OUT_DIR?=$(PWD)/_output
 
-OPENAPI_PATH=$(GOPATH)/src/k8s.io/kube-openapi
+OPENAPI_PATH=./vendor/k8s.io/kube-openapi
 
 VERSION?=latest
 GOIMAGE=golang:1.13
@@ -80,7 +80,11 @@ go-mod:
 
 verify: verify-gofmt go-mod test
 
-pkg/api/generated/openapi/zz_generated.openapi.go:
-	GO111MODULE=off go get -d k8s.io/kube-openapi || true
-	rm -rf pkg/api/generated/openapi
-	cd $(OPENAPI_PATH) && go run ./cmd/openapi-gen/openapi-gen.go --logtostderr -i k8s.io/metrics/pkg/apis/custom_metrics,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,k8s.io/metrics/pkg/apis/custom_metrics/v1beta2,k8s.io/metrics/pkg/apis/external_metrics,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,k8s.io/metrics/pkg/apis/metrics,k8s.io/metrics/pkg/apis/metrics/v1beta1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/version,k8s.io/api/core/v1 -p github.com/directxman12/k8s-prometheus-adapter/pkg/api/generated/openapi -O zz_generated.openapi -r /dev/null
+pkg/api/generated/openapi/zz_generated.openapi.go: go.mod go.sum
+	go run $(OPENAPI_PATH)/cmd/openapi-gen/openapi-gen.go --logtostderr \
+	    -i k8s.io/metrics/pkg/apis/custom_metrics,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,k8s.io/metrics/pkg/apis/custom_metrics/v1beta2,k8s.io/metrics/pkg/apis/external_metrics,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,k8s.io/metrics/pkg/apis/metrics,k8s.io/metrics/pkg/apis/metrics/v1beta1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/version,k8s.io/api/core/v1 \
+	    -h ./hack/boilerplate.go.txt \
+	    -p ./pkg/api/generated/openapi \
+	    -O zz_generated.openapi \
+	    -o ./ \
+	    -r /dev/null
