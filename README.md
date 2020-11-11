@@ -19,12 +19,14 @@ Quick Links
 
 Installation
 -------------
-If you're a helm user, a helm chart is listed on the Kubeapps Hub as [stable/prometheus-adapter](https://github.com/helm/charts/blob/master/stable/prometheus-adapter/README.md).
+If you're a helm user, a helm chart is listed on prometheus-community repository as [prometheus-community/prometheus-adapter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-adapter).
 
 To install it with the release name `my-release`, run this Helm command:
 
 ```console
-$ helm install --name my-release stable/prometheus-adapter
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+$ helm repo update
+$ helm install --name my-release prometheus-community/prometheus-adapter
 ```
 
 Configuration
