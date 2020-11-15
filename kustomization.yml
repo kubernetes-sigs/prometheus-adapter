@@ -1,0 +1,14 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+resources:
+  - deploy/manifests/custom-metrics-apiserver-auth-delegator-cluster-role-binding.yaml
+  - deploy/manifests/custom-metrics-apiserver-auth-reader-role-binding.yaml
+  - deploy/manifests/custom-metrics-apiserver-deployment.yaml
+  - deploy/manifests/custom-metrics-apiserver-resource-reader-cluster-role-binding.yaml
+  - deploy/manifests/custom-metrics-apiserver-service-account.yaml
+  - deploy/manifests/custom-metrics-apiserver-service.yaml
+  - deploy/manifests/custom-metrics-apiservice.yaml
+  - deploy/manifests/custom-metrics-cluster-role.yaml
+  - deploy/manifests/custom-metrics-config-map.yaml
+  - deploy/manifests/custom-metrics-resource-reader-cluster-role.yaml
+  - deploy/manifests/hpa-custom-metrics-cluster-role-binding.yaml
