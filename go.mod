@@ -23,7 +23,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
 	k8s.io/metrics v0.19.3
 	k8s.io/sample-apiserver v0.18.5
-	sigs.k8s.io/metrics-server v0.3.7-0.20201028092756-2a1d1385123b
+	sigs.k8s.io/metrics-server v0.4.1-0.20201126131427-ebfc64a74ae4
 )
 
 // forced by the inclusion of sigs.k8s.io/metrics-server's use of this in their go.mod

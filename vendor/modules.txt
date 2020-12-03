@@ -808,7 +808,7 @@ k8s.io/utils/trace
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.9
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
-# sigs.k8s.io/metrics-server v0.3.7-0.20201028092756-2a1d1385123b
+# sigs.k8s.io/metrics-server v0.4.1-0.20201126131427-ebfc64a74ae4
 sigs.k8s.io/metrics-server/pkg/api
 # sigs.k8s.io/structured-merge-diff/v4 v4.0.1
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
