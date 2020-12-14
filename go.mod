@@ -11,18 +11,18 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.10.0
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.19.3
-	k8s.io/apimachinery v0.19.3
-	k8s.io/apiserver v0.19.3
-	k8s.io/client-go v0.19.3
-	k8s.io/component-base v0.19.3
-	k8s.io/klog/v2 v2.3.0
-	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
-	k8s.io/metrics v0.19.3
-	k8s.io/sample-apiserver v0.18.5
+	k8s.io/api v0.20.0
+	k8s.io/apimachinery v0.20.0
+	k8s.io/apiserver v0.20.0
+	k8s.io/client-go v0.20.0
+	k8s.io/component-base v0.20.0
+	k8s.io/klog/v2 v2.4.0
+	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
+	k8s.io/metrics v0.20.0
+	k8s.io/sample-apiserver v0.20.0
 	sigs.k8s.io/metrics-server v0.4.1-0.20201126131427-ebfc64a74ae4
 )
 
