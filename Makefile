@@ -8,7 +8,7 @@ OUT_DIR?=$(PWD)/_output
 OPENAPI_PATH=./vendor/k8s.io/kube-openapi
 
 VERSION?=latest
-GOIMAGE=golang:1.13
+GOIMAGE=golang:1.15
 GO111MODULE=on
 export GO111MODULE
 
