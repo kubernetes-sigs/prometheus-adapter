@@ -62,6 +62,10 @@ type PrometheusAdapter struct {
 	PrometheusAuthConf string
 	// PrometheusCAFile points to the file containing the ca-root for connecting with Prometheus
 	PrometheusCAFile string
+	// PrometheusClientTLSCertFile points to the file containing the client TLS cert for connecting with Prometheus
+	PrometheusClientTLSCertFile string
+	// PrometheusClientTLSKeyFile points to the file containing the client TLS key for connecting with Prometheus
+	PrometheusClientTLSKeyFile string
 	// PrometheusTokenFile points to the file that contains the bearer token when connecting with Prometheus
 	PrometheusTokenFile string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
@@ -83,7 +87,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	var httpClient *http.Client
 
 	if cmd.PrometheusCAFile != "" {
-		prometheusCAClient, err := makePrometheusCAClient(cmd.PrometheusCAFile)
+		prometheusCAClient, err := makePrometheusCAClient(cmd.PrometheusCAFile, cmd.PrometheusClientTLSCertFile, cmd.PrometheusClientTLSKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -120,6 +124,10 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"kubeconfig file used to configure auth when connecting to Prometheus.")
 	cmd.Flags().StringVar(&cmd.PrometheusCAFile, "prometheus-ca-file", cmd.PrometheusCAFile,
 		"Optional CA file to use when connecting with Prometheus")
+	cmd.Flags().StringVar(&cmd.PrometheusClientTLSCertFile, "prometheus-client-tls-cert-file", cmd.PrometheusClientTLSCertFile,
+		"Optional client TLS cert file to use when connecting with Prometheus, auto-renewal is not supported")
+	cmd.Flags().StringVar(&cmd.PrometheusClientTLSKeyFile, "prometheus-client-tls-key-file", cmd.PrometheusClientTLSKeyFile,
+		"Optional client TLS key file to use when connecting with Prometheus, auto-renewal is not supported")
 	cmd.Flags().StringVar(&cmd.PrometheusTokenFile, "prometheus-token-file", cmd.PrometheusTokenFile,
 		"Optional file containing the bearer token to use when connecting with Prometheus")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
@@ -324,7 +332,7 @@ func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.
 		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 		authConf, err = loader.ClientConfig()
 		if err != nil {
-			return nil, fmt.Errorf("unable to construct  auth configuration from %q for connecting to Prometheus: %v", kubeConfigPath, err)
+			return nil, fmt.Errorf("unable to construct auth configuration from %q for connecting to Prometheus: %v", kubeConfigPath, err)
 		}
 	} else {
 		var err error
@@ -340,8 +348,8 @@ func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.
 	return &http.Client{Transport: tr}, nil
 }
 
-func makePrometheusCAClient(caFilename string) (*http.Client, error) {
-	data, err := ioutil.ReadFile(caFilename)
+func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFilePath string) (*http.Client, error) {
+	data, err := ioutil.ReadFile(caFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read prometheus-ca-file: %v", err)
 	}
@@ -349,6 +357,21 @@ func makePrometheusCAClient(caFilename string) (*http.Client, error) {
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(data) {
 		return nil, fmt.Errorf("no certs found in prometheus-ca-file")
+	}
+
+	if (tlsCertFilePath != "") && (tlsKeyFilePath != "") {
+		tlsClientCerts, err := tls.LoadX509KeyPair(tlsCertFilePath, tlsKeyFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read TLS key pair: %v", err)
+		}
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      pool,
+					Certificates: []tls.Certificate{tlsClientCerts},
+				},
+			},
+		}, nil
 	}
 
 	return &http.Client{
