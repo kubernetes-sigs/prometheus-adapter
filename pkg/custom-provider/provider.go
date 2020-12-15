@@ -78,7 +78,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interfa
 	}, lister
 }
 
-func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.NamespacedName, info provider.CustomMetricInfo) (*custom_metrics.MetricValue, error) {
+func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	ref, err := helpers.ReferenceFor(p.mapper, name, info)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,8 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 	} else {
 		q = resource.NewMilliQuantity(int64(value*1000.0), resource.DecimalSI)
 	}
-	return &custom_metrics.MetricValue{
+
+	metric := &custom_metrics.MetricValue{
 		DescribedObject: ref,
 		Metric: custom_metrics.MetricIdentifier{
 			Name: info.Metric,
@@ -98,10 +99,20 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 		// TODO(directxman12): use the right timestamp
 		Timestamp: metav1.Time{time.Now()},
 		Value:     *q,
-	}, nil
+	}
+
+	if !metricSelector.Empty() {
+		sel, err := metav1.ParseToLabelSelector(metricSelector.String())
+		if err != nil {
+			return nil, err
+		}
+		metric.Metric.Selector = sel
+	}
+
+	return metric, nil
 }
 
-func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.CustomMetricInfo, namespace string, names []string) (*custom_metrics.MetricValueList, error) {
+func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, namespace string, names []string, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	values, found := p.MatchValuesToNames(info, valueSet)
 	if !found {
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
@@ -113,7 +124,7 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, info provider.Cu
 			continue
 		}
 
-		value, err := p.metricFor(values[name], types.NamespacedName{Namespace: namespace, Name: name}, info)
+		value, err := p.metricFor(values[name], types.NamespacedName{Namespace: namespace, Name: name}, info, metricSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +186,7 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 	}
 
 	// return the resulting metric
-	return p.metricFor(resultValue, name, info)
+	return p.metricFor(resultValue, name, info, metricSelector)
 }
 
 func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
@@ -194,7 +205,7 @@ func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labe
 	}
 
 	// return the resulting metrics
-	return p.metricsFor(queryResults, info, namespace, resourceNames)
+	return p.metricsFor(queryResults, namespace, resourceNames, info, metricSelector)
 }
 
 type cachingMetricsLister struct {
