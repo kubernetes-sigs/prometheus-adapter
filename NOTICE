@@ -1,0 +1,16 @@
+When donating the k8s-prometheus-adapter project to the CNCF, we could not
+reach all the contributors to make them sign the CNCF CLA. As such, according
+to the CNCF rules to donate a repository, we must add a NOTICE referencing
+section 7 of the CLA with a list of developers who could not be reached.
+
+`7. Should You wish to submit work that is not Your original creation, You may
+submit it to the Foundation separately from any Contribution, identifying the
+complete details of its source and of any license or other restriction
+(including, but not limited to, related patents, trademarks, and license
+agreements) of which you are personally aware, and conspicuously marking the
+work as "Submitted on behalf of a third-party: [named here]".`
+
+Submitted on behalf of a third-party: Andrew "thisisamurray" Murray
+Submitted on behalf of a third-party: Duane "duane-ibm" D'Souza
+Submitted on behalf of a third-party: John "john-delivuk" Delivuk
+Submitted on behalf of a third-party: Richard "rrtaylor" Taylor
