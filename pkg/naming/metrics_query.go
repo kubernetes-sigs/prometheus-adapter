@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
 )
 
 // MetricsQuery represents a compiled metrics query for some set of

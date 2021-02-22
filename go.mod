@@ -1,4 +1,4 @@
-module github.com/directxman12/k8s-prometheus-adapter
+module github.com/kubernetes-sigs/prometheus-adapter
 
 go 1.13
 

@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
 )
 
 func TestReMatcherIs(t *testing.T) {

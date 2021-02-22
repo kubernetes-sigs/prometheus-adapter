@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
 	pmodel "github.com/prometheus/common/model"
 )
 

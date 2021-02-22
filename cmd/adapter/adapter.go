@@ -41,14 +41,14 @@ import (
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	generatedopenapi "github.com/directxman12/k8s-prometheus-adapter/pkg/api/generated/openapi"
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
-	mprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/metrics"
-	adaptercfg "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
-	cmprov "github.com/directxman12/k8s-prometheus-adapter/pkg/custom-provider"
-	extprov "github.com/directxman12/k8s-prometheus-adapter/pkg/external-provider"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
-	resprov "github.com/directxman12/k8s-prometheus-adapter/pkg/resourceprovider"
+	generatedopenapi "github.com/kubernetes-sigs/prometheus-adapter/pkg/api/generated/openapi"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	mprom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client/metrics"
+	adaptercfg "github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
+	cmprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/custom-provider"
+	extprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/external-provider"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
+	resprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/resourceprovider"
 )
 
 type PrometheusAdapter struct {
