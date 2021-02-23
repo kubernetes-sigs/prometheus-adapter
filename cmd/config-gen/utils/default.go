@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
-	. "github.com/directxman12/k8s-prometheus-adapter/pkg/config"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	. "github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
 	pmodel "github.com/prometheus/common/model"
 )
 

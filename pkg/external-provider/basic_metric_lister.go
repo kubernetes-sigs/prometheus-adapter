@@ -24,8 +24,8 @@ import (
 	pmodel "github.com/prometheus/common/model"
 	"k8s.io/klog/v2"
 
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
 )
 
 // Runnable represents something that can be run until told to stop.

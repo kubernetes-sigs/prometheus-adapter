@@ -32,9 +32,9 @@ import (
 	metrics "k8s.io/metrics/pkg/apis/metrics"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/client"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/config"
-	"github.com/directxman12/k8s-prometheus-adapter/pkg/naming"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
 	pmodel "github.com/prometheus/common/model"
 )
 

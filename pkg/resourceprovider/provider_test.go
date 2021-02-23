@@ -30,9 +30,9 @@ import (
 	"k8s.io/metrics/pkg/apis/metrics"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	config "github.com/directxman12/k8s-prometheus-adapter/cmd/config-gen/utils"
-	prom "github.com/directxman12/k8s-prometheus-adapter/pkg/client"
-	fakeprom "github.com/directxman12/k8s-prometheus-adapter/pkg/client/fake"
+	config "github.com/kubernetes-sigs/prometheus-adapter/cmd/config-gen/utils"
+	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	fakeprom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client/fake"
 	pmodel "github.com/prometheus/common/model"
 )
 
