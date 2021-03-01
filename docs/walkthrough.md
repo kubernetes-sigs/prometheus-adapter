@@ -34,7 +34,7 @@ significantly different.
 In order to follow this walkthrough, you'll need container images for
 Prometheus and the custom metrics adapter.
 
-The [Prometheus Operator](https://coreos.com/operators/prometheus/docs/latest/),
+The [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator),
 makes it easy to get up and running with Prometheus.  This walkthrough
 will assume you're planning on doing that -- if you've deployed it by hand
 instead, you'll need to make a few adjustments to the way you expose
@@ -165,8 +165,8 @@ Prometheus adapter to serve metrics out of Prometheus.
 ### Launching Prometheus
 
 First, you'll need to deploy the Prometheus Operator.  Check out the
-[getting started
-guide](https://coreos.com/operators/prometheus/docs/latest/user-guides/getting-started.html)
+[quick start
+guide](https://github.com/prometheus-operator/prometheus-operator#quickstart)
 for the Operator to deploy a copy of Prometheus.
 
 This walkthrough assumes that Prometheus is deployed in the `prom`
