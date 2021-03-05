@@ -58,6 +58,8 @@ type ResourceMapping struct {
 	// Overrides specifies exceptions to the above template, mapping label names
 	// to group-resources
 	Overrides map[string]GroupResource `json:"overrides,omitempty" yaml:"overrides,omitempty"`
+	//Namespaced ignores the source namespace of the requester and requires one in the query
+	Namespaced *bool `json:"namespaced,omitempty" yaml:"namespaced,omitempty"`
 }
 
 // GroupResource represents a Kubernetes group-resource.

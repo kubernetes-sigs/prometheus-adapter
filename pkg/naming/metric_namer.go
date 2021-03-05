@@ -102,8 +102,13 @@ type metricNamer struct {
 	nameMatches    *regexp.Regexp
 	nameAs         string
 	seriesMatchers []*ReMatcher
+	namespaced     *bool
 
 	ResourceConverter
+}
+
+func (n *metricNamer) isNamespaced() bool {
+	return (n.namespaced != nil) && *n.namespaced
 }
 
 // queryTemplateArgs are the arguments for the metrics query template.
@@ -131,8 +136,10 @@ func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResourc
 }
 
 func (n *metricNamer) QueryForExternalSeries(series string, namespace string, metricSelector labels.Selector) (prom.Selector, error) {
-	//test := prom.Selector()
-	//return test, nil
+	if !n.isNamespaced() {
+		namespace = ""
+	}
+
 	return n.metricsQuery.BuildExternal(series, namespace, "", []string{}, metricSelector)
 }
 
@@ -207,6 +214,7 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 			nameMatches:       nameMatches,
 			nameAs:            nameAs,
 			seriesMatchers:    seriesMatchers,
+			namespaced:        rule.Resources.Namespaced,
 			ResourceConverter: resConv,
 		}
 
