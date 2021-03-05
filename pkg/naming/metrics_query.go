@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 
 	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	"github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
 )
 
 // MetricsQuery represents a compiled metrics query for some set of
@@ -50,15 +51,16 @@ type MetricsQuery interface {
 // - LabelMatchersByName: the raw map-form of the above matchers
 // - GroupBy: the group-by clause to use for the resources in the query (stringified)
 // - GroupBySlice: the raw slice form of the above group-by clause
-func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) (MetricsQuery, error) {
+func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter, labelValueReplacements []config.LabelValueReplacement) (MetricsQuery, error) {
 	templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)
 	}
 
 	return &metricsQuery{
-		resConverter: resourceConverter,
-		template:     templ,
+		resConverter:           resourceConverter,
+		template:               templ,
+		labelValueReplacements: labelValueReplacements,
 	}, nil
 }
 
@@ -66,8 +68,9 @@ func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) 
 // with the delimiters as `<<` and `>>`, and the arguments found in
 // queryTemplateArgs.
 type metricsQuery struct {
-	resConverter ResourceConverter
-	template     *template.Template
+	resConverter           ResourceConverter
+	template               *template.Template
+	labelValueReplacements []config.LabelValueReplacement
 }
 
 // queryTemplateArgs contains the arguments for the template used in metricsQuery.
@@ -168,6 +171,12 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 
 	if err != nil {
 		return "", err
+	}
+
+	for _, repl := range q.labelValueReplacements {
+		for key, value := range valuesByName {
+			valuesByName[key] = strings.ReplaceAll(value, repl.Find, repl.Replace)
+		}
 	}
 
 	args := queryTemplateArgs{

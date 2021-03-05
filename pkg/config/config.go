@@ -38,6 +38,16 @@ type DiscoveryRule struct {
 	// `.GroupBy` is the comma-separated expected group-by label names. The delimeters
 	// are `<<` and `>>`.
 	MetricsQuery string `json:"metricsQuery,omitempty" yaml:"metricsQuery,omitempty"`
+	// LabelValueReplacements is a list of find/replace strings that will be run against
+	// all label values before they are sent to Prometheus. This is sometimes required
+	// when prometheus labels have values that cannot be represented in Kubernetes.
+	// for example: "#" is valid as prometheus label value but not for kubernetes
+	LabelValueReplacements []LabelValueReplacement `json:"labelValueReplacements,omitempty" yaml:"labelValueReplacements,omitempty"`
+}
+
+type LabelValueReplacement struct {
+	Find    string `json:"find,omitempty" yaml:"find,omitempty"`
+	Replace string `json:"replace,omitempty" yaml:"replace,omitempty"`
 }
 
 // RegexFilter is a filter that matches positively or negatively against a regex.

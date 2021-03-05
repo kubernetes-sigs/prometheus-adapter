@@ -97,11 +97,12 @@ func (m *ReMatcher) Matches(val string) bool {
 }
 
 type metricNamer struct {
-	seriesQuery    prom.Selector
-	metricsQuery   MetricsQuery
-	nameMatches    *regexp.Regexp
-	nameAs         string
-	seriesMatchers []*ReMatcher
+	seriesQuery       prom.Selector
+	metricsQuery      MetricsQuery
+	nameMatches       *regexp.Regexp
+	nameAs            string
+	seriesMatchers    []*ReMatcher
+	labelReplacements []config.LabelValueReplacement
 
 	ResourceConverter
 }
@@ -155,7 +156,7 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 			return nil, err
 		}
 
-		metricsQuery, err := NewMetricsQuery(rule.MetricsQuery, resConv)
+		metricsQuery, err := NewMetricsQuery(rule.MetricsQuery, resConv, rule.LabelValueReplacements)
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}

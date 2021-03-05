@@ -76,7 +76,7 @@ func checks(cs ...checkFunc) checkFunc {
 
 func TestBuildSelector(t *testing.T) {
 	mustNewQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced})
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -272,7 +272,7 @@ func TestBuildSelector(t *testing.T) {
 
 func TestBuildExternalSelector(t *testing.T) {
 	mustNewQuery := func(queryTemplate string) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true})
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
