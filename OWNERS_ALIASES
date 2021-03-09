@@ -2,6 +2,7 @@
 
 aliases:
   prometheus-adapter-approvers:
-  - s-urbaniak
+  - dgrisonnet
   - lilic
+  - s-urbaniak
   prometheus-adapter-reviewers: []
