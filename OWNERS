@@ -1,7 +1,6 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 owners:
 - dgrisonnet
-- lilic
 - s-urbaniak
 
 approvers:
@@ -14,3 +13,4 @@ reviewers:
 emeritus_approvers:
 - brancz
 - directxman12
+- lilic

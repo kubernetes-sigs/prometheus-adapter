@@ -3,6 +3,5 @@
 aliases:
   prometheus-adapter-approvers:
   - dgrisonnet
-  - lilic
   - s-urbaniak
   prometheus-adapter-reviewers: []
