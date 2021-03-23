@@ -10,16 +10,16 @@ rules:
 # can be found in pkg/config/default.go
 
 # this rule matches cumulative cAdvisor metrics measured in seconds
-- seriesQuery: '{__name__=~"^container_.*",container_name!="POD",namespace!="",pod_name!=""}'
+- seriesQuery: '{__name__=~"^container_.*",container!="POD",namespace!="",pod!=""}'
   resources:
     # skip specifying generic resource<->label mappings, and just
     # attach only pod and namespace resources by mapping label names to group-resources
     overrides:
       namespace: {resource: "namespace"},
-      pod_name: {resource: "pod"},
+      pod: {resource: "pod"},
   # specify that the `container_` and `_seconds_total` suffixes should be removed.
   # this also introduces an implicit filter on metric family names
-  name: 
+  name:
     # we use the value of the capture group implicitly as the API name
     # we could also explicitly write `as: "$1"`
     matches: "^container_(.*)_seconds_total$"
@@ -27,19 +27,19 @@ rules:
   # This is a Go template where the `.Series` and `.LabelMatchers` string values
   # are available, and the delimiters are `<<` and `>>` to avoid conflicts with
   # the prometheus query language
-  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches cumulative cAdvisor metrics not measured in seconds
-- seriesQuery: '{__name__=~"^container_.*_total",container_name!="POD",namespace!="",pod_name!=""}'
+- seriesQuery: '{__name__=~"^container_.*_total",container!="POD",namespace!="",pod!=""}'
   resources:
     overrides:
       namespace: {resource: "namespace"},
-      pod_name: {resource: "pod"},
+      pod: {resource: "pod"},
   seriesFilters:
   # since this is a superset of the query above, we introduce an additional filter here
   - isNot: "^container_.*_seconds_total$"
   name: {matches: "^container_(.*)_total$"}
-  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches cumulative non-cAdvisor metrics
 - seriesQuery: '{namespace!="",__name__!="^container_.*"}'
@@ -52,7 +52,7 @@ rules:
     # Group will be converted to a form acceptible for use as a label automatically.
     template: "<<.Resource>>"
     # if we wanted to, we could also specify overrides here
-  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
 
 # this rule matches only a single metric, explicitly naming it something else
 # It's series query *must* return only a single metric family

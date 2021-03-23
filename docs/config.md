@@ -31,13 +31,13 @@ might look like:
 ```yaml
 rules:
 # this rule matches cumulative cAdvisor metrics measured in seconds
-- seriesQuery: '{__name__=~"^container_.*",container_name!="POD",namespace!="",pod_name!=""}'
+- seriesQuery: '{__name__=~"^container_.*",container!="POD",namespace!="",pod!=""}'
   resources:
     # skip specifying generic resource<->label mappings, and just
     # attach only pod and namespace resources by mapping label names to group-resources
     overrides:
       namespace: {resource: "namespace"},
-      pod_name: {resource: "pod"},
+      pod: {resource: "pod"},
   # specify that the `container_` and `_seconds_total` suffixes should be removed.
   # this also introduces an implicit filter on metric family names
   name:
@@ -48,7 +48,7 @@ rules:
   # This is a Go template where the `.Series` and `.LabelMatchers` string values
   # are available, and the delimiters are `<<` and `>>` to avoid conflicts with
   # the prometheus query language
-  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
 ```
 
 Discovery
@@ -83,7 +83,7 @@ For example:
 
 ```yaml
 # match all cAdvisor metrics that aren't measured in seconds
-seriesQuery: '{__name__=~"^container_.*_total",container_name!="POD",namespace!="",pod_name!=""}'
+seriesQuery: '{__name__=~"^container_.*_total",container!="POD",namespace!="",pod!=""}'
 seriesFilters:
   - isNot: "^container_.*_seconds_total"
 ```
@@ -211,5 +211,5 @@ For example:
 
 ```yaml
 # convert cumulative cAdvisor metrics into rates calculated over 2 minutes
-metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[2m])) by (<<.GroupBy>>)"
+metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
 ```
