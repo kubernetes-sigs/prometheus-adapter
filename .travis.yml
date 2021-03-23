@@ -3,17 +3,9 @@ language: go
 go:
 - '1.15'
 
-# blech, Travis downloads with capitals in DirectXMan12, which confuses go
-go_import_path: github.com/kubernetes-sigs/prometheus-adapter
-
-script: make verify && git diff --exit-code
-
 sudo: required
 services:
 - docker
-
-env:
-- GO111MODULE=on
 
 deploy:
 - provider: script
