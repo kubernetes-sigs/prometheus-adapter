@@ -12,50 +12,50 @@ import (
 // DefaultConfig returns a configuration equivalent to the former
 // pre-advanced-config settings.  This means that "normal" series labels
 // will be of the form `<prefix><<.Resource>>`, cadvisor series will be
-// of the form `container_`, and have the label `pod_name`.  Any series ending
+// of the form `container_`, and have the label `pod`.  Any series ending
 // in total will be treated as a rate metric.
 func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDiscoveryConfig {
 	return &MetricsDiscoveryConfig{
 		Rules: []DiscoveryRule{
 			// container seconds rate metrics
 			{
-				SeriesQuery: string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))),
+				SeriesQuery: string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod", ""))),
 				Resources: ResourceMapping{
 					Overrides: map[string]GroupResource{
 						"namespace": {Resource: "namespace"},
-						"pod_name":  {Resource: "pod"},
+						"pod":       {Resource: "pod"},
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)_seconds_total$"},
-				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
 			},
 
 			// container rate metrics
 			{
-				SeriesQuery:   string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))),
+				SeriesQuery:   string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod", ""))),
 				SeriesFilters: []RegexFilter{{IsNot: "^container_.*_seconds_total$"}},
 				Resources: ResourceMapping{
 					Overrides: map[string]GroupResource{
 						"namespace": {Resource: "namespace"},
-						"pod_name":  {Resource: "pod"},
+						"pod":       {Resource: "pod"},
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)_total$"},
-				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
+				MetricsQuery: fmt.Sprintf(`sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[%s])) by (<<.GroupBy>>)`, pmodel.Duration(rateInterval).String()),
 			},
 
 			// container non-cumulative metrics
 			{
-				SeriesQuery:   string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container_name", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod_name", ""))),
+				SeriesQuery:   string(prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod", ""))),
 				SeriesFilters: []RegexFilter{{IsNot: "^container_.*_total$"}},
 				Resources: ResourceMapping{
 					Overrides: map[string]GroupResource{
 						"namespace": {Resource: "namespace"},
-						"pod_name":  {Resource: "pod"},
+						"pod":       {Resource: "pod"},
 					},
 				},
 				Name:         NameMapping{Matches: "^container_(.*)$"},
-				MetricsQuery: `sum(<<.Series>>{<<.LabelMatchers>>,container_name!="POD"}) by (<<.GroupBy>>)`,
+				MetricsQuery: `sum(<<.Series>>{<<.LabelMatchers>>,container!="POD"}) by (<<.GroupBy>>)`,
 			},
 
 			// normal non-cumulative metrics
@@ -97,11 +97,11 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				Resources: ResourceMapping{
 					Overrides: map[string]GroupResource{
 						"namespace": {Resource: "namespace"},
-						"pod_name":  {Resource: "pod"},
+						"pod":       {Resource: "pod"},
 						"instance":  {Resource: "node"},
 					},
 				},
-				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
+				ContainerLabel: fmt.Sprintf("%scontainer", labelPrefix),
 			},
 			Memory: ResourceRule{
 				ContainerQuery: "sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)",
@@ -109,11 +109,11 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *MetricsDisco
 				Resources: ResourceMapping{
 					Overrides: map[string]GroupResource{
 						"namespace": {Resource: "namespace"},
-						"pod_name":  {Resource: "pod"},
+						"pod":       {Resource: "pod"},
 						"instance":  {Resource: "node"},
 					},
 				},
-				ContainerLabel: fmt.Sprintf("%scontainer_name", labelPrefix),
+				ContainerLabel: fmt.Sprintf("%scontainer", labelPrefix),
 			},
 			Window: pmodel.Duration(rateInterval),
 		},
