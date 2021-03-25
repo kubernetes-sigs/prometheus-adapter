@@ -65,7 +65,7 @@ vendor:
 	go mod vendor
 
 test:
-	CGO_ENABLED=0 go test ./pkg/...
+	CGO_ENABLED=0 go test ./cmd/... ./pkg/...
 
 verify-gofmt:
 	./hack/gofmt-all.sh -v
