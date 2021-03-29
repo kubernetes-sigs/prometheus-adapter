@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/wait"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/rest"
@@ -280,8 +279,11 @@ func main() {
 		klog.Fatalf("unable to load metrics discovery config: %v", err)
 	}
 
+	// stop channel closed on SIGTERM and SIGINT
+	stopCh := genericapiserver.SetupSignalHandler()
+
 	// construct the provider
-	cmProvider, err := cmd.makeProvider(promClient, wait.NeverStop)
+	cmProvider, err := cmd.makeProvider(promClient, stopCh)
 	if err != nil {
 		klog.Fatalf("unable to construct custom metrics provider: %v", err)
 	}
@@ -292,7 +294,7 @@ func main() {
 	}
 
 	// construct the external provider
-	emProvider, err := cmd.makeExternalProvider(promClient, wait.NeverStop)
+	emProvider, err := cmd.makeExternalProvider(promClient, stopCh)
 	if err != nil {
 		klog.Fatalf("unable to construct external metrics provider: %v", err)
 	}
@@ -308,7 +310,7 @@ func main() {
 	}
 
 	// run the server
-	if err := cmd.Run(wait.NeverStop); err != nil {
+	if err := cmd.Run(stopCh); err != nil {
 		klog.Fatalf("unable to run custom metrics adapter: %v", err)
 	}
 }
