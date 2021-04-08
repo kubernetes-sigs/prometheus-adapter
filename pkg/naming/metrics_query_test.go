@@ -76,7 +76,15 @@ func checks(cs ...checkFunc) checkFunc {
 
 func TestBuildSelector(t *testing.T) {
 	mustNewQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced})
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced}, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mq
+	}
+
+	mustNewNonNamespacedQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -205,6 +213,21 @@ func TestBuildSelector(t *testing.T) {
 		},
 
 		{
+			name: "multiple LabelValuesByName values with namespace disabled",
+
+			mq:             mustNewNonNamespacedQuery(`<<index .LabelValuesByName "namespaces">> <<index .LabelValuesByName "resource">>`, true),
+			metricSelector: labels.NewSelector(),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
+			namespace:      "default",
+			names:          []string{"bar", "baz"},
+
+			check: checks(
+				hasError(nil),
+				hasSelector(" bar|baz"),
+			),
+		},
+
+		{
 			name: "single GroupBy value",
 
 			mq:             mustNewQuery(`<<.GroupBy>>`, false),
@@ -272,7 +295,15 @@ func TestBuildSelector(t *testing.T) {
 
 func TestBuildExternalSelector(t *testing.T) {
 	mustNewQuery := func(queryTemplate string) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true})
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true}, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mq
+	}
+
+	mustNewNonNamespacedQuery := func(queryTemplate string) MetricsQuery {
+		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{true}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -346,6 +377,19 @@ func TestBuildExternalSelector(t *testing.T) {
 			check: checks(
 				hasError(nil),
 				hasSelector("default [foo bar]"),
+			),
+		},
+		{
+			name: "multiple GroupBySlice values with namespace disabled",
+
+			mq:             mustNewNonNamespacedQuery(`<<index .LabelValuesByName "namespaces">> <<.GroupBySlice>>`),
+			namespace:      "default",
+			groupBySlice:   []string{"foo", "bar"},
+			metricSelector: labels.NewSelector(),
+
+			check: checks(
+				hasError(nil),
+				hasSelector(" [foo bar]"),
 			),
 		},
 		{

@@ -50,7 +50,7 @@ type MetricsQuery interface {
 // - LabelMatchersByName: the raw map-form of the above matchers
 // - GroupBy: the group-by clause to use for the resources in the query (stringified)
 // - GroupBySlice: the raw slice form of the above group-by clause
-func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) (MetricsQuery, error) {
+func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter, namespaced bool) (MetricsQuery, error) {
 	templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)
@@ -59,6 +59,7 @@ func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) 
 	return &metricsQuery{
 		resConverter: resourceConverter,
 		template:     templ,
+		namespaced:   namespaced,
 	}, nil
 }
 
@@ -68,6 +69,7 @@ func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) 
 type metricsQuery struct {
 	resConverter ResourceConverter
 	template     *template.Template
+	namespaced   bool
 }
 
 // queryTemplateArgs contains the arguments for the template used in metricsQuery.
@@ -88,7 +90,7 @@ type queryPart struct {
 func (q *metricsQuery) Build(series string, resource schema.GroupResource, namespace string, extraGroupBy []string, metricSelector labels.Selector, names ...string) (prom.Selector, error) {
 	queryParts := q.createQueryPartsFromSelector(metricSelector)
 
-	if namespace != "" {
+	if q.namespaced && namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err
@@ -150,7 +152,7 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 	// Build up the query parts from the selector.
 	queryParts = append(queryParts, q.createQueryPartsFromSelector(metricSelector)...)
 
-	if namespace != "" {
+	if q.namespaced && namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err

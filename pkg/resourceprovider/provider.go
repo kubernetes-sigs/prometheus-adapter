@@ -54,11 +54,11 @@ func newResourceQuery(cfg config.ResourceRule, mapper apimeta.RESTMapper) (resou
 		return resourceQuery{}, fmt.Errorf("unable to construct label-resource converter: %v", err)
 	}
 
-	contQuery, err := naming.NewMetricsQuery(cfg.ContainerQuery, converter)
+	contQuery, err := naming.NewMetricsQuery(cfg.ContainerQuery, converter, true)
 	if err != nil {
 		return resourceQuery{}, fmt.Errorf("unable to construct container metrics query: %v", err)
 	}
-	nodeQuery, err := naming.NewMetricsQuery(cfg.NodeQuery, converter)
+	nodeQuery, err := naming.NewMetricsQuery(cfg.NodeQuery, converter, true)
 	if err != nil {
 		return resourceQuery{}, fmt.Errorf("unable to construct node metrics query: %v", err)
 	}
