@@ -83,14 +83,6 @@ func TestBuildSelector(t *testing.T) {
 		return mq
 	}
 
-	mustNewNonNamespacedQuery := func(queryTemplate string, namespaced bool) MetricsQuery {
-		mq, err := NewMetricsQuery(queryTemplate, &resourceConverterMock{namespaced}, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return mq
-	}
-
 	mustNewLabelRequirement := func(key string, op selection.Operator, vals []string) *labels.Requirement {
 		req, err := labels.NewRequirement(key, op, vals)
 		if err != nil {
@@ -209,21 +201,6 @@ func TestBuildSelector(t *testing.T) {
 			check: checks(
 				hasError(nil),
 				hasSelector("default bar|baz"),
-			),
-		},
-
-		{
-			name: "multiple LabelValuesByName values with namespace disabled",
-
-			mq:             mustNewNonNamespacedQuery(`<<index .LabelValuesByName "namespaces">> <<index .LabelValuesByName "resource">>`, true),
-			metricSelector: labels.NewSelector(),
-			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
-			namespace:      "default",
-			names:          []string{"bar", "baz"},
-
-			check: checks(
-				hasError(nil),
-				hasSelector(" bar|baz"),
 			),
 		},
 
