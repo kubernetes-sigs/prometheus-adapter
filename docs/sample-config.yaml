@@ -76,7 +76,8 @@ external:
   # but you can explicitly disable namespaces if needed with "namespaced: false"
   # this is useful if you have an HPA with an external metric in namespace A
   # but want to query for metrics from namespace B
-  namespaced: false
+  resources:
+    namespaced: false
 
 # TODO: should we be able to map to a constant instance of a resource
 # (e.g. `resources: {constant: [{resource: "namespace", name: "kube-system"}}]`)?

@@ -90,7 +90,7 @@ type queryPart struct {
 func (q *metricsQuery) Build(series string, resource schema.GroupResource, namespace string, extraGroupBy []string, metricSelector labels.Selector, names ...string) (prom.Selector, error) {
 	queryParts := q.createQueryPartsFromSelector(metricSelector)
 
-	if q.namespaced && namespace != "" {
+	if namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err

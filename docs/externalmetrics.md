@@ -1,7 +1,7 @@
 External Metrics
 ===========
 
-It's possible to configure [Autoscaling on metrics not related to Kubernetes objects](Autoscaling on metrics not related to Kubernetes objects) in Kubernetes. This is done with a special `External Metrics` system. Using external metrics in Kubernetes with the adapter requires you to configure special `external` rules in the configuration.
+It's possible to configure [Autoscaling on metrics not related to Kubernetes objects](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-metrics-not-related-to-kubernetes-objects) in Kubernetes. This is done with a special `External Metrics` system. Using external metrics in Kubernetes with the adapter requires you to configure special `external` rules in the configuration.
 
 The configuration for `external` metrics rules is almost identical to the normal `rules`:
 
@@ -33,7 +33,7 @@ possible with `external` rules because the `namespace` label is set to match tha
 
 However, you can explicitly disable the automatic add of the HPA namepace to the query, and instead opt to not set a namespace at all, or to target a different namespace.
 
-This is done by setting `namespaced: false` the `resources` section of the `external` rule:
+This is done by setting `namespaced: false` in the `resources` section of the `external` rule:
 
 ```yaml
 # rules: ...
