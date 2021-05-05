@@ -119,10 +119,13 @@ type nsQueryResults struct {
 	err       error
 }
 
-// GetPodMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
+// GetPodMetrics implements the api.MetricsProvider interface.
 func (p *resourceProvider) GetPodMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics, error) {
+	resTimes := make([]api.TimeInfo, len(pods))
+	resMetrics := make([][]metrics.ContainerMetrics, len(pods))
+
 	if len(pods) == 0 {
-		return nil, nil, nil
+		return resTimes, resMetrics, nil
 	}
 
 	// TODO(directxman12): figure out how well this scales if we go to list 1000+ pods
@@ -162,8 +165,6 @@ func (p *resourceProvider) GetPodMetrics(pods ...apitypes.NamespacedName) ([]api
 
 	// convert the unorganized per-container results into results grouped
 	// together by namespace, pod, and container
-	resTimes := make([]api.TimeInfo, len(pods))
-	resMetrics := make([][]metrics.ContainerMetrics, len(pods))
 	for i, pod := range pods {
 		p.assignForPod(pod, resultsByNs, &resMetrics[i], &resTimes[i])
 	}
@@ -251,10 +252,13 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 	*resMetrics = containerMetricsList
 }
 
-// GetNodeMetrics implements the api.MetricsProvider interface. It may return nil, nil.
+// GetNodeMetrics implements the api.MetricsProvider interface.
 func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList, error) {
+	resTimes := make([]api.TimeInfo, len(nodes))
+	resMetrics := make([]corev1.ResourceList, len(nodes))
+
 	if len(nodes) == 0 {
-		return nil, nil, nil
+		return resTimes, resMetrics, nil
 	}
 
 	now := pmodel.Now()
@@ -263,11 +267,8 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []co
 	qRes := p.queryBoth(now, nodeResource, "", nodes...)
 	if qRes.err != nil {
 		klog.Errorf("failed querying node metrics: %v", qRes.err)
-		return nil, nil, nil
+		return resTimes, resMetrics, nil
 	}
-
-	resTimes := make([]api.TimeInfo, len(nodes))
-	resMetrics := make([]corev1.ResourceList, len(nodes))
 
 	// organize the results
 	for i, nodeName := range nodes {
