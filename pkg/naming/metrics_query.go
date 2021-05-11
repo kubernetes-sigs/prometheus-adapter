@@ -50,7 +50,27 @@ type MetricsQuery interface {
 // - LabelMatchersByName: the raw map-form of the above matchers
 // - GroupBy: the group-by clause to use for the resources in the query (stringified)
 // - GroupBySlice: the raw slice form of the above group-by clause
-func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter, namespaced bool) (MetricsQuery, error) {
+func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) (MetricsQuery, error) {
+	templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)
+	}
+
+	return &metricsQuery{
+		resConverter: resourceConverter,
+		template:     templ,
+		namespaced:   true,
+	}, nil
+}
+
+// NewExternalMetricsQuery constructs a new MetricsQuery by compiling the given Go template.
+// The delimiters on the template are `<<` and `>>`, and it may use the following fields:
+// - Series: the series in question
+// - LabelMatchers: a pre-stringified form of the label matchers for the resources in the query
+// - LabelMatchersByName: the raw map-form of the above matchers
+// - GroupBy: the group-by clause to use for the resources in the query (stringified)
+// - GroupBySlice: the raw slice form of the above group-by clause
+func NewExternalMetricsQuery(queryTemplate string, resourceConverter ResourceConverter, namespaced bool) (MetricsQuery, error) {
 	templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)

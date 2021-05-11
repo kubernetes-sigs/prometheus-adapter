@@ -159,7 +159,7 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 			namespaced = *rule.Resources.Namespaced
 		}
 
-		metricsQuery, err := NewMetricsQuery(rule.MetricsQuery, resConv, namespaced)
+		metricsQuery, err := NewExternalMetricsQuery(rule.MetricsQuery, resConv, namespaced)
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}
