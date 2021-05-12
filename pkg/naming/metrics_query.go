@@ -59,6 +59,27 @@ func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) 
 	return &metricsQuery{
 		resConverter: resourceConverter,
 		template:     templ,
+		namespaced:   true,
+	}, nil
+}
+
+// NewExternalMetricsQuery constructs a new MetricsQuery by compiling the given Go template.
+// The delimiters on the template are `<<` and `>>`, and it may use the following fields:
+// - Series: the series in question
+// - LabelMatchers: a pre-stringified form of the label matchers for the resources in the query
+// - LabelMatchersByName: the raw map-form of the above matchers
+// - GroupBy: the group-by clause to use for the resources in the query (stringified)
+// - GroupBySlice: the raw slice form of the above group-by clause
+func NewExternalMetricsQuery(queryTemplate string, resourceConverter ResourceConverter, namespaced bool) (MetricsQuery, error) {
+	templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)
+	}
+
+	return &metricsQuery{
+		resConverter: resourceConverter,
+		template:     templ,
+		namespaced:   namespaced,
 	}, nil
 }
 
@@ -68,6 +89,7 @@ func NewMetricsQuery(queryTemplate string, resourceConverter ResourceConverter) 
 type metricsQuery struct {
 	resConverter ResourceConverter
 	template     *template.Template
+	namespaced   bool
 }
 
 // queryTemplateArgs contains the arguments for the template used in metricsQuery.
@@ -150,7 +172,7 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 	// Build up the query parts from the selector.
 	queryParts = append(queryParts, q.createQueryPartsFromSelector(metricSelector)...)
 
-	if namespace != "" {
+	if q.namespaced && namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err

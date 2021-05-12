@@ -131,8 +131,6 @@ func (n *metricNamer) QueryForSeries(series string, resource schema.GroupResourc
 }
 
 func (n *metricNamer) QueryForExternalSeries(series string, namespace string, metricSelector labels.Selector) (prom.Selector, error) {
-	//test := prom.Selector()
-	//return test, nil
 	return n.metricsQuery.BuildExternal(series, namespace, "", []string{}, metricSelector)
 }
 
@@ -155,7 +153,13 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 			return nil, err
 		}
 
-		metricsQuery, err := NewMetricsQuery(rule.MetricsQuery, resConv)
+		// queries are namespaced by default unless the rule specifically disables it
+		namespaced := true
+		if rule.Resources.Namespaced != nil {
+			namespaced = *rule.Resources.Namespaced
+		}
+
+		metricsQuery, err := NewExternalMetricsQuery(rule.MetricsQuery, resConv, namespaced)
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}

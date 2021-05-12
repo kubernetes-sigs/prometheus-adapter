@@ -65,5 +65,19 @@ rules:
       brand: {group: "cheese.io", resource: "brand"}
   metricQuery: 'count(cheddar{sharp="true"})'
 
+# external rules are not tied to a Kubernetes resource and can reference any metric
+# https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-metrics-not-related-to-kubernetes-objects
+external:
+- seriesQuery: '{__name__="queue_consumer_lag",name!=""}'
+  metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (name)
+- seriesQuery: '{__name__="queue_depth",topic!=""}'
+  metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (name)
+  # Kubernetes metric queries include a namespace in the query by default
+  # but you can explicitly disable namespaces if needed with "namespaced: false"
+  # this is useful if you have an HPA with an external metric in namespace A
+  # but want to query for metrics from namespace B
+  resources:
+    namespaced: false
+
 # TODO: should we be able to map to a constant instance of a resource
 # (e.g. `resources: {constant: [{resource: "namespace", name: "kube-system"}}]`)?
