@@ -58,10 +58,6 @@ push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
 	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
 	chmod +x manifest-tool
 
-vendor:
-	go mod tidy
-	go mod vendor
-
 test:
 	CGO_ENABLED=0 go test ./cmd/... ./pkg/...
 
@@ -71,15 +67,19 @@ verify-gofmt:
 gofmt:
 	./hack/gofmt-all.sh
 
-go-mod:
-	go mod tidy
-	go mod vendor
-	go mod verify
-
-verify: verify-gofmt verify-generated test
+verify: verify-gofmt verify-deps verify-generated test
 
 .PHONY: update
 update: update-generated
+
+# Dependencies
+# ------------
+
+.PHONY: verify-deps
+verify-deps:
+	go mod verify
+	go mod tidy
+	@git diff --exit-code -- go.mod go.sum
 
 # Generated
 # ---------
