@@ -146,7 +146,8 @@ var _ = Describe("Resource Metrics Provider", func() {
 		}
 
 		By("querying for metrics for some pods")
-		times, metricVals := prov.GetContainerMetrics(pods...)
+		times, metricVals, err := prov.GetPodMetrics(pods...)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("verifying that the reported times for each are the earliest times for each pod")
 		Expect(times).To(Equal([]api.TimeInfo{
@@ -184,10 +185,11 @@ var _ = Describe("Resource Metrics Provider", func() {
 		}
 
 		By("querying for metrics for some pods, one of which is missing")
-		times, metricVals := prov.GetContainerMetrics(
+		times, metricVals, err := prov.GetPodMetrics(
 			types.NamespacedName{Namespace: "some-ns", Name: "pod1"},
 			types.NamespacedName{Namespace: "some-ns", Name: "pod-nonexistant"},
 		)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("verifying that the missing pod had nil metrics")
 		Expect(metricVals).To(HaveLen(2))
@@ -214,7 +216,8 @@ var _ = Describe("Resource Metrics Provider", func() {
 			),
 		}
 		By("querying for metrics for some nodes")
-		times, metricVals := prov.GetNodeMetrics("node1", "node2")
+		times, metricVals, err := prov.GetNodeMetrics("node1", "node2")
+		Expect(err).NotTo(HaveOccurred())
 
 		By("verifying that the reported times for each are the earliest times for each pod")
 		Expect(times).To(Equal([]api.TimeInfo{
@@ -241,7 +244,8 @@ var _ = Describe("Resource Metrics Provider", func() {
 			),
 		}
 		By("querying for metrics for some nodes, one of which is missing")
-		times, metricVals := prov.GetNodeMetrics("node1", "node2", "node3")
+		times, metricVals, err := prov.GetNodeMetrics("node1", "node2", "node3")
+		Expect(err).NotTo(HaveOccurred())
 
 		By("verifying that the missing pod had nil metrics")
 		Expect(metricVals).To(HaveLen(3))

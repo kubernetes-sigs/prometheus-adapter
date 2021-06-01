@@ -235,7 +235,7 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return err
 	}
 
-	if err := api.Install(provider, informers.Core().V1(), server.GenericAPIServer); err != nil {
+	if err := api.Install(provider, informers.Core().V1().Pods().Lister(), informers.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
 		return err
 	}
 

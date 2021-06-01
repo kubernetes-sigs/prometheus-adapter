@@ -119,10 +119,10 @@ type nsQueryResults struct {
 	err       error
 }
 
-// GetContainerMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
-func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics) {
+// GetPodMetrics implements the api.MetricsProvider interface. It may return nil, nil, nil.
+func (p *resourceProvider) GetPodMetrics(pods ...apitypes.NamespacedName) ([]api.TimeInfo, [][]metrics.ContainerMetrics, error) {
 	if len(pods) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// TODO(directxman12): figure out how well this scales if we go to list 1000+ pods
@@ -168,7 +168,7 @@ func (p *resourceProvider) GetContainerMetrics(pods ...apitypes.NamespacedName) 
 		p.assignForPod(pod, resultsByNs, &resMetrics[i], &resTimes[i])
 	}
 
-	return resTimes, resMetrics
+	return resTimes, resMetrics, nil
 }
 
 // assignForPod takes the resource metrics for all containers in the given pod
@@ -252,9 +252,9 @@ func (p *resourceProvider) assignForPod(pod apitypes.NamespacedName, resultsByNs
 }
 
 // GetNodeMetrics implements the api.MetricsProvider interface. It may return nil, nil.
-func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList) {
+func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []corev1.ResourceList, error) {
 	if len(nodes) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	now := pmodel.Now()
@@ -263,7 +263,7 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []co
 	qRes := p.queryBoth(now, nodeResource, "", nodes...)
 	if qRes.err != nil {
 		klog.Errorf("failed querying node metrics: %v", qRes.err)
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	resTimes := make([]api.TimeInfo, len(nodes))
@@ -307,7 +307,7 @@ func (p *resourceProvider) GetNodeMetrics(nodes ...string) ([]api.TimeInfo, []co
 		}
 	}
 
-	return resTimes, resMetrics
+	return resTimes, resMetrics, nil
 }
 
 // queryBoth queries for both CPU and memory metrics on the given
