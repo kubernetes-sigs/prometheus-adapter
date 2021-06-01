@@ -1,4 +1,4 @@
 *.swp
 *~
-_output
-deploy/adapter
+/_output
+/vendor
