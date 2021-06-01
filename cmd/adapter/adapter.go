@@ -30,8 +30,12 @@ import (
 	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
@@ -226,7 +230,21 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return fmt.Errorf("unable to construct resource metrics API provider: %v", err)
 	}
 
-	informers, err := cmd.Informers()
+	rest, err := cmd.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	client, err := kubernetes.NewForConfig(rest)
+	if err != nil {
+		return err
+	}
+
+	podInformer := informers.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
+		options.FieldSelector = "status.phase=Running"
+	})
+
+	informer, err := cmd.Informers()
 	if err != nil {
 		return err
 	}
@@ -236,7 +254,7 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return err
 	}
 
-	if err := api.Install(provider, informers.Core().V1().Pods().Lister(), informers.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
+	if err := api.Install(provider, podInformer.Core().V1().Pods().Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
 		return err
 	}
 
