@@ -17,7 +17,8 @@ import (
 	"testing"
 	"time"
 
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+
 	"github.com/stretchr/testify/require"
 )
 

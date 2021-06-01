@@ -31,9 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 
-	config "github.com/kubernetes-sigs/prometheus-adapter/cmd/config-gen/utils"
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
+	config "sigs.k8s.io/prometheus-adapter/cmd/config-gen/utils"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
 )
 
 // restMapper creates a RESTMapper with just the types we need for

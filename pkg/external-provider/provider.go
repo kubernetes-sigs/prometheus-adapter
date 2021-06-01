@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/metrics/pkg/apis/external_metrics"
 
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
 )
 
 type externalPrometheusProvider struct {

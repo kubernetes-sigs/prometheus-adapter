@@ -19,8 +19,6 @@ package resourceprovider
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -28,11 +26,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/metrics"
+
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	config "github.com/kubernetes-sigs/prometheus-adapter/cmd/config-gen/utils"
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	fakeprom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client/fake"
+	config "sigs.k8s.io/prometheus-adapter/cmd/config-gen/utils"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	fakeprom "sigs.k8s.io/prometheus-adapter/pkg/client/fake"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	pmodel "github.com/prometheus/common/model"
 )
 

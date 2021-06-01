@@ -20,14 +20,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
-
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
-	pmodel "github.com/prometheus/common/model"
 	"k8s.io/klog/v2"
+
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
+
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	pmodel "github.com/prometheus/common/model"
 )
 
 // NB: container metrics sourced from cAdvisor don't consistently follow naming conventions,

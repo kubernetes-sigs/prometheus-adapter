@@ -19,16 +19,17 @@ package provider
 import (
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakedyn "k8s.io/client-go/dynamic/fake"
 
-	config "github.com/kubernetes-sigs/prometheus-adapter/cmd/config-gen/utils"
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	fakeprom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client/fake"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
+	config "sigs.k8s.io/prometheus-adapter/cmd/config-gen/utils"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	fakeprom "sigs.k8s.io/prometheus-adapter/pkg/client/fake"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
+
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	pmodel "github.com/prometheus/common/model"
 )
 

@@ -30,11 +30,13 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	metrics "k8s.io/metrics/pkg/apis/metrics"
+
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
+	"sigs.k8s.io/prometheus-adapter/pkg/client"
+	"sigs.k8s.io/prometheus-adapter/pkg/config"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
+
 	pmodel "github.com/prometheus/common/model"
 )
 

@@ -27,6 +27,9 @@ import (
 	"os"
 	"time"
 
+	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/rest"
@@ -36,18 +39,16 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/sample-apiserver/pkg/apiserver"
 
-	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
-	generatedopenapi "github.com/kubernetes-sigs/prometheus-adapter/pkg/api/generated/openapi"
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	mprom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client/metrics"
-	adaptercfg "github.com/kubernetes-sigs/prometheus-adapter/pkg/config"
-	cmprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/custom-provider"
-	extprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/external-provider"
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/naming"
-	resprov "github.com/kubernetes-sigs/prometheus-adapter/pkg/resourceprovider"
+	generatedopenapi "sigs.k8s.io/prometheus-adapter/pkg/api/generated/openapi"
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+	mprom "sigs.k8s.io/prometheus-adapter/pkg/client/metrics"
+	adaptercfg "sigs.k8s.io/prometheus-adapter/pkg/config"
+	cmprov "sigs.k8s.io/prometheus-adapter/pkg/custom-provider"
+	extprov "sigs.k8s.io/prometheus-adapter/pkg/external-provider"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
+	resprov "sigs.k8s.io/prometheus-adapter/pkg/resourceprovider"
 )
 
 type PrometheusAdapter struct {

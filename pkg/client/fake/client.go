@@ -20,8 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
 	pmodel "github.com/prometheus/common/model"
+
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
 )
 
 // FakePrometheusClient is a fake instance of prom.Client

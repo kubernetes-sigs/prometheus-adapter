@@ -17,12 +17,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	"github.com/prometheus/common/model"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+
+	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	"github.com/prometheus/common/model"
 )
 
 // MetricConverter provides a unified interface for converting the results of

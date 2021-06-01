@@ -1,4 +1,4 @@
-module github.com/kubernetes-sigs/prometheus-adapter
+module sigs.k8s.io/prometheus-adapter
 
 go 1.16
 

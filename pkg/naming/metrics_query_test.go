@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"testing"
 
-	prom "github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
-	pmodel "github.com/prometheus/common/model"
 	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+
+	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
+
+	pmodel "github.com/prometheus/common/model"
 )
 
 type resourceConverterMock struct {
