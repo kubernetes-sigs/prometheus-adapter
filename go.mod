@@ -23,6 +23,3 @@ require (
 	k8s.io/sample-apiserver v0.21.1
 	sigs.k8s.io/metrics-server v0.5.0
 )
-
-// forced by the inclusion of sigs.k8s.io/metrics-server's use of this in their go.mod
-replace k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1 => ./localvendor/k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1
