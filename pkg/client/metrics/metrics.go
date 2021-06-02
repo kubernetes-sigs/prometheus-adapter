@@ -22,7 +22,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/kubernetes-sigs/prometheus-adapter/pkg/client"
+	"sigs.k8s.io/prometheus-adapter/pkg/client"
 )
 
 var (
