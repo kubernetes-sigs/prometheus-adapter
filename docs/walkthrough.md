@@ -46,8 +46,7 @@ an x86_64 machine, use the `directxman12/k8s-prometheus-adapter-amd64`
 image.
 
 If you're feeling adventurous, you can build the latest version of the
-custom metrics adapter by running `make docker-build` or `make
-build-local-image`.
+custom metrics adapter by running `make docker-build`.
 
 Special thanks to [@luxas](https://github.com/luxas) for providing the
 demo application for this walkthrough.
