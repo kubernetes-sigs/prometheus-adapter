@@ -4,7 +4,7 @@ ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 
-VERSION?=latest
+TAG?=latest
 GOIMAGE=golang:1.16
 
 ifeq ($(ARCH),amd64)
@@ -35,16 +35,16 @@ prometheus-adapter: $(src_deps)
 
 .PHONY: docker-build
 docker-build:
-	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(VERSION) --build-arg ARCH=$(ARCH) --build-arg BASEIMAGE=$(BASEIMAGE) --build-arg GOIMAGE=$(GOIMAGE) .
+	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(TAG) --build-arg ARCH=$(ARCH) --build-arg BASEIMAGE=$(BASEIMAGE) --build-arg GOIMAGE=$(GOIMAGE) .
 
 .PHONY: push-%
 push-%:
 	$(MAKE) ARCH=$* docker-build
-	docker push $(REGISTRY)/$(IMAGE)-$*:$(VERSION)
+	docker push $(REGISTRY)/$(IMAGE)-$*:$(TAG)
 
 .PHONY: push
 push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
-	./manifest-tool push from-args --platforms $(ML_PLATFORMS) --template $(REGISTRY)/$(IMAGE)-ARCH:$(VERSION) --target $(REGISTRY)/$(IMAGE):$(VERSION)
+	./manifest-tool push from-args --platforms $(ML_PLATFORMS) --template $(REGISTRY)/$(IMAGE)-ARCH:$(TAG) --target $(REGISTRY)/$(IMAGE):$(TAG)
 
 ./manifest-tool:
 	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
