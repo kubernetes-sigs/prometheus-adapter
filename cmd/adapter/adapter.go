@@ -214,7 +214,7 @@ func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopC
 	return emProvider, nil
 }
 
-func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) error {
+func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stopCh <-chan struct{}) error {
 	if cmd.metricsConfig.ResourceRules == nil {
 		// bail if we don't have rules for setting things up
 		return nil
@@ -240,9 +240,10 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return err
 	}
 
-	podInformer := informers.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
+	podInformerFactory := informers.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
 		options.FieldSelector = "status.phase=Running"
 	})
+	podInformer := podInformerFactory.Core().V1().Pods()
 
 	informer, err := cmd.Informers()
 	if err != nil {
@@ -254,9 +255,11 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client) erro
 		return err
 	}
 
-	if err := api.Install(provider, podInformer.Core().V1().Pods().Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
+	if err := api.Install(provider, podInformer.Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
 		return err
 	}
+
+	go podInformer.Informer().Run(stopCh)
 
 	return nil
 }
@@ -324,7 +327,7 @@ func main() {
 	}
 
 	// attach resource metrics support, if it's needed
-	if err := cmd.addResourceMetricsAPI(promClient); err != nil {
+	if err := cmd.addResourceMetricsAPI(promClient, stopCh); err != nil {
 		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
 
