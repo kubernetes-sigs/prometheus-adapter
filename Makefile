@@ -2,26 +2,12 @@ REGISTRY?=directxman12
 IMAGE?=k8s-prometheus-adapter
 ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
-ML_PLATFORMS=linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x
 
-TAG?=latest
-GOIMAGE=golang:1.16
+VERSION=$(shell cat VERSION)
+TAG_PREFIX=v
+TAG?=$(TAG_PREFIX)$(VERSION)
 
-ifeq ($(ARCH),amd64)
-	BASEIMAGE?=busybox
-endif
-ifeq ($(ARCH),arm)
-	BASEIMAGE?=armhf/busybox
-endif
-ifeq ($(ARCH),arm64)
-	BASEIMAGE?=aarch64/busybox
-endif
-ifeq ($(ARCH),ppc64le)
-	BASEIMAGE?=ppc64le/busybox
-endif
-ifeq ($(ARCH),s390x)
-	BASEIMAGE?=s390x/busybox
-endif
+GO_VERSION?=1.16.4
 
 .PHONY: all
 all: prometheus-adapter
@@ -29,30 +15,55 @@ all: prometheus-adapter
 # Build
 # -----
 
-src_deps=$(shell find pkg cmd -type f -name "*.go")
-prometheus-adapter: $(src_deps)
+SRC_DEPS=$(shell find pkg cmd -type f -name "*.go")
+
+prometheus-adapter: $(SRC_DEPS)
 	CGO_ENABLED=0 GOARCH=$(ARCH) go build sigs.k8s.io/prometheus-adapter/cmd/adapter
 
-.PHONY: docker-build
-docker-build:
-	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(TAG) --build-arg ARCH=$(ARCH) --build-arg BASEIMAGE=$(BASEIMAGE) --build-arg GOIMAGE=$(GOIMAGE) .
+.PHONY: container
+container:
+	docker build -t $(REGISTRY)/$(IMAGE)-$(ARCH):$(TAG) --build-arg ARCH=$(ARCH) --build-arg GO_VERSION=$(GO_VERSION) .
 
-.PHONY: push-%
-push-%:
-	$(MAKE) ARCH=$* docker-build
-	docker push $(REGISTRY)/$(IMAGE)-$*:$(TAG)
+# Container push
+# --------------
+
+PUSH_ARCH_TARGETS=$(addprefix push-,$(ALL_ARCH))
 
 .PHONY: push
-push: ./manifest-tool $(addprefix push-,$(ALL_ARCH))
-	./manifest-tool push from-args --platforms $(ML_PLATFORMS) --template $(REGISTRY)/$(IMAGE)-ARCH:$(TAG) --target $(REGISTRY)/$(IMAGE):$(TAG)
+push: container
+	docker push $(REGISTRY)/$(IMAGE)-$(ARCH):$(TAG)
 
-./manifest-tool:
-	curl -sSL https://github.com/estesp/manifest-tool/releases/download/v0.5.0/manifest-tool-linux-amd64 > manifest-tool
-	chmod +x manifest-tool
+push-all: $(PUSH_ARCH_TARGETS) push-multi-arch;
+
+.PHONY: $(PUSH_ARCH_TARGETS)
+$(PUSH_ARCH_TARGETS): push-%:
+	ARCH=$* $(MAKE) push
+
+.PHONY: push-multi-arch
+push-multi-arch:
+	@export DOCKER_CLI_EXPERIMENTAL=enabled
+	docker manifest create --amend $(REGISTRY)/$(IMAGE):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(IMAGE)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} $(REGISTRY)/$(IMAGE):$(TAG) $(REGISTRY)/$(IMAGE)-$${arch}:$(TAG); done
+	docker manifest push --purge $(REGISTRY)/$(IMAGE):$(TAG)
+
+# Test
+# ----
 
 .PHONY: test
 test:
 	CGO_ENABLED=0 go test ./cmd/... ./pkg/...
+
+# Static analysis
+# ---------------
+
+.PHONY: verify
+verify: verify-gofmt verify-deps verify-generated test
+
+.PHONY: update
+update: update-generated
+
+# Format
+# ------
 
 .PHONY: verify-gofmt
 verify-gofmt:
@@ -61,12 +72,6 @@ verify-gofmt:
 .PHONY: gofmt
 gofmt:
 	./hack/gofmt-all.sh
-
-.PHONY: verify
-verify: verify-gofmt verify-deps verify-generated test
-
-.PHONY: update
-update: update-generated
 
 # Dependencies
 # ------------
@@ -77,8 +82,8 @@ verify-deps:
 	go mod tidy
 	@git diff --exit-code -- go.mod go.sum
 
-# Generated
-# ---------
+# Generation
+# ----------
 
 generated_files=pkg/api/generated/openapi/zz_generated.openapi.go
 

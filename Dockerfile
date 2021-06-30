@@ -1,7 +1,6 @@
-ARG BASEIMAGE
-ARG GOIMAGE
+ARG GO_VERSION
 
-FROM ${GOIMAGE} as build
+FROM golang:${GO_VERSION} as build
 
 WORKDIR /go/src/sigs.k8s.io/prometheus-adapter
 COPY go.mod .
@@ -15,7 +14,7 @@ COPY Makefile Makefile
 ARG ARCH
 RUN make prometheus-adapter
 
-FROM ${BASEIMAGE}
+FROM gcr.io/distroless/static:latest
 
 COPY --from=build /go/src/sigs.k8s.io/prometheus-adapter/adapter /
 USER 65534
