@@ -1,5 +1,5 @@
-REGISTRY?=directxman12
-IMAGE?=k8s-prometheus-adapter
+REGISTRY?=gcr.io/k8s-staging-prometheus-adapter
+IMAGE?=prometheus-adapter
 ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 

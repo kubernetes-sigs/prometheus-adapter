@@ -41,12 +41,16 @@ instead, you'll need to make a few adjustments to the way you expose
 metrics to Prometheus.
 
 The adapter has different images for each arch, which can be found at
-`directxman12/k8s-prometheus-adapter-${ARCH}`. For instance, if you're on
-an x86_64 machine, use the `directxman12/k8s-prometheus-adapter-amd64`
-image.
+`gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-${ARCH}`. For
+instance, if you're on an x86_64 machine, use
+`gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-amd64` image.
 
-If you're feeling adventurous, you can build the latest version of the
-custom metrics adapter by running `make docker-build`.
+There is also an official multi arch image available at
+`k8s.gcr.io/prometheus-adapter/prometheus-adapter:${VERSION}`.
+
+If you're feeling adventurous, you can build the latest version of
+prometheus-adapter by running `make container` or get the latest image from the
+staging registry `gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter`.
 
 Special thanks to [@luxas](https://github.com/luxas) for providing the
 demo application for this walkthrough.

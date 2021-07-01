@@ -1,7 +1,7 @@
 Example Deployment
 ==================
 
-1. Make sure you've built the included Dockerfile with `make docker-build`. The image should be tagged as `directxman12/k8s-prometheus-adapter:latest`.
+1. Make sure you've built the included Dockerfile with `TAG=latest make container`. The image should be tagged as `gcr.io/k8s-staging-prometheus-adapter:latest`.
 
 2. Create a secret called `cm-adapter-serving-certs` with two values:
    `serving.crt` and `serving.key`. These are the serving certificates used
