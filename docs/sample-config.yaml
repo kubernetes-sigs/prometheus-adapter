@@ -67,7 +67,7 @@ rules:
 
 # external rules are not tied to a Kubernetes resource and can reference any metric
 # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-metrics-not-related-to-kubernetes-objects
-external:
+externalRules:
 - seriesQuery: '{__name__="queue_consumer_lag",name!=""}'
   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (name)
 - seriesQuery: '{__name__="queue_depth",topic!=""}'

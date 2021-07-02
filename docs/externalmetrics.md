@@ -6,7 +6,7 @@ It's possible to configure [Autoscaling on metrics not related to Kubernetes obj
 The configuration for `external` metrics rules is almost identical to the normal `rules`:
 
 ```yaml
-external:
+externalRules:
 - seriesQuery: '{__name__="queue_consumer_lag",name!=""}'
   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (name)
   resources:
@@ -38,7 +38,7 @@ This is done by setting `namespaced: false` in the `resources` section of the `e
 ```yaml
 # rules: ...
 
-external:
+externalRules:
 - seriesQuery: '{__name__="queue_depth",name!=""}'
   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (name)
   resources:
