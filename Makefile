@@ -40,9 +40,9 @@ $(PUSH_ARCH_TARGETS): push-%:
 	ARCH=$* $(MAKE) push
 
 .PHONY: push-multi-arch
+push-multi-arch: export DOCKER_CLI_EXPERIMENTAL = enabled
 push-multi-arch:
-	@export DOCKER_CLI_EXPERIMENTAL=enabled
-	docker manifest create --amend $(REGISTRY)/$(IMAGE):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(IMAGE)\-&:$(TAG)~g")
+	docker manifest create --amend $(REGISTRY)/$(IMAGE):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(REGISTRY)/$(IMAGE)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} $(REGISTRY)/$(IMAGE):$(TAG) $(REGISTRY)/$(IMAGE)-$${arch}:$(TAG); done
 	docker manifest push --purge $(REGISTRY)/$(IMAGE):$(TAG)
 
