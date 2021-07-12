@@ -19,6 +19,7 @@ package resourceprovider
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -390,13 +391,17 @@ func (p *resourceProvider) runQuery(now pmodel.Time, queryInfo resourceQuery, re
 
 	// associate the results back to each given pod or node
 	res := make(queryResults, len(*rawRes.Vector))
-	for _, val := range *rawRes.Vector {
-		if val == nil {
-			// skip empty values
+	for _, sample := range *rawRes.Vector {
+		// skip empty samples
+		if sample == nil {
 			continue
 		}
-		resKey := string(val.Metric[resourceLbl])
-		res[resKey] = append(res[resKey], val)
+		// replace NaN and negative values by zero
+		if math.IsNaN(float64(sample.Value)) || sample.Value < 0 {
+			sample.Value = 0
+		}
+		resKey := string(sample.Metric[resourceLbl])
+		res[resKey] = append(res[resKey], sample)
 	}
 
 	return res, nil
