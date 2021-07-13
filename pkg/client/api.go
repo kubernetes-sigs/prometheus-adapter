@@ -47,6 +47,7 @@ type GenericAPIClient interface {
 type httpAPIClient struct {
 	client  *http.Client
 	baseURL *url.URL
+	headers http.Header
 }
 
 func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url.Values) (APIResponse, error) {
@@ -58,6 +59,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 		return APIResponse{}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
 	}
 	req.WithContext(ctx)
+	req.Header = c.headers
 
 	resp, err := c.client.Do(req)
 	defer func() {
@@ -113,10 +115,11 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 }
 
 // NewGenericAPIClient builds a new generic Prometheus API client for the given base URL and HTTP Client.
-func NewGenericAPIClient(client *http.Client, baseURL *url.URL) GenericAPIClient {
+func NewGenericAPIClient(client *http.Client, baseURL *url.URL, headers http.Header) GenericAPIClient {
 	return &httpAPIClient{
 		client:  client,
 		baseURL: baseURL,
+		headers: headers,
 	}
 }
 
@@ -139,8 +142,8 @@ func NewClientForAPI(client GenericAPIClient) Client {
 }
 
 // NewClient creates a Client for the given HTTP client and base URL (the location of the Prometheus server).
-func NewClient(client *http.Client, baseURL *url.URL) Client {
-	genericClient := NewGenericAPIClient(client, baseURL)
+func NewClient(client *http.Client, baseURL *url.URL, headers http.Header) Client {
+	genericClient := NewGenericAPIClient(client, baseURL, headers)
 	return NewClientForAPI(genericClient)
 }
 

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -143,6 +144,44 @@ func TestMakePrometheusCAClient(t *testing.T) {
 			if err == nil {
 				t.Errorf("Error is nil, expected %v", err)
 			}
+		}
+	}
+}
+
+func TestParseHeaderArgs(t *testing.T) {
+
+	tests := []struct {
+		args    []string
+		headers http.Header
+	}{
+		{
+			headers: http.Header{},
+		},
+		{
+			args: []string{"foo=bar"},
+			headers: http.Header{
+				"Foo": []string{"bar"},
+			},
+		},
+		{
+			args: []string{"foo"},
+			headers: http.Header{
+				"Foo": []string{""},
+			},
+		},
+		{
+			args: []string{"foo=bar", "foo=baz", "bux=baz=23"},
+			headers: http.Header{
+				"Foo": []string{"bar", "baz"},
+				"Bux": []string{"baz=23"},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got := parseHeaderArgs(test.args)
+		if !reflect.DeepEqual(got, test.headers) {
+			t.Errorf("Expected %#v but got %#v", test.headers, got)
 		}
 	}
 }
