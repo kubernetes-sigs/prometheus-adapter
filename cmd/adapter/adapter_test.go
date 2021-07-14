@@ -149,7 +149,6 @@ func TestMakePrometheusCAClient(t *testing.T) {
 }
 
 func TestParseHeaderArgs(t *testing.T) {
-
 	tests := []struct {
 		args    []string
 		headers map[string][]string
