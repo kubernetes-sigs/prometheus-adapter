@@ -27,6 +27,14 @@ $ helm repo update
 $ helm install --name my-release prometheus-community/prometheus-adapter
 ```
 
+Official images
+---
+All official images for releases 0.84 and above are available in [gcr.io](http://k8s.gcr.io/prometheus-adapter/prometheus-adapter). The project also maintains a [staging registry](https://console.cloud.google.com/gcr/images/k8s-staging-prometheus-adapter/GLOBAL/) where images for each commit from the master branch are published. You can use this registry if need to test a version from a specific commit, or if you need to deploy a patch while waiting for a new release.
+
+Images for versions prior to 0.84 are only available in unofficial registries:
+* https://quay.io/repository/coreos/k8s-prometheus-adapter-amd64
+* https://hub.docker.com/r/directxman12/k8s-prometheus-adapter/
+
 Configuration
 -------------
 
@@ -94,6 +102,7 @@ attention to:
   Operator](https://github.com/luxas/kubeadm-workshop#deploying-the-prometheus-operator-for-monitoring-services-in-the-cluster)
 - [Setting up the custom metrics adapter and sample
   app](https://github.com/luxas/kubeadm-workshop#deploying-a-custom-metrics-api-server-and-a-sample-app)
+
 
 FAQs
 ----
