@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
@@ -71,6 +72,8 @@ type PrometheusAdapter struct {
 	PrometheusClientTLSKeyFile string
 	// PrometheusTokenFile points to the file that contains the bearer token when connecting with Prometheus
 	PrometheusTokenFile string
+	// PrometheusHeaders is a k=v list of headers to set on requests to PrometheusURL
+	PrometheusHeaders []string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
@@ -112,8 +115,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 		}
 		httpClient.Transport = transport.NewBearerAuthRoundTripper(string(data), httpClient.Transport)
 	}
-
-	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL)
+	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL, parseHeaderArgs(cmd.PrometheusHeaders))
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
 	return prom.NewClientForAPI(instrumentedGenericPromClient), nil
 }
@@ -133,6 +135,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"Optional client TLS key file to use when connecting with Prometheus, auto-renewal is not supported")
 	cmd.Flags().StringVar(&cmd.PrometheusTokenFile, "prometheus-token-file", cmd.PrometheusTokenFile,
 		"Optional file containing the bearer token to use when connecting with Prometheus")
+	cmd.Flags().StringArrayVar(&cmd.PrometheusHeaders, "prometheus-header", cmd.PrometheusHeaders,
+		"Optional header to set on requests to prometheus-url. Can be repeated")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
@@ -404,4 +408,17 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 			},
 		},
 	}, nil
+}
+
+func parseHeaderArgs(args []string) http.Header {
+	headers := make(http.Header, len(args))
+	for _, h := range args {
+		parts := strings.SplitN(h, "=", 2)
+		value := ""
+		if len(parts) > 1 {
+			value = parts[1]
+		}
+		headers.Add(parts[0], value)
+	}
+	return headers
 }
