@@ -16,9 +16,10 @@ package provider
 import (
 	"sync"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
+
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
 	"sigs.k8s.io/prometheus-adapter/pkg/naming"

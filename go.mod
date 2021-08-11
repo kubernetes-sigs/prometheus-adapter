@@ -3,8 +3,6 @@ module sigs.k8s.io/prometheus-adapter
 go 1.16
 
 require (
-	github.com/go-openapi/spec v0.20.3
-	github.com/kubernetes-sigs/custom-metrics-apiserver v0.0.0-20210311094424-0ca2b1909cdc
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
 	github.com/prometheus/client_golang v1.11.0
@@ -20,5 +18,6 @@ require (
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
 	k8s.io/metrics v0.22.0
+	sigs.k8s.io/custom-metrics-apiserver v1.22.0
 	sigs.k8s.io/metrics-server v0.5.0
 )

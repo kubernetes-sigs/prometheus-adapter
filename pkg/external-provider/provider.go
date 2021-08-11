@@ -18,16 +18,15 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	pmodel "github.com/prometheus/common/model"
-	"k8s.io/klog/v2"
-
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/external_metrics"
+
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
 	"sigs.k8s.io/prometheus-adapter/pkg/naming"
@@ -40,7 +39,7 @@ type externalPrometheusProvider struct {
 	seriesRegistry ExternalSeriesRegistry
 }
 
-func (p *externalPrometheusProvider) GetExternalMetric(namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+func (p *externalPrometheusProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	selector, found, err := p.seriesRegistry.QueryForMetric(namespace, info.Metric, metricSelector)
 
 	if err != nil {

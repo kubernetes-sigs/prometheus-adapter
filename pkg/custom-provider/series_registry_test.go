@@ -20,16 +20,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	pmodel "github.com/prometheus/common/model"
+
 	coreapi "k8s.io/api/core/v1"
 	extapi "k8s.io/api/extensions/v1beta1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	config "sigs.k8s.io/prometheus-adapter/cmd/config-gen/utils"
 	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
