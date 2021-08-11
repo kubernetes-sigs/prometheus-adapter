@@ -28,10 +28,6 @@ import (
 	"strings"
 	"time"
 
-	customexternalmetrics "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/apiserver"
-	basecmd "github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/cmd"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -44,6 +40,9 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 
+	customexternalmetrics "sigs.k8s.io/custom-metrics-apiserver/pkg/apiserver"
+	basecmd "sigs.k8s.io/custom-metrics-apiserver/pkg/cmd"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 	"sigs.k8s.io/metrics-server/pkg/api"
 
 	generatedopenapi "sigs.k8s.io/prometheus-adapter/pkg/api/generated/openapi"

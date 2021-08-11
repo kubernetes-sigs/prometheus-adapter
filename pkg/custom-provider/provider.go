@@ -22,8 +22,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
-	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider/helpers"
 	pmodel "github.com/prometheus/common/model"
 
 	apierr "k8s.io/apimachinery/pkg/api/errors"
@@ -37,6 +35,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
+
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider/helpers"
 
 	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
 	"sigs.k8s.io/prometheus-adapter/pkg/naming"
@@ -159,7 +160,7 @@ func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespac
 	return *queryResults.Vector, nil
 }
 
-func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+func (p *prometheusProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	// construct a query
 	queryResults, err := p.buildQuery(info, name.Namespace, metricSelector, name.Name)
 	if err != nil {
@@ -190,7 +191,7 @@ func (p *prometheusProvider) GetMetricByName(name types.NamespacedName, info pro
 	return p.metricFor(resultValue, name, info, metricSelector)
 }
 
-func (p *prometheusProvider) GetMetricBySelector(namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
+func (p *prometheusProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	// fetch a list of relevant resource names
 	resourceNames, err := helpers.ListObjectNames(p.mapper, p.kubeClient, namespace, selector, info)
 	if err != nil {
