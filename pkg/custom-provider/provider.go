@@ -138,14 +138,14 @@ func (p *prometheusProvider) metricsFor(valueSet pmodel.Vector, namespace string
 	}, nil
 }
 
-func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, names ...string) (pmodel.Vector, error) {
+func (p *prometheusProvider) buildQuery(ctx context.Context, info provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, names ...string) (pmodel.Vector, error) {
 	query, found := p.QueryForMetric(info, namespace, metricSelector, names...)
 	if !found {
 		return nil, provider.NewMetricNotFoundError(info.GroupResource, info.Metric)
 	}
 
 	// TODO: use an actual context
-	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), query)
+	queryResults, err := p.promClient.Query(ctx, pmodel.Now(), query)
 	if err != nil {
 		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
 		// don't leak implementation details to the user
@@ -162,7 +162,7 @@ func (p *prometheusProvider) buildQuery(info provider.CustomMetricInfo, namespac
 
 func (p *prometheusProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	// construct a query
-	queryResults, err := p.buildQuery(info, name.Namespace, metricSelector, name.Name)
+	queryResults, err := p.buildQuery(ctx, info, name.Namespace, metricSelector, name.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (p *prometheusProvider) GetMetricBySelector(ctx context.Context, namespace 
 	}
 
 	// construct the actual query
-	queryResults, err := p.buildQuery(info, namespace, metricSelector, resourceNames...)
+	queryResults, err := p.buildQuery(ctx, info, namespace, metricSelector, resourceNames...)
 	if err != nil {
 		return nil, err
 	}

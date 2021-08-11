@@ -51,7 +51,7 @@ func (p *externalPrometheusProvider) GetExternalMetric(ctx context.Context, name
 		return nil, provider.NewMetricNotFoundError(p.selectGroupResource(namespace), info.Metric)
 	}
 	// Here is where we're making the query, need to be before here xD
-	queryResults, err := p.promClient.Query(context.TODO(), pmodel.Now(), selector)
+	queryResults, err := p.promClient.Query(ctx, pmodel.Now(), selector)
 
 	if err != nil {
 		klog.Errorf("unable to fetch metrics from prometheus: %v", err)
