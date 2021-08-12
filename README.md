@@ -62,7 +62,7 @@ adapter talks to Prometheus and the main Kubernetes cluster:
   within the time period will appear in the adapter. Therefore, the metrics-max-age
   should be equal to or larger than your Prometheus' scrape interval,
   or your metrics will occaisonally disappear from the adapter.
-  By default, this is the set to be the same as metrics-relist-interval to avoid
+  By default, this is set to be the same as metrics-relist-interval to avoid
   some confusing behavior (See this [PR](https://github.com/kubernetes-sigs/prometheus-adapter/pull/230)).
 
   Note: We recommend setting this only if you understand what is happening.
