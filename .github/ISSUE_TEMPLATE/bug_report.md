@@ -17,10 +17,30 @@ If the matter is security related, please disclose it privately see https://gith
 **What did you expect to happen?**:
 
 **Please provide the prometheus-adapter config**:
+<details open>
+<summary>prometheus-adapter config</summary>
+
+<!--- INSERT config HERE --->
+
+</details>
+
+**Please provide the HPA resource used for autoscaling**:
+<details open>
+<summary>HPA yaml</summary>
+
+<!--- INSERT yaml HERE --->
+
+</details>
 
 **Please provide the HPA status**:
 
 **Please provide the prometheus-adapter logs with -v=6 around the time the issue happened**:
+<details open>
+<summary>prometheus-adapter logs</summary>
+
+<!--- INSERT logs HERE --->
+
+</details>
 
 **Anything else we need to know?**:
 
