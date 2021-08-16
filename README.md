@@ -53,11 +53,26 @@ adapter talks to Prometheus and the main Kubernetes cluster:
   in-cluster config.
 
 - `--metrics-relist-interval=<duration>`: This is the interval at which to
-  update the cache of available metrics from Prometheus.  Since the adapter
-  only lists metrics during discovery that exist between the current time and
-  the last discovery query, your relist interval should be equal to or larger
-  than your Prometheus scrape interval, otherwise your metrics will
-  occaisonally disappear from the adapter.
+  update the cache of available metrics from Prometheus. By default, this
+  value is set to 10 minutes.
+
+- `--metrics-max-age=<duration>`: This is the max age of the metrics to be
+  loaded from Prometheus. For example, when set to `10m`, it will query
+  Prometheus for metrics since 10m ago, and only those that has datapoints
+  within the time period will appear in the adapter. Therefore, the metrics-max-age
+  should be equal to or larger than your Prometheus' scrape interval,
+  or your metrics will occaisonally disappear from the adapter.
+  By default, this is set to be the same as metrics-relist-interval to avoid
+  some confusing behavior (See this [PR](https://github.com/kubernetes-sigs/prometheus-adapter/pull/230)).
+
+  Note: We recommend setting this only if you understand what is happening.
+  For example, this setting could be useful in cases where the scrape duration is
+  over a network call, e.g. pulling metrics from AWS CloudWatch, or Google Monitoring,
+  more specifically, Google Monitoring sometimes have delays on when data will show
+  up in their system after being sampled. This means that even if you scraped data
+  frequently, they might not show up soon. If you configured the relist interval to
+  a short period but without configuring this, you might not be able to see your
+  metrics in the adapter in certain scenarios.
 
 - `--prometheus-url=<url>`: This is the URL used to connect to Prometheus.
   It will eventually contain query parameters to configure the connection.
