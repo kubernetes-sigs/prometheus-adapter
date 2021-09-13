@@ -29,6 +29,9 @@ spec:
         - --metrics-relist-interval=1m
         - --v=10
         - --config=/etc/adapter/config.yaml
+        - --secure-metrics-port=9090
+        - --metrics-host=0.0.0.0
+        - --tls-config=/etc/tls/config.yaml
         ports:
         - containerPort: 6443
         volumeMounts:
@@ -40,6 +43,12 @@ spec:
           readOnly: true
         - mountPath: /tmp
           name: tmp-vol
+        - mountPath: /etc/tls
+          name: metricstlsconfig
+          readOnly: false
+        - mountPath: /etc/certs
+          name: servingcerts
+          readOnly: false
       volumes:
       - name: volume-serving-cert
         secret:
@@ -49,3 +58,9 @@ spec:
           name: adapter-config
       - name: tmp-vol
         emptyDir: {}
+      - configMap:
+          name: metrics-tls-config
+        name: metricstlsconfig
+      - secret:
+          secretName: pa-metrics-serving-certs
+        name: servingcerts

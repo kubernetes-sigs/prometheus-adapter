@@ -22,12 +22,14 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/prometheus/exporter-toolkit/web"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -38,6 +40,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
 
 	customexternalmetrics "sigs.k8s.io/custom-metrics-apiserver/pkg/apiserver"
@@ -54,6 +57,17 @@ import (
 	"sigs.k8s.io/prometheus-adapter/pkg/naming"
 	resprov "sigs.k8s.io/prometheus-adapter/pkg/resourceprovider"
 )
+
+type adapterLogger struct{}
+
+func (pl adapterLogger) Println(v ...interface{}) {
+	klog.Error(v...)
+}
+
+func (pl adapterLogger) Log(v ...interface{}) error {
+	klog.Info(v...)
+	return nil
+}
 
 type PrometheusAdapter struct {
 	basecmd.AdapterBase
@@ -81,6 +95,9 @@ type PrometheusAdapter struct {
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
 
+	secureMetricsPort string
+	tlsConfig         string
+	metricsHost       string
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
 
@@ -144,6 +161,12 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
 		"period for which to query the set of available metrics from Prometheus")
+	cmd.Flags().StringVar(&cmd.secureMetricsPort, "secure-metrics-port", cmd.secureMetricsPort,
+		"Secure port for metrics")
+	cmd.Flags().StringVar(&cmd.metricsHost, "metrics-host", cmd.metricsHost,
+		"Host for exposing metrics")
+	cmd.Flags().StringVar(&cmd.tlsConfig, "tls-config", cmd.tlsConfig,
+		"TLS configuration for metrics server")
 }
 
 func (cmd *PrometheusAdapter) loadConfig() error {
@@ -334,10 +357,33 @@ func main() {
 		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
 
+	config, err := cmd.Config()
+	if err != nil {
+		klog.Fatalf("unable to get configuration of custom metrics apiserver: %v", err)
+	}
+
+	apiServerConfig(config)
+	cmd.setupMetricsServer()
+
 	// run the server
 	if err := cmd.Run(stopCh); err != nil {
 		klog.Fatalf("unable to run custom metrics adapter: %v", err)
 	}
+}
+
+func apiServerConfig(config *customexternalmetrics.Config) {
+	config.GenericConfig.EnableMetrics = false
+}
+
+func (cmd PrometheusAdapter) setupMetricsServer() {
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", legacyregistry.Handler())
+
+	serverAddress := net.JoinHostPort(cmd.metricsHost, cmd.secureMetricsPort)
+	metricsServer := http.Server{Handler: mux, Addr: serverAddress}
+
+	go web.ListenAndServe(&metricsServer, cmd.tlsConfig, adapterLogger{})
 }
 
 // makeKubeconfigHTTPClient constructs an HTTP for connecting with the given auth options.
