@@ -211,7 +211,7 @@ func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopC
 	}
 
 	// construct the provider and start it
-	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval)
+	emProvider, runner := extprov.NewExternalPrometheusProvider(promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge)
 	runner.RunUntil(stopCh)
 
 	return emProvider, nil
