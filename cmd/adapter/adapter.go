@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	"github.com/prometheus/exporter-toolkit/web"
+	"github.com/oklog/run"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -94,10 +96,12 @@ type PrometheusAdapter struct {
 	MetricsRelistInterval time.Duration
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
-
-	secureMetricsPort string
-	tlsConfig         string
-	metricsHost       string
+	// MetricsPort is the port to expose the prometheus adapter self metrics
+	MetricsPort string
+	// TLSConfig is the tls config for exposing the prometheus adapter self metrics
+	TLSConfig   string
+	// MetricsHost is the host to expose the prometheus adapter self metrics
+	MetricsHost string
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
 
@@ -161,12 +165,9 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
 		"period for which to query the set of available metrics from Prometheus")
-	cmd.Flags().StringVar(&cmd.secureMetricsPort, "secure-metrics-port", cmd.secureMetricsPort,
-		"Secure port for metrics")
-	cmd.Flags().StringVar(&cmd.metricsHost, "metrics-host", cmd.metricsHost,
-		"Host for exposing metrics")
-	cmd.Flags().StringVar(&cmd.tlsConfig, "tls-config", cmd.tlsConfig,
-		"TLS configuration for metrics server")
+	cmd.Flags().StringVar(&cmd.MetricsPort, "metrics-port", cmd.MetricsPort, "Port to expose prometheus-adapter self metrics on. (default:8080) ")
+	cmd.Flags().StringVar(&cmd.MetricsHost, "metrics-host", cmd.MetricsHost, "Host to expose prometheus-adapter self metrics on. (default:0.0.0.0)")
+	cmd.Flags().StringVar(&cmd.TLSConfig, "tls-config", cmd.TLSConfig, "Optional TLS configuration for metrics server")
 }
 
 func (cmd *PrometheusAdapter) loadConfig() error {
@@ -298,6 +299,8 @@ func main() {
 	cmd := &PrometheusAdapter{
 		PrometheusURL:         "https://localhost",
 		MetricsRelistInterval: 10 * time.Minute,
+		MetricsHost:           "::",
+		MetricsPort:           "8080",
 	}
 	cmd.Name = "prometheus-metrics-adapter"
 
@@ -363,8 +366,24 @@ func main() {
 	}
 
 	apiServerConfig(config)
-	cmd.setupMetricsServer()
+	ctx := context.Background()
+	var g run.Group
 
+	metricsServer := cmd.setupMetricsServer()
+	{
+		g.Add(func() error{
+			return web.ListenAndServe(&metricsServer, cmd.TLSConfig, adapterLogger{})
+		}, func(error) {
+			ctxShutDown, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			metricsServer.Shutdown(ctxShutDown)
+		})
+	}
+	
+
+	if err := g.Run(); err != nil {
+		klog.Fatalf("unable to run group : %v", err)
+	}
 	// run the server
 	if err := cmd.Run(stopCh); err != nil {
 		klog.Fatalf("unable to run custom metrics adapter: %v", err)
@@ -375,15 +394,14 @@ func apiServerConfig(config *customexternalmetrics.Config) {
 	config.GenericConfig.EnableMetrics = false
 }
 
-func (cmd PrometheusAdapter) setupMetricsServer() {
+func (cmd *PrometheusAdapter) setupMetricsServer() http.Server{
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", legacyregistry.Handler())
 
-	serverAddress := net.JoinHostPort(cmd.metricsHost, cmd.secureMetricsPort)
-	metricsServer := http.Server{Handler: mux, Addr: serverAddress}
+	serverAddress := net.JoinHostPort(cmd.MetricsHost, cmd.MetricsPort)
+	return http.Server{Handler: mux, Addr: serverAddress}
 
-	go web.ListenAndServe(&metricsServer, cmd.tlsConfig, adapterLogger{})
 }
 
 // makeKubeconfigHTTPClient constructs an HTTP for connecting with the given auth options.
