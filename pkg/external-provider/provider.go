@@ -77,9 +77,9 @@ func (p *externalPrometheusProvider) selectGroupResource(namespace string) schem
 }
 
 // NewExternalPrometheusProvider creates an ExternalMetricsProvider capable of responding to Kubernetes requests for external metric data
-func NewExternalPrometheusProvider(promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration) (provider.ExternalMetricsProvider, Runnable) {
+func NewExternalPrometheusProvider(promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.ExternalMetricsProvider, Runnable) {
 	metricConverter := NewMetricConverter()
-	basicLister := NewBasicMetricLister(promClient, namers, updateInterval)
+	basicLister := NewBasicMetricLister(promClient, namers, maxAge)
 	periodicLister, _ := NewPeriodicMetricLister(basicLister, updateInterval)
 	seriesRegistry := NewExternalSeriesRegistry(periodicLister)
 	return &externalPrometheusProvider{
