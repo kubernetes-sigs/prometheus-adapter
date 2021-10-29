@@ -63,7 +63,7 @@ rules:
     overrides:
       # this should still resolve in our cluster
       brand: {group: "cheese.io", resource: "brand"}
-  metricQuery: 'count(cheddar{sharp="true"})'
+  metricsQuery: 'count(cheddar{sharp="true"})'
 
 # external rules are not tied to a Kubernetes resource and can reference any metric
 # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-metrics-not-related-to-kubernetes-objects
