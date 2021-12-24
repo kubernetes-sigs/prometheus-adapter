@@ -8,7 +8,6 @@ approvers:
 
 reviewers:
   - prometheus-adapter-approvers
-  - prometheus-adapter-reviewers
 
 emeritus_approvers:
 - brancz
