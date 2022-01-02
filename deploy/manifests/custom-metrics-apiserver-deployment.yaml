@@ -19,7 +19,8 @@ spec:
       serviceAccountName: custom-metrics-apiserver
       containers:
       - name: custom-metrics-apiserver
-        image: gcr.io/k8s-staging-prometheus-adapter-amd64
+        image: gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-amd64
+        imagePullPolicy: Never
         args:
         - --secure-port=6443
         - --tls-cert-file=/var/run/serving-cert/serving.crt
