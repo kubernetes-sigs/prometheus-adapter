@@ -7,7 +7,7 @@ delete-adapter-local:
 	kubectl delete -f manifests/
 
 namespace:
-	kubectl create -f addepar/custom-metrics-namespace.json
+	kubectl create namespace custom-metrics
 
 raw:
 	kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
