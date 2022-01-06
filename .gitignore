@@ -2,3 +2,5 @@
 *~
 /vendor
 /adapter
+deploy/addepar/certs/test
+.idea
