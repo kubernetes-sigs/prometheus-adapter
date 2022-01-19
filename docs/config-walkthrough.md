@@ -160,14 +160,14 @@ configuration, we should see discovery information at
   "groupVersion": "custom.metrics.k8s.io/v1beta1",
   "resources": [
     {
-      "name": "pods/http_requests_total",
+      "name": "pods/http_requests_per_second",
       "singularName": "",
       "namespaced": true,
       "kind": "MetricValueList",
       "verbs": ["get"]
     },
     {
-      "name": "namespaces/http_requests_total",
+      "name": "namespaces/http_requests_per_second",
       "singularName": "",
       "namespaced": false,
       "kind": "MetricValueList",
