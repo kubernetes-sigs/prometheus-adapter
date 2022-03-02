@@ -1,4 +1,4 @@
-apiVersion: apiregistration.k8s.io/v1beta1
+apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
   name: v1beta1.custom.metrics.k8s.io
@@ -8,35 +8,7 @@ spec:
     namespace: custom-metrics
   group: custom.metrics.k8s.io
   version: v1beta1
-  insecureSkipTLSVerify: true
+  insecureSkipTLSVerify: false
   groupPriorityMinimum: 100
   versionPriority: 100
----
-apiVersion: apiregistration.k8s.io/v1beta1
-kind: APIService
-metadata:
-  name: v1beta2.custom.metrics.k8s.io
-spec:
-  service:
-    name: custom-metrics-apiserver
-    namespace: custom-metrics
-  group: custom.metrics.k8s.io
-  version: v1beta2
-  insecureSkipTLSVerify: true
-  groupPriorityMinimum: 100
-  versionPriority: 200
----
-apiVersion: apiregistration.k8s.io/v1beta1
-kind: APIService
-metadata:
-  name: v1beta1.external.metrics.k8s.io
-spec:
-  service:
-    name: custom-metrics-apiserver
-    namespace: custom-metrics
-  group: external.metrics.k8s.io
-  version: v1beta1
-  insecureSkipTLSVerify: true
-  groupPriorityMinimum: 100
-  versionPriority: 100
----
+  caBundle: LS0 # insert full base64 crt here, should start with LS0

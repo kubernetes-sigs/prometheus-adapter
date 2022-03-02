@@ -10,7 +10,6 @@ monitor:
 	kubectl create -n default -f service-monitor.yaml
 
 hpa:
-	kubectl delete -f sample-app.hpa.yaml
 	kubectl create -f sample-app.hpa.yaml
 
 test:

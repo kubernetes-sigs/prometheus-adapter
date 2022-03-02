@@ -3,26 +3,32 @@ kind: ServiceAccount
 metadata:
   name: prometheus
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: prometheus
 rules:
-  - apiGroups: [""]
-    resources:
-      - nodes
-      - services
-      - endpoints
-      - pods
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources:
-      - configmaps
-    verbs: ["get"]
-  - nonResourceURLs: ["/metrics"]
-    verbs: ["get"]
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/metrics
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs: ["get"]
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: prometheus
@@ -31,9 +37,9 @@ roleRef:
   kind: ClusterRole
   name: prometheus
 subjects:
-  - kind: ServiceAccount
-    name: prometheus
-    namespace: prom
+- kind: ServiceAccount
+  name: prometheus
+  namespace: default
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
@@ -41,11 +47,13 @@ metadata:
   name: prometheus
 spec:
   # Match all service monitors in all namespaces
+  serviceAccountName: prometheus
   serviceMonitorNamespaceSelector: {}
   serviceMonitorSelector: {}
   resources:
     requests:
       memory: 400Mi
+  enableAdminAPI: false
 ---
 apiVersion: v1
 kind: Service
@@ -54,10 +62,10 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - name: web
-      nodePort: 30900
-      port: 9090
-      protocol: TCP
-      targetPort: web
+  - name: web
+    nodePort: 30900
+    port: 9090
+    protocol: TCP
+    targetPort: web
   selector:
     prometheus: prometheus

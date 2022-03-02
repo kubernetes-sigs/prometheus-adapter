@@ -19,14 +19,13 @@ spec:
       serviceAccountName: custom-metrics-apiserver
       containers:
       - name: custom-metrics-apiserver
-        image: gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-amd64
-        imagePullPolicy: Never
+        image: gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-amd64:v0.9.1
         args:
         - --secure-port=6443
         - --tls-cert-file=/var/run/serving-cert/serving.crt
         - --tls-private-key-file=/var/run/serving-cert/serving.key
         - --logtostderr=true
-        - --prometheus-url=http://prometheus.prom.svc:9090/
+        - --prometheus-url=http://host.docker.internal:30900
         - --metrics-relist-interval=1m
         - --v=10
         - --config=/etc/adapter/config.yaml
