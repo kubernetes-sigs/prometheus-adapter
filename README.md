@@ -21,10 +21,17 @@ If you're a helm user, a helm chart is listed on prometheus-community repository
 
 To install it with the release name `my-release`, run this Helm command:
 
+For Helm2
 ```console
 $ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 $ helm repo update
 $ helm install --name my-release prometheus-community/prometheus-adapter
+```
+For Helm3 ( as name is mandatory )
+```console
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+$ helm repo update
+$ helm install my-release prometheus-community/prometheus-adapter
 ```
 
 Official images
