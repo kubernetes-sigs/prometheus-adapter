@@ -1,5 +1,4 @@
-ARG GO_VERSION
-
+ARG GOVERSION=1.16
 FROM golang:${GO_VERSION} as build
 
 WORKDIR /go/src/sigs.k8s.io/prometheus-adapter
