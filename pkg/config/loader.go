@@ -11,10 +11,10 @@ import (
 // FromFile loads the configuration from a particular file.
 func FromFile(filename string) (*MetricsDiscoveryConfig, error) {
 	file, err := os.Open(filename)
-	defer file.Close()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load metrics discovery config file: %v", err)
 	}
+	defer file.Close()
 	contents, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load metrics discovery config file: %v", err)
