@@ -85,7 +85,7 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 	}
 
 	startTime := pmodel.Now().Add(-1 * l.lookback)
-
+	endTime := pmodel.Now()
 	// these can take a while on large clusters, so launch in parallel
 	// and don't duplicate
 	selectors := make(map[prom.Selector]struct{})
@@ -100,7 +100,7 @@ func (l *basicMetricLister) ListAllMetrics() (MetricUpdateResult, error) {
 		}
 		selectors[sel] = struct{}{}
 		go func() {
-			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{startTime, 0}, sel)
+			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{Start: startTime, End: endTime}, sel)
 			if err != nil {
 				errs <- fmt.Errorf("unable to fetch metrics for query %q: %v", sel, err)
 				return
