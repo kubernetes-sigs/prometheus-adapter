@@ -47,11 +47,11 @@ Configuration
 
 The adapter takes the standard Kubernetes generic API server arguments
 (including those for authentication and authorization).  By default, it
-will attempt to using [Kubernetes in-cluster
+will attempt to use [Kubernetes in-cluster
 config](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
 to connect to the cluster.
 
-It takes the following addition arguments specific to configuring how the
+It takes the following additional arguments specific to configuring how the
 adapter talks to Prometheus and the main Kubernetes cluster:
 
 - `--lister-kubeconfig=<path-to-kubeconfig>`: This configures
@@ -65,10 +65,10 @@ adapter talks to Prometheus and the main Kubernetes cluster:
 
 - `--metrics-max-age=<duration>`: This is the max age of the metrics to be
   loaded from Prometheus. For example, when set to `10m`, it will query
-  Prometheus for metrics since 10m ago, and only those that has datapoints
+  Prometheus for metrics since 10m ago, and only those that have datapoints
   within the time period will appear in the adapter. Therefore, the metrics-max-age
   should be equal to or larger than your Prometheus' scrape interval,
-  or your metrics will occaisonally disappear from the adapter.
+  or your metrics will occasionally disappear from the adapter.
   By default, this is set to be the same as metrics-relist-interval to avoid
   some confusing behavior (See this [PR](https://github.com/kubernetes-sigs/prometheus-adapter/pull/230)).
 
@@ -210,7 +210,7 @@ the `custom.metrics.k8s.io` API group.
 
 You probably have a Prometheus collection interval or computation interval
 that's larger than your adapter's discovery interval.  If the metrics
-appear in discovery but occaisionally return not-found, those intervals
+appear in discovery but occasionally return not-found, those intervals
 are probably larger than one of the rate windows used in one of your
 queries.  The adapter only considers metrics with datapoints in the window
 `[now-discoveryInterval, now]` (in order to only capture metrics that are
