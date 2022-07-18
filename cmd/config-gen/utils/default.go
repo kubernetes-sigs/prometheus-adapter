@@ -94,7 +94,7 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *config.Metri
 		ResourceRules: &config.ResourceRules{
 			CPU: config.ResourceRule{
 				ContainerQuery: fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
-				NodeQuery:      fmt.Sprintf("sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
+				NodeQuery:      fmt.Sprintf("sum(1 - rate(node_cpu_seconds_total{<<.LabelMatchers>>, mode=\"idle\"}[%s])) by (<<.GroupBy>>)", pmodel.Duration(rateInterval).String()),
 				Resources: config.ResourceMapping{
 					Overrides: map[string]config.GroupResource{
 						"namespace": {Resource: "namespace"},
@@ -106,7 +106,7 @@ func DefaultConfig(rateInterval time.Duration, labelPrefix string) *config.Metri
 			},
 			Memory: config.ResourceRule{
 				ContainerQuery: "sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)",
-				NodeQuery:      "sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)",
+				NodeQuery:      "sum(node_memory_MemTotal_bytes{<<.LabelMatchers>>) - node_memory_MemAvailable_bytes{<<.LabelMatchers>>) by (<<.GroupBy>>)",
 				Resources: config.ResourceMapping{
 					Overrides: map[string]config.GroupResource{
 						"namespace": {Resource: "namespace"},
