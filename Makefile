@@ -7,7 +7,7 @@ VERSION=$(shell cat VERSION)
 TAG_PREFIX=v
 TAG?=$(TAG_PREFIX)$(VERSION)
 
-GO_VERSION?=1.16.4
+GO_VERSION?=1.16.15
 
 .PHONY: all
 all: prometheus-adapter
