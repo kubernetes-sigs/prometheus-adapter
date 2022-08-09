@@ -23,9 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/metrics/pkg/apis/metrics"
 
 	"sigs.k8s.io/metrics-server/pkg/api"
@@ -122,10 +122,10 @@ var _ = Describe("Resource Metrics Provider", func() {
 	})
 
 	It("should be able to list metrics pods across different namespaces", func() {
-		pods := []types.NamespacedName{
-			{Namespace: "some-ns", Name: "pod1"},
-			{Namespace: "some-ns", Name: "pod3"},
-			{Namespace: "other-ns", Name: "pod27"},
+		pods := []*metav1.PartialObjectMetadata{
+			{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod1"}},
+			{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod3"}},
+			{ObjectMeta: metav1.ObjectMeta{Namespace: "other-ns", Name: "pod27"}},
 		}
 		fakeProm.QueryResults = map[prom.Selector]prom.QueryResult{
 			mustBuild(cpuQueries.contQuery.Build("", podResource, "some-ns", []string{cpuQueries.containerLabel}, labels.Everything(), "pod1", "pod3")): buildQueryRes("container_cpu_usage_seconds_total",
@@ -149,28 +149,34 @@ var _ = Describe("Resource Metrics Provider", func() {
 		}
 
 		By("querying for metrics for some pods")
-		times, metricVals, err := prov.GetPodMetrics(pods...)
+		podMetrics, err := prov.GetPodMetrics(pods...)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("verifying that metrics have been fetched for all the pods")
+		Expect(podMetrics).To(HaveLen(3))
+
 		By("verifying that the reported times for each are the earliest times for each pod")
-		Expect(times).To(Equal([]api.TimeInfo{
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(270).Time(), Window: 1 * time.Minute},
-		}))
+		Expect(podMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(podMetrics[0].Window.Duration).To(Equal(time.Minute))
+
+		Expect(podMetrics[1].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(podMetrics[1].Window.Duration).To(Equal(time.Minute))
+
+		Expect(podMetrics[2].Timestamp.Time).To(Equal(pmodel.Time(270).Time()))
+		Expect(podMetrics[2].Window.Duration).To(Equal(time.Minute))
 
 		By("verifying that the right metrics were fetched")
-		Expect(metricVals).To(HaveLen(3))
-		Expect(metricVals[0]).To(ConsistOf(
+		Expect(podMetrics).To(HaveLen(3))
+		Expect(podMetrics[0].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(1100.0, 3100.0)},
 			metrics.ContainerMetrics{Name: "cont2", Usage: buildResList(1110.0, 3110.0)},
 		))
-		Expect(metricVals[1]).To(ConsistOf(
+		Expect(podMetrics[1].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(1300.0, 3300.0)},
 			metrics.ContainerMetrics{Name: "cont2", Usage: buildResList(1310.0, 3310.0)},
 		))
 
-		Expect(metricVals[2]).To(ConsistOf(
+		Expect(podMetrics[2].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(2200.0, 4200.0)},
 		))
 	})
@@ -188,23 +194,22 @@ var _ = Describe("Resource Metrics Provider", func() {
 		}
 
 		By("querying for metrics for some pods, one of which is missing")
-		times, metricVals, err := prov.GetPodMetrics(
-			types.NamespacedName{Namespace: "some-ns", Name: "pod1"},
-			types.NamespacedName{Namespace: "some-ns", Name: "pod-nonexistant"},
+		podMetrics, err := prov.GetPodMetrics(
+			&metav1.PartialObjectMetadata{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod1"}},
+			&metav1.PartialObjectMetadata{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod-nonexistant"}},
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("verifying that the missing pod had nil metrics")
-		Expect(metricVals).To(HaveLen(2))
-		Expect(metricVals[1]).To(BeNil())
+		By("verifying that the missing pod had no metrics")
+		Expect(podMetrics).To(HaveLen(1))
 
 		By("verifying that the rest of time metrics and times are correct")
-		Expect(metricVals[0]).To(ConsistOf(
+		Expect(podMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(podMetrics[0].Window.Duration).To(Equal(time.Minute))
+		Expect(podMetrics[0].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(1100.0, 3100.0)},
 			metrics.ContainerMetrics{Name: "cont2", Usage: buildResList(1110.0, 3110.0)},
 		))
-		Expect(times).To(HaveLen(2))
-		Expect(times[0]).To(Equal(api.TimeInfo{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute}))
 	})
 
 	It("should return metrics of value zero when pod metrics have NaN or negative values", func() {
@@ -224,25 +229,27 @@ var _ = Describe("Resource Metrics Provider", func() {
 		}
 
 		By("querying for metrics for some pods")
-		times, metricVals, err := prov.GetPodMetrics(
-			types.NamespacedName{Namespace: "some-ns", Name: "pod1"},
-			types.NamespacedName{Namespace: "some-ns", Name: "pod3"},
+		podMetrics, err := prov.GetPodMetrics(
+			&metav1.PartialObjectMetadata{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod1"}},
+			&metav1.PartialObjectMetadata{ObjectMeta: metav1.ObjectMeta{Namespace: "some-ns", Name: "pod3"}},
 		)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("verifying that metrics have been fetched for all the pods")
+		Expect(podMetrics).To(HaveLen(2))
+
 		By("verifying that the reported times for each are the earliest times for each pod")
-		Expect(times).To(Equal([]api.TimeInfo{
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-		}))
+		Expect(podMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(podMetrics[0].Window.Duration).To(Equal(time.Minute))
+		Expect(podMetrics[1].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(podMetrics[1].Window.Duration).To(Equal(time.Minute))
 
 		By("verifying that NaN and negative values were replaced by zero")
-		Expect(metricVals).To(HaveLen(2))
-		Expect(metricVals[0]).To(ConsistOf(
+		Expect(podMetrics[0].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(0, 3100.0)},
 			metrics.ContainerMetrics{Name: "cont2", Usage: buildResList(0, 0)},
 		))
-		Expect(metricVals[1]).To(ConsistOf(
+		Expect(podMetrics[1].Containers).To(ConsistOf(
 			metrics.ContainerMetrics{Name: "cont1", Usage: buildResList(0, 0)},
 			metrics.ContainerMetrics{Name: "cont2", Usage: buildResList(1310.0, 0)},
 		))
@@ -260,20 +267,24 @@ var _ = Describe("Resource Metrics Provider", func() {
 			),
 		}
 		By("querying for metrics for some nodes")
-		times, metricVals, err := prov.GetNodeMetrics("node1", "node2")
+		nodeMetrics, err := prov.GetNodeMetrics(
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
+		)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("verifying that the reported times for each are the earliest times for each pod")
-		Expect(times).To(Equal([]api.TimeInfo{
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(12).Time(), Window: 1 * time.Minute},
-		}))
+		By("verifying that metrics have been fetched for all the nodes")
+		Expect(nodeMetrics).To(HaveLen(2))
+
+		By("verifying that the reported times for each are the earliest times for each node")
+		Expect(nodeMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(nodeMetrics[0].Window.Duration).To(Equal(time.Minute))
+		Expect(nodeMetrics[1].Timestamp.Time).To(Equal(pmodel.Time(12).Time()))
+		Expect(nodeMetrics[1].Window.Duration).To(Equal(time.Minute))
 
 		By("verifying that the right metrics were fetched")
-		Expect(metricVals).To(Equal([]corev1.ResourceList{
-			buildResList(1100.0, 2100.0),
-			buildResList(1200.0, 2200.0),
-		}))
+		Expect(nodeMetrics[0].Usage).To(Equal(buildResList(1100.0, 2100.0)))
+		Expect(nodeMetrics[1].Usage).To(Equal(buildResList(1200.0, 2200.0)))
 	})
 
 	It("should return nil metrics for missing nodes, but still return partial results", func() {
@@ -288,24 +299,23 @@ var _ = Describe("Resource Metrics Provider", func() {
 			),
 		}
 		By("querying for metrics for some nodes, one of which is missing")
-		times, metricVals, err := prov.GetNodeMetrics("node1", "node2", "node3")
+		nodeMetrics, err := prov.GetNodeMetrics(
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node3"}},
+		)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("verifying that the missing pod had nil metrics")
-		Expect(metricVals).To(HaveLen(3))
-		Expect(metricVals[2]).To(BeNil())
+		By("verifying that the missing pod had no metrics")
+		Expect(nodeMetrics).To(HaveLen(2))
 
 		By("verifying that the rest of time metrics and times are correct")
-		Expect(metricVals).To(Equal([]corev1.ResourceList{
-			buildResList(1100.0, 2100.0),
-			buildResList(1200.0, 2200.0),
-			nil,
-		}))
-		Expect(times).To(Equal([]api.TimeInfo{
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(12).Time(), Window: 1 * time.Minute},
-			{},
-		}))
+		Expect(nodeMetrics[0].Usage).To(Equal(buildResList(1100.0, 2100.0)))
+		Expect(nodeMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(nodeMetrics[0].Window.Duration).To(Equal(time.Minute))
+		Expect(nodeMetrics[1].Usage).To(Equal(buildResList(1200.0, 2200.0)))
+		Expect(nodeMetrics[1].Timestamp.Time).To(Equal(pmodel.Time(12).Time()))
+		Expect(nodeMetrics[1].Window.Duration).To(Equal(time.Minute))
 	})
 
 	It("should return metrics of value zero when node metrics have NaN or negative values", func() {
@@ -320,19 +330,23 @@ var _ = Describe("Resource Metrics Provider", func() {
 			),
 		}
 		By("querying for metrics for some nodes")
-		times, metricVals, err := prov.GetNodeMetrics("node1", "node2")
+		nodeMetrics, err := prov.GetNodeMetrics(
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
+			&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
+		)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("verifying that metrics have been fetched for all the nodes")
+		Expect(nodeMetrics).To(HaveLen(2))
+
 		By("verifying that the reported times for each are the earliest times for each pod")
-		Expect(times).To(Equal([]api.TimeInfo{
-			{Timestamp: pmodel.Time(10).Time(), Window: 1 * time.Minute},
-			{Timestamp: pmodel.Time(12).Time(), Window: 1 * time.Minute},
-		}))
+		Expect(nodeMetrics[0].Timestamp.Time).To(Equal(pmodel.Time(10).Time()))
+		Expect(nodeMetrics[0].Window.Duration).To(Equal(time.Minute))
+		Expect(nodeMetrics[1].Timestamp.Time).To(Equal(pmodel.Time(12).Time()))
+		Expect(nodeMetrics[1].Window.Duration).To(Equal(time.Minute))
 
 		By("verifying that NaN and negative values were replaced by zero")
-		Expect(metricVals).To(Equal([]corev1.ResourceList{
-			buildResList(0, 2100.0),
-			buildResList(1200.0, 0),
-		}))
+		Expect(nodeMetrics[0].Usage).To(Equal(buildResList(0, 2100.0)))
+		Expect(nodeMetrics[1].Usage).To(Equal(buildResList(1200.0, 0)))
 	})
 })
