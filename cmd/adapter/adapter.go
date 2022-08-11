@@ -32,8 +32,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
+	"k8s.io/client-go/metadata/metadatainformer"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
@@ -238,15 +238,15 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return err
 	}
 
-	client, err := kubernetes.NewForConfig(rest)
+	client, err := metadata.NewForConfig(rest)
 	if err != nil {
 		return err
 	}
 
-	podInformerFactory := informers.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
+	podInformerFactory := metadatainformer.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
 		options.FieldSelector = "status.phase=Running"
 	})
-	podInformer := podInformerFactory.Core().V1().Pods()
+	podInformer := podInformerFactory.ForResource(corev1.SchemeGroupVersion.WithResource("pods"))
 
 	informer, err := cmd.Informers()
 	if err != nil {
