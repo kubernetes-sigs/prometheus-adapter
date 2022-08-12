@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/prometheus/common/model"
@@ -53,13 +54,26 @@ type httpAPIClient struct {
 func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url.Values) (APIResponse, error) {
 	u := *c.baseURL
 	u.Path = path.Join(c.baseURL.Path, endpoint)
-	u.RawQuery = query.Encode()
-	req, err := http.NewRequest(verb, u.String(), nil)
+	var reqBody io.Reader
+	if verb == http.MethodGet {
+		u.RawQuery = query.Encode()
+	} else if verb == http.MethodPost {
+		reqBody = strings.NewReader(query.Encode())
+	}
+
+	req, err := http.NewRequest(verb, u.String(), reqBody)
 	if err != nil {
 		return APIResponse{}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
 	}
 	req.WithContext(ctx)
-	req.Header = c.headers
+	for key, values := range c.headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+	if verb == http.MethodPost {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 
 	resp, err := c.client.Do(req)
 	defer func() {
@@ -131,20 +145,22 @@ const (
 
 // queryClient is a Client that connects to the Prometheus HTTP API.
 type queryClient struct {
-	api GenericAPIClient
+	api  GenericAPIClient
+	verb string
 }
 
 // NewClientForAPI creates a Client for the given generic Prometheus API client.
-func NewClientForAPI(client GenericAPIClient) Client {
+func NewClientForAPI(client GenericAPIClient, verb string) Client {
 	return &queryClient{
-		api: client,
+		api:  client,
+		verb: verb,
 	}
 }
 
 // NewClient creates a Client for the given HTTP client and base URL (the location of the Prometheus server).
-func NewClient(client *http.Client, baseURL *url.URL, headers http.Header) Client {
+func NewClient(client *http.Client, baseURL *url.URL, headers http.Header, verb string) Client {
 	genericClient := NewGenericAPIClient(client, baseURL, headers)
-	return NewClientForAPI(genericClient)
+	return NewClientForAPI(genericClient, verb)
 }
 
 func (h *queryClient) Series(ctx context.Context, interval model.Interval, selectors ...Selector) ([]Series, error) {
@@ -160,7 +176,7 @@ func (h *queryClient) Series(ctx context.Context, interval model.Interval, selec
 		vals.Add("match[]", string(selector))
 	}
 
-	res, err := h.api.Do(ctx, "GET", seriesURL, vals)
+	res, err := h.api.Do(ctx, h.verb, seriesURL, vals)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +196,7 @@ func (h *queryClient) Query(ctx context.Context, t model.Time, query Selector) (
 		vals.Set("timeout", model.Duration(timeout).String())
 	}
 
-	res, err := h.api.Do(ctx, "GET", queryURL, vals)
+	res, err := h.api.Do(ctx, h.verb, queryURL, vals)
 	if err != nil {
 		return QueryResult{}, err
 	}
@@ -207,7 +223,7 @@ func (h *queryClient) QueryRange(ctx context.Context, r Range, query Selector) (
 		vals.Set("timeout", model.Duration(timeout).String())
 	}
 
-	res, err := h.api.Do(ctx, "GET", queryRangeURL, vals)
+	res, err := h.api.Do(ctx, h.verb, queryRangeURL, vals)
 	if err != nil {
 		return QueryResult{}, err
 	}

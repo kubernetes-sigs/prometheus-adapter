@@ -74,6 +74,8 @@ type PrometheusAdapter struct {
 	PrometheusTokenFile string
 	// PrometheusHeaders is a k=v list of headers to set on requests to PrometheusURL
 	PrometheusHeaders []string
+	// PrometheusVerb is a verb to set on requests to PrometheusURL
+	PrometheusVerb string
 	// AdapterConfigFile points to the file containing the metrics discovery configuration.
 	AdapterConfigFile string
 	// MetricsRelistInterval is the interval at which to relist the set of available metrics
@@ -88,6 +90,10 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	baseURL, err := url.Parse(cmd.PrometheusURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Prometheus URL %q: %v", baseURL, err)
+	}
+
+	if cmd.PrometheusVerb != http.MethodGet && cmd.PrometheusVerb != http.MethodPost {
+		return nil, fmt.Errorf("unsupported Prometheus HTTP verb %q. use \"GET\" or \"POST\" instead.", cmd.PrometheusVerb)
 	}
 
 	var httpClient *http.Client
@@ -117,7 +123,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	}
 	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL, parseHeaderArgs(cmd.PrometheusHeaders))
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
-	return prom.NewClientForAPI(instrumentedGenericPromClient), nil
+	return prom.NewClientForAPI(instrumentedGenericPromClient, cmd.PrometheusVerb), nil
 }
 
 func (cmd *PrometheusAdapter) addFlags() {
@@ -137,6 +143,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"Optional file containing the bearer token to use when connecting with Prometheus")
 	cmd.Flags().StringArrayVar(&cmd.PrometheusHeaders, "prometheus-header", cmd.PrometheusHeaders,
 		"Optional header to set on requests to prometheus-url. Can be repeated")
+	cmd.Flags().StringVar(&cmd.PrometheusVerb, "prometheus-verb", cmd.PrometheusVerb,
+		"HTTP verb to set on requests to Prometheus. Possible values: \"GET\", \"POST\"")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
@@ -274,6 +282,7 @@ func main() {
 	// set up flags
 	cmd := &PrometheusAdapter{
 		PrometheusURL:         "https://localhost",
+		PrometheusVerb:        http.MethodGet,
 		MetricsRelistInterval: 10 * time.Minute,
 	}
 	cmd.Name = "prometheus-metrics-adapter"
