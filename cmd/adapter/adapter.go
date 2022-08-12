@@ -292,7 +292,10 @@ func main() {
 	cmd.OpenAPIConfig.Info.Version = "1.0.0"
 
 	cmd.addFlags()
-	cmd.Flags().AddGoFlagSet(flag.CommandLine) // make sure we get the klog flags
+	// make sure we get klog flags
+	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	logs.AddGoFlags(local)
+	cmd.Flags().AddGoFlagSet(local)
 	if err := cmd.Flags().Parse(os.Args); err != nil {
 		klog.Fatalf("unable to parse flags: %v", err)
 	}
