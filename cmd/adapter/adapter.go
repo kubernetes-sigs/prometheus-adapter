@@ -93,7 +93,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	}
 
 	if cmd.PrometheusVerb != http.MethodGet && cmd.PrometheusVerb != http.MethodPost {
-		return nil, fmt.Errorf("unsupported Prometheus Http Verb %q", cmd.PrometheusVerb)
+		return nil, fmt.Errorf("unsupported Prometheus HTTP verb %q. use \"GET\" or \"POST\" instead.", cmd.PrometheusVerb)
 	}
 
 	var httpClient *http.Client
@@ -144,7 +144,7 @@ func (cmd *PrometheusAdapter) addFlags() {
 	cmd.Flags().StringArrayVar(&cmd.PrometheusHeaders, "prometheus-header", cmd.PrometheusHeaders,
 		"Optional header to set on requests to prometheus-url. Can be repeated")
 	cmd.Flags().StringVar(&cmd.PrometheusVerb, "prometheus-verb", cmd.PrometheusVerb,
-		"HTTP Verb to set on requests to Prometheus.")
+		"HTTP verb to set on requests to Prometheus. Possible values: \"GET\", \"POST\"")
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
