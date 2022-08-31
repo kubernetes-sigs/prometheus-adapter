@@ -36,7 +36,7 @@ $ helm install my-release prometheus-community/prometheus-adapter
 
 Official images
 ---
-All official images for releases after v0.8.4 are available in `k8s.gcr.io/prometheus-adapter/prometheus-adapter:$VERSION`. The project also maintains a [staging registry](https://console.cloud.google.com/gcr/images/k8s-staging-prometheus-adapter/GLOBAL/) where images for each commit from the master branch are published. You can use this registry if you need to test a version from a specific commit, or if you need to deploy a patch while waiting for a new release.
+All official images for releases after v0.8.4 are available in `registry.k8s.io/prometheus-adapter/prometheus-adapter:$VERSION`. The project also maintains a [staging registry](https://console.cloud.google.com/gcr/images/k8s-staging-prometheus-adapter/GLOBAL/) where images for each commit from the master branch are published. You can use this registry if you need to test a version from a specific commit, or if you need to deploy a patch while waiting for a new release.
 
 Images for versions v0.8.4 and prior are only available in unofficial registries:
 * https://quay.io/repository/coreos/k8s-prometheus-adapter-amd64
