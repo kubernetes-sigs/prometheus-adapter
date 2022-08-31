@@ -46,7 +46,8 @@ instance, if you're on an x86_64 machine, use
 `gcr.io/k8s-staging-prometheus-adapter/prometheus-adapter-amd64` image.
 
 There is also an official multi arch image available at
-`k8s.gcr.io/prometheus-adapter/prometheus-adapter:${VERSION}`.
+`registry.k8s.io/prometheus-adapter/prometheus-adapter:${VERSION}`.
+
 
 If you're feeling adventurous, you can build the latest version of
 prometheus-adapter by running `make container` or get the latest image from the
