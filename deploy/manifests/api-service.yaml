@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/component: metrics-adapter
     app.kubernetes.io/name: prometheus-adapter
-    app.kubernetes.io/version: 0.9.1
+    app.kubernetes.io/version: 0.10.0
   name: v1beta1.metrics.k8s.io
 spec:
   group: metrics.k8s.io
