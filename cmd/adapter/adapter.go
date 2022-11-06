@@ -119,7 +119,11 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read prometheus-token-file: %v", err)
 		}
-		httpClient.Transport = transport.NewBearerAuthRoundTripper(string(data), httpClient.Transport)
+		wrappedTransport := http.DefaultTransport
+		if httpClient.Transport != nil {
+			wrappedTransport = httpClient.Transport
+		}
+		httpClient.Transport = transport.NewBearerAuthRoundTripper(string(data), wrappedTransport)
 	}
 	genericPromClient := prom.NewGenericAPIClient(httpClient, baseURL, parseHeaderArgs(cmd.PrometheusHeaders))
 	instrumentedGenericPromClient := mprom.InstrumentGenericAPIClient(genericPromClient, baseURL.String())
