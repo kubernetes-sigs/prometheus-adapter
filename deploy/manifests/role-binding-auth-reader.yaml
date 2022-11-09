@@ -1,7 +1,11 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: custom-metrics-auth-reader
+  labels:
+    app.kubernetes.io/component: metrics-adapter
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/version: 0.10.0
+  name: resource-metrics-auth-reader
   namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -9,5 +13,5 @@ roleRef:
   name: extension-apiserver-authentication-reader
 subjects:
 - kind: ServiceAccount
-  name: custom-metrics-apiserver
-  namespace: custom-metrics
+  name: prometheus-adapter
+  namespace: monitoring

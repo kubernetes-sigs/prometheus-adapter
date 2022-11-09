@@ -142,11 +142,11 @@ a HorizontalPodAutoscaler like this to accomplish the autoscaling:
 
 <details>
 
-<summary>sample-app-hpa.yaml</summary>
+<summary>sample-app.hpa.yaml</summary>
 
 ```yaml
 kind: HorizontalPodAutoscaler
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2
 metadata:
   name: sample-app
 spec:
@@ -165,10 +165,13 @@ spec:
   - type: Pods
     pods:
       # use the metric that you used above: pods/http_requests
-      metricName: http_requests
+      metric:
+        name: http_requests
       # target 500 milli-requests per second,
       # which is 1 request every two seconds
-      targetAverageValue: 500m
+      target:
+        type: Value
+        averageValue: 500m
 ```
 
 </details>
@@ -176,7 +179,7 @@ spec:
 If you try creating that now (and take a look at your controller-manager
 logs), you'll see that the that the HorizontalPodAutoscaler controller is
 attempting to fetch metrics from
-`/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app`,
+`/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app`,
 but right now, nothing's serving that API.
 
 Before you can autoscale your application, you'll need to make sure that
@@ -197,11 +200,11 @@ First, you'll need to deploy the Prometheus Operator.  Check out the
 guide](https://github.com/prometheus-operator/prometheus-operator#quickstart)
 for the Operator to deploy a copy of Prometheus.
 
-This walkthrough assumes that Prometheus is deployed in the `prom`
+This walkthrough assumes that Prometheus is deployed in the `monitoring`
 namespace. Most of the sample commands and files are namespace-agnostic,
 but there are a few commands or pieces of configuration that rely on that
 namespace.  If you're using a different namespace, simply substitute that
-in for `prom` when it appears.
+in for `monitoring` when it appears.
 
 ### Monitoring Your Application
 
@@ -213,7 +216,7 @@ service:
 
 <details>
 
-<summary>service-monitor.yaml</summary>
+<summary>sample-app.monitor.yaml</summary>
 
 ```yaml
 kind: ServiceMonitor
@@ -233,12 +236,12 @@ spec:
 </details>
 
 ```shell
-$ kubectl create -f service-monitor.yaml
+$ kubectl create -f sample-app.monitor.yaml
 ```
 
-Now, you should see your metrics appear in your Prometheus instance.  Look
+Now, you should see your metrics (`http_requests_total`) appear in your Prometheus instance.  Look
 them up via the dashboard, and make sure they have the `namespace` and
-`pod` labels.
+`pod` labels. If not, check the labels on the service monitor match the ones on the Prometheus CRD.
 
 ### Launching the Adapter
 
@@ -256,7 +259,46 @@ the steps to deploy the adapter.  Note that if you're deploying on
 a non-x86_64 (amd64) platform, you'll need to change the `image` field in
 the Deployment to be the appropriate image for your platform.
 
-The default adapter configuration should work for this walkthrough and
+However an update to the adapter config is necessary in order to
+expose custom metrics.
+
+<details>
+
+<summary>prom-adapter.config.yaml</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adapter-config
+  namespace: monitoring
+data:
+  config.yaml: |-
+    "rules":
+    - "seriesQuery": |
+         {namespace!="",__name__!~"^container_.*"}
+      "resources":
+        "template": "<<.Resource>>"
+      "name":
+        "matches": "^(.*)_total"
+        "as": ""
+      "metricsQuery": |
+        sum by (<<.GroupBy>>) (
+          irate (
+            <<.Series>>{<<.LabelMatchers>>}[1m]
+          )
+        )
+```
+
+</details>
+
+```shell
+$ kubectl apply -f prom-adapter.config.yaml
+# Restart prom-adapter pods
+$ kubectl rollout restart deployment prometheus-adapter -n monitoring
+```
+
+This adapter configuration should work for this walkthrough together with
 a standard Prometheus Operator configuration, but if you've got custom
 relabelling rules, or your labels above weren't exactly `namespace` and
 `pod`, you may need to edit the configuration in the ConfigMap. The
@@ -265,11 +307,36 @@ overview of how configuration works.
 
 ### The Registered API
 
-As part of the creation of the adapter Deployment and associated objects
-(performed above), we registered the API with the API aggregator (part of
-the main Kubernetes API server).
+We also need to register the custom metrics API with the API aggregator (part of
+the main Kubernetes API server). For that we need to create an APIService resource
 
-The API is registered as `custom.metrics.k8s.io/v1beta1`, and you can find
+<details>
+
+<summary>api-service.yaml</summary>
+
+```yaml
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta2.custom.metrics.k8s.io
+spec:
+  group: custom.metrics.k8s.io
+  groupPriorityMinimum: 100
+  insecureSkipTLSVerify: true
+  service:
+    name: prometheus-adapter
+    namespace: monitoring
+  version: v1beta2
+  versionPriority: 100
+```
+
+</details>
+
+```shell
+$ kubectl create -f api-service.yaml
+```
+
+The API is registered as `custom.metrics.k8s.io/v1beta2`, and you can find
 more information about aggregation at [Concepts:
 Aggregation](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/concepts/aggregation.md).
 
@@ -280,7 +347,7 @@ With that all set, your custom metrics API should show up in discovery.
 Try fetching the discovery information for it:
 
 ```shell
-$ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
+$ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta2
 ```
 
 Since you've set up Prometheus to collect your app's metrics, you should
@@ -294,12 +361,12 @@ sends a raw GET request to the Kubernetes API server, automatically
 injecting auth information:
 
 ```shell
-$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
+$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
 ```
 
 Because of the adapter's configuration, the cumulative metric
 `http_requests_total` has been converted into a rate metric,
-`pods/http_requests`, which measures requests per second over a 2 minute
+`pods/http_requests`, which measures requests per second over a 1 minute
 interval. The value should currently be close to zero, since there's no
 traffic to your app, except for the regular metrics collection from
 Prometheus.
@@ -350,7 +417,7 @@ and make decisions based on it.
 If you didn't create the HorizontalPodAutoscaler above, create it now:
 
 ```shell
-$ kubectl create -f sample-app-hpa.yaml
+$ kubectl create -f sample-app.hpa.yaml
 ```
 
 Wait a little bit, and then examine the HPA:
@@ -396,4 +463,4 @@ setting different labels or using the `Object` metric source type.
 
 For more information on how metrics are exposed by the Prometheus adapter,
 see [config documentation](/docs/config.md), and check the [default
-configuration](/deploy/manifests/custom-metrics-config-map.yaml).
+configuration](/deploy/manifests/config-map.yaml).
