@@ -84,7 +84,7 @@ var seriesRegistryTestSeries = [][]prom.Series{
 		},
 	},
 	{
-		// guage metrics
+		// gauge metrics
 		{
 			Name:   "node_gigawatts",
 			Labels: pmodel.LabelSet{"kube_node": "somenode"},
@@ -159,7 +159,7 @@ var _ = Describe("Series Registry", func() {
 			// container metrics
 			{
 				title:          "container metrics gauge / multiple resource names",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_usage"},
 				namespace:      "somens",
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
@@ -168,7 +168,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "container metrics counter",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_count"},
 				namespace:      "somens",
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
@@ -177,7 +177,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "container metrics seconds counter",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_time"},
 				namespace:      "somens",
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
@@ -187,7 +187,7 @@ var _ = Describe("Series Registry", func() {
 			// namespaced metrics
 			{
 				title:          "namespaced metrics counter / multidimensional (service)",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "service"}, Namespaced: true, Metric: "ingress_hits"},
 				namespace:      "somens",
 				resourceNames:  []string{"somesvc"},
 				metricSelector: labels.Everything(),
@@ -196,7 +196,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:         "namespaced metrics counter /  multidimensional (service) / selection using labels",
-				info:          provider.CustomMetricInfo{schema.GroupResource{Resource: "service"}, true, "ingress_hits"},
+				info:          provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "service"}, Namespaced: true, Metric: "ingress_hits"},
 				namespace:     "somens",
 				resourceNames: []string{"somesvc"},
 				metricSelector: labels.NewSelector().Add(
@@ -206,7 +206,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "namespaced metrics counter / multidimensional (ingress)",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingress"}, true, "ingress_hits"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "ingress"}, Namespaced: true, Metric: "ingress_hits"},
 				namespace:      "somens",
 				resourceNames:  []string{"someingress"},
 				metricSelector: labels.Everything(),
@@ -215,7 +215,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "namespaced metrics counter / multidimensional (pod)",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "pod"}, true, "ingress_hits"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pod"}, Namespaced: true, Metric: "ingress_hits"},
 				namespace:      "somens",
 				resourceNames:  []string{"somepod"},
 				metricSelector: labels.Everything(),
@@ -224,7 +224,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "namespaced metrics gauge",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "service"}, true, "service_proxy_packets"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "service"}, Namespaced: true, Metric: "service_proxy_packets"},
 				namespace:      "somens",
 				resourceNames:  []string{"somesvc"},
 				metricSelector: labels.Everything(),
@@ -233,7 +233,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "namespaced metrics seconds counter",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployment"}, true, "work_queue_wait"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "deployment"}, Namespaced: true, Metric: "work_queue_wait"},
 				namespace:      "somens",
 				resourceNames:  []string{"somedep"},
 				metricSelector: labels.Everything(),
@@ -243,7 +243,7 @@ var _ = Describe("Series Registry", func() {
 			// non-namespaced series
 			{
 				title:          "root scoped metrics gauge",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "node"}, false, "node_gigawatts"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "node"}, Namespaced: false, Metric: "node_gigawatts"},
 				resourceNames:  []string{"somenode"},
 				metricSelector: labels.Everything(),
 
@@ -251,7 +251,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "root scoped metrics counter",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "persistentvolume"}, false, "volume_claims"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "persistentvolume"}, Namespaced: false, Metric: "volume_claims"},
 				resourceNames:  []string{"somepv"},
 				metricSelector: labels.Everything(),
 
@@ -259,7 +259,7 @@ var _ = Describe("Series Registry", func() {
 			},
 			{
 				title:          "root scoped metrics seconds counter",
-				info:           provider.CustomMetricInfo{schema.GroupResource{Resource: "node"}, false, "node_fan"},
+				info:           provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "node"}, Namespaced: false, Metric: "node_fan"},
 				resourceNames:  []string{"somenode"},
 				metricSelector: labels.Everything(),
 
@@ -281,23 +281,23 @@ var _ = Describe("Series Registry", func() {
 
 		It("should list all metrics", func() {
 			Expect(registry.ListAllMetrics()).To(ConsistOf(
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_count"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "some_count"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_time"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "some_time"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "some_usage"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
-				provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
-				provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "nodes"}, false, "node_gigawatts"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "persistentvolumes"}, false, "volume_claims"},
-				provider.CustomMetricInfo{schema.GroupResource{Resource: "nodes"}, false, "node_fan"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_count"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_count"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_time"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_time"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_usage"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_usage"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "ingress_hits"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "ingresses"}, Namespaced: true, Metric: "ingress_hits"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "ingress_hits"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "ingress_hits"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "service_proxy_packets"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "service_proxy_packets"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "deployments"}, Namespaced: true, Metric: "work_queue_wait"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "work_queue_wait"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "nodes"}, Namespaced: false, Metric: "node_gigawatts"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "persistentvolumes"}, Namespaced: false, Metric: "volume_claims"},
+				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "nodes"}, Namespaced: false, Metric: "node_fan"},
 			))
 		})
 	})

@@ -194,13 +194,14 @@ func NamersFromConfig(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]
 		if nameAs == "" {
 			// check if we have an obvious default
 			subexpNames := nameMatches.SubexpNames()
-			if len(subexpNames) == 1 {
+			switch len(subexpNames) {
+			case 1:
 				// no capture groups, use the whole thing
 				nameAs = "$0"
-			} else if len(subexpNames) == 2 {
+			case 2:
 				// one capture group, use that
 				nameAs = "$1"
-			} else {
+			default:
 				return nil, fmt.Errorf("must specify an 'as' value for name matcher %q associated with series query %q", rule.Name.Matches, rule.SeriesQuery)
 			}
 		}

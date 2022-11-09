@@ -283,9 +283,8 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 }
 
 func (q *metricsQuery) selectMatcher(operator selection.Operator, values []string) (func(string, string) string, error) {
-
-	numValues := len(values)
-	if numValues == 0 {
+	switch len(values) {
+	case 0:
 		switch operator {
 		case selection.Exists:
 			return prom.LabelNeq, nil
@@ -294,7 +293,7 @@ func (q *metricsQuery) selectMatcher(operator selection.Operator, values []strin
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
 			return nil, ErrMalformedQuery
 		}
-	} else if numValues == 1 {
+	case 1:
 		switch operator {
 		case selection.Equals, selection.DoubleEquals:
 			return prom.LabelEq, nil
@@ -305,7 +304,7 @@ func (q *metricsQuery) selectMatcher(operator selection.Operator, values []strin
 		case selection.DoesNotExist, selection.NotIn:
 			return prom.LabelNotMatches, nil
 		}
-	} else {
+	default:
 		// Since labels can only have one value, providing multiple
 		// values results in a regex match, even if that's not what the user
 		// asked for.
@@ -321,8 +320,8 @@ func (q *metricsQuery) selectMatcher(operator selection.Operator, values []strin
 }
 
 func (q *metricsQuery) selectTargetValue(operator selection.Operator, values []string) (string, error) {
-	numValues := len(values)
-	if numValues == 0 {
+	switch len(values) {
+	case 0:
 		switch operator {
 		case selection.Exists, selection.DoesNotExist:
 			// Return an empty string when values are equal to 0
@@ -334,7 +333,7 @@ func (q *metricsQuery) selectTargetValue(operator selection.Operator, values []s
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
 			return "", ErrMalformedQuery
 		}
-	} else if numValues == 1 {
+	case 1:
 		switch operator {
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
 			// Pass the value through as-is.
@@ -347,7 +346,7 @@ func (q *metricsQuery) selectTargetValue(operator selection.Operator, values []s
 		case selection.Exists, selection.DoesNotExist:
 			return "", ErrQueryUnsupportedValues
 		}
-	} else {
+	default:
 		switch operator {
 		case selection.Equals, selection.DoubleEquals, selection.NotEquals, selection.In, selection.NotIn:
 			// Pass the value through as-is.

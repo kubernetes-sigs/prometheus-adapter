@@ -99,7 +99,7 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 			Name: info.Metric,
 		},
 		// TODO(directxman12): use the right timestamp
-		Timestamp: metav1.Time{time.Now()},
+		Timestamp: metav1.Time{Time: time.Now()},
 		Value:     *q,
 	}
 
@@ -256,7 +256,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 		}
 		selectors[sel] = struct{}{}
 		go func() {
-			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{startTime, 0}, sel)
+			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{Start: startTime, End: 0}, sel)
 			if err != nil {
 				errs <- fmt.Errorf("unable to fetch metrics for query %q: %v", sel, err)
 				return

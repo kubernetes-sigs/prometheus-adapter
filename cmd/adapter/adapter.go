@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -93,7 +92,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	}
 
 	if cmd.PrometheusVerb != http.MethodGet && cmd.PrometheusVerb != http.MethodPost {
-		return nil, fmt.Errorf("unsupported Prometheus HTTP verb %q. use \"GET\" or \"POST\" instead.", cmd.PrometheusVerb)
+		return nil, fmt.Errorf("unsupported Prometheus HTTP verb %q; supported verbs: \"GET\" and \"POST\"", cmd.PrometheusVerb)
 	}
 
 	var httpClient *http.Client
@@ -115,7 +114,7 @@ func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
 	}
 
 	if cmd.PrometheusTokenFile != "" {
-		data, err := ioutil.ReadFile(cmd.PrometheusTokenFile)
+		data, err := os.ReadFile(cmd.PrometheusTokenFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read prometheus-token-file: %v", err)
 		}
@@ -392,7 +391,7 @@ func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.
 }
 
 func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFilePath string) (*http.Client, error) {
-	data, err := ioutil.ReadFile(caFilePath)
+	data, err := os.ReadFile(caFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read prometheus-ca-file: %v", err)
 	}
@@ -409,6 +408,7 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 		}
 		return &http.Client{
 			Transport: &http.Transport{
+				//nolint:gosec
 				TLSClientConfig: &tls.Config{
 					RootCAs:      pool,
 					Certificates: []tls.Certificate{tlsClientCerts},
@@ -419,6 +419,7 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 
 	return &http.Client{
 		Transport: &http.Transport{
+			//nolint:gosec
 			TLSClientConfig: &tls.Config{
 				RootCAs: pool,
 			},

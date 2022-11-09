@@ -69,9 +69,9 @@ func (l *periodicMetricLister) updateMetrics() error {
 		return err
 	}
 
-	//Cache the result.
+	// Cache the result.
 	l.mostRecentResult = result
-	//Let our listeners know we've got new data ready for them.
+	// Let our listeners know we've got new data ready for them.
 	l.notifyListeners()
 	return nil
 }
@@ -85,5 +85,7 @@ func (l *periodicMetricLister) notifyListeners() {
 }
 
 func (l *periodicMetricLister) UpdateNow() {
-	l.updateMetrics()
+	if err := l.updateMetrics(); err != nil {
+		utilruntime.HandleError(err)
+	}
 }

@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
@@ -15,7 +15,7 @@ func FromFile(filename string) (*MetricsDiscoveryConfig, error) {
 		return nil, fmt.Errorf("unable to load metrics discovery config file: %v", err)
 	}
 	defer file.Close()
-	contents, err := ioutil.ReadAll(file)
+	contents, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load metrics discovery config file: %v", err)
 	}

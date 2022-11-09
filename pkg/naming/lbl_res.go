@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"text/template"
 
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	pmodel "github.com/prometheus/common/model"
@@ -34,7 +33,6 @@ type labelGroupResExtractor struct {
 
 	resourceInd int
 	groupInd    *int
-	mapper      apimeta.RESTMapper
 }
 
 // newLabelGroupResExtractor creates a new labelGroupResExtractor for labels whose form
@@ -42,7 +40,10 @@ type labelGroupResExtractor struct {
 // so anything in the template which limits resource or group name length will cause issues.
 func newLabelGroupResExtractor(labelTemplate *template.Template) (*labelGroupResExtractor, error) {
 	labelRegexBuff := new(bytes.Buffer)
-	if err := labelTemplate.Execute(labelRegexBuff, schema.GroupResource{"(?P<group>.+?)", "(?P<resource>.+?)"}); err != nil {
+	if err := labelTemplate.Execute(labelRegexBuff, schema.GroupResource{
+		Group:    "(?P<group>.+?)",
+		Resource: "(?P<resource>.+?)"},
+	); err != nil {
 		return nil, fmt.Errorf("unable to convert label template to matcher: %v", err)
 	}
 	if labelRegexBuff.Len() == 0 {
