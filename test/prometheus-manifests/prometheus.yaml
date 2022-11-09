@@ -1,0 +1,9 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: prometheus-adapter-e2e
+spec:
+  replicas: 2
+  serviceAccountName: prometheus
+  serviceMonitorSelector: {}
