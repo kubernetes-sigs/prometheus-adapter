@@ -1,9 +1,10 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 approvers:
-  - prometheus-adapter-approvers
+  - dgrisonnet
 
 reviewers:
-  - prometheus-adapter-approvers
+  - dgrisonnet
+  - olivierlemasle
 
 emeritus_approvers:
 - brancz
