@@ -408,10 +408,10 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 		}
 		return &http.Client{
 			Transport: &http.Transport{
-				//nolint:gosec
 				TLSClientConfig: &tls.Config{
 					RootCAs:      pool,
 					Certificates: []tls.Certificate{tlsClientCerts},
+					MinVersion:   tls.VersionTLS12,
 				},
 			},
 		}, nil
@@ -419,9 +419,9 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 
 	return &http.Client{
 		Transport: &http.Transport{
-			//nolint:gosec
 			TLSClientConfig: &tls.Config{
-				RootCAs: pool,
+				RootCAs:    pool,
+				MinVersion: tls.VersionTLS12,
 			},
 		},
 	}, nil
