@@ -2,12 +2,14 @@ REGISTRY?=gcr.io/k8s-staging-prometheus-adapter
 IMAGE=prometheus-adapter
 ARCH?=$(shell go env GOARCH)
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
+GOPATH:=$(shell go env GOPATH)
 
 VERSION=$(shell cat VERSION)
 TAG_PREFIX=v
 TAG?=$(TAG_PREFIX)$(VERSION)
 
 GO_VERSION?=1.18.5
+GOLANGCI_VERSION?=1.50.1
 
 .PHONY: all
 all: prometheus-adapter
@@ -57,21 +59,29 @@ test:
 # ---------------
 
 .PHONY: verify
-verify: verify-gofmt verify-deps verify-generated test
+verify: verify-lint verify-deps verify-generated
 
 .PHONY: update
-update: update-generated
+update: update-lint update-generated
 
-# Format
-# ------
+# Format and lint
+# ---------------
 
-.PHONY: verify-gofmt
-verify-gofmt:
-	./hack/gofmt-all.sh -v
+HAS_GOLANGCI_VERSION:=$(shell $(GOPATH)/bin/golangci-lint version --format=short)
+.PHONY: golangci
+golangci:
+ifneq ($(HAS_GOLANGCI_VERSION), $(GOLANGCI_VERSION))
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v$(GOLANGCI_VERSION)
+endif
 
-.PHONY: gofmt
-gofmt:
-	./hack/gofmt-all.sh
+.PHONY: verify-lint
+verify-lint: golangci
+	$(GOPATH)/bin/golangci-lint run --modules-download-mode=readonly || (echo 'Run "make update-lint"' && exit 1)
+
+.PHONY: update-lint
+update-lint: golangci
+	$(GOPATH)/bin/golangci-lint run --fix --modules-download-mode=readonly
+
 
 # Dependencies
 # ------------
@@ -88,7 +98,7 @@ verify-deps:
 generated_files=pkg/api/generated/openapi/zz_generated.openapi.go
 
 .PHONY: verify-generated
-verify-generated:
+verify-generated: update-generated
 	@git diff --exit-code -- $(generated_files)
 
 .PHONY: update-generated

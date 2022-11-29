@@ -87,7 +87,7 @@ var _ = Describe("Custom Metrics Provider", func() {
 		By("ensuring that no metrics are present before we start listing")
 		Expect(prov.ListAllMetrics()).To(BeEmpty())
 
-		By("setting the acceptible interval to now until the next update, with a bit of wiggle room")
+		By("setting the acceptable interval to now until the next update, with a bit of wiggle room")
 		startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
 		fakeProm.AcceptableInterval = pmodel.Interval{Start: startTime, End: 0}
 
@@ -98,16 +98,16 @@ var _ = Describe("Custom Metrics Provider", func() {
 
 		By("listing all metrics, and checking that they contain the expected results")
 		Expect(prov.ListAllMetrics()).To(ConsistOf(
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "ingress_hits"},
-			provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "ingresses"}, true, "ingress_hits"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "ingress_hits"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "ingress_hits"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "services"}, true, "service_proxy_packets"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "service_proxy_packets"},
-			provider.CustomMetricInfo{schema.GroupResource{Group: "extensions", Resource: "deployments"}, true, "work_queue_wait"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "work_queue_wait"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "namespaces"}, false, "some_usage"},
-			provider.CustomMetricInfo{schema.GroupResource{Resource: "pods"}, true, "some_usage"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "ingress_hits"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "ingresses"}, Namespaced: true, Metric: "ingress_hits"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "ingress_hits"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "ingress_hits"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "service_proxy_packets"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "service_proxy_packets"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "deployments"}, Namespaced: true, Metric: "work_queue_wait"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "work_queue_wait"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_usage"},
+			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_usage"},
 		))
 	})
 })

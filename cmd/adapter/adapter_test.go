@@ -27,7 +27,6 @@ import (
 const certsDir = "testdata"
 
 func TestMakeKubeconfigHTTPClient(t *testing.T) {
-
 	tests := []struct {
 		kubeconfigPath string
 		inClusterAuth  bool
@@ -71,16 +70,13 @@ func TestMakeKubeconfigHTTPClient(t *testing.T) {
 					t.Error("HTTP client Transport is nil, expected http.RoundTripper")
 				}
 			}
-		} else {
-			if err == nil {
-				t.Errorf("Error is nil, expected %v", err)
-			}
+		} else if err == nil {
+			t.Errorf("Error is nil, expected %v", err)
 		}
 	}
 }
 
 func TestMakePrometheusCAClient(t *testing.T) {
-
 	tests := []struct {
 		caFilePath      string
 		tlsCertFilePath string
@@ -140,16 +136,13 @@ func TestMakePrometheusCAClient(t *testing.T) {
 					t.Errorf("TLS certificates is %+v, expected nil", prometheusCAClient.Transport.(*http.Transport).TLSClientConfig.Certificates)
 				}
 			}
-		} else {
-			if err == nil {
-				t.Errorf("Error is nil, expected %v", err)
-			}
+		} else if err == nil {
+			t.Errorf("Error is nil, expected %v", err)
 		}
 	}
 }
 
 func TestParseHeaderArgs(t *testing.T) {
-
 	tests := []struct {
 		args    []string
 		headers http.Header

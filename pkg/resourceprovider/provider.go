@@ -72,7 +72,6 @@ func newResourceQuery(cfg config.ResourceRule, mapper apimeta.RESTMapper) (resou
 		nodeQuery:      nodeQuery,
 		containerLabel: cfg.ContainerLabel,
 	}, nil
-
 }
 
 // resourceQuery represents query information for querying resource metrics for some resource,

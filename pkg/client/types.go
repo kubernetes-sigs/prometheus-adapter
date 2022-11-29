@@ -25,10 +25,10 @@ type ErrorType string
 
 const (
 	ErrBadData     ErrorType = "bad_data"
-	ErrTimeout               = "timeout"
-	ErrCanceled              = "canceled"
-	ErrExec                  = "execution"
-	ErrBadResponse           = "bad_response"
+	ErrTimeout     ErrorType = "timeout"
+	ErrCanceled    ErrorType = "canceled"
+	ErrExec        ErrorType = "execution"
+	ErrBadResponse ErrorType = "bad_response"
 )
 
 // Error is an error returned by the API.
@@ -46,7 +46,7 @@ type ResponseStatus string
 
 const (
 	ResponseSucceeded ResponseStatus = "succeeded"
-	ResponseError                    = "error"
+	ResponseError     ResponseStatus = "error"
 )
 
 // APIResponse represents the raw response returned by the API.

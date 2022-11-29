@@ -61,7 +61,7 @@ func (c *metricConverter) convertSample(info provider.ExternalMetricInfo, sample
 	singleMetric := external_metrics.ExternalMetricValue{
 		MetricName: info.Metric,
 		Timestamp: metav1.Time{
-			sample.Timestamp.Time(),
+			Time: sample.Timestamp.Time(),
 		},
 		Value:        *resource.NewMilliQuantity(int64(sample.Value*1000.0), resource.DecimalSI),
 		MetricLabels: labels,
@@ -133,7 +133,7 @@ func (c *metricConverter) convertScalar(info provider.ExternalMetricInfo, queryR
 			{
 				MetricName: info.Metric,
 				Timestamp: metav1.Time{
-					toConvert.Timestamp.Time(),
+					Time: toConvert.Timestamp.Time(),
 				},
 				Value: *resource.NewMilliQuantity(int64(toConvert.Value*1000.0), resource.DecimalSI),
 			},

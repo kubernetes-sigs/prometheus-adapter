@@ -103,7 +103,6 @@ func (r *externalSeriesRegistry) filterAndStoreMetrics(result MetricUpdateResult
 
 	r.metrics = apiMetricsCache
 	r.metricsInfo = rawMetricsCache
-
 }
 
 func (r *externalSeriesRegistry) ListAllMetrics() []provider.ExternalMetricInfo {

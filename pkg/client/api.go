@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -61,11 +60,10 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 		reqBody = strings.NewReader(query.Encode())
 	}
 
-	req, err := http.NewRequest(verb, u.String(), reqBody)
+	req, err := http.NewRequestWithContext(ctx, verb, u.String(), reqBody)
 	if err != nil {
 		return APIResponse{}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
 	}
-	req.WithContext(ctx)
 	for key, values := range c.headers {
 		for _, value := range values {
 			req.Header.Add(key, value)
@@ -102,7 +100,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 
 	var body io.Reader = resp.Body
 	if klog.V(8).Enabled() {
-		data, err := ioutil.ReadAll(body)
+		data, err := io.ReadAll(body)
 		if err != nil {
 			return APIResponse{}, fmt.Errorf("unable to log response body: %v", err)
 		}
@@ -237,7 +235,7 @@ func (h *queryClient) QueryRange(ctx context.Context, r Range, query Selector) (
 // when present
 func timeoutFromContext(ctx context.Context) (time.Duration, bool) {
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
-		return time.Now().Sub(deadline), true
+		return time.Since(deadline), true
 	}
 
 	return time.Duration(0), false
