@@ -19,7 +19,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -151,10 +150,13 @@ func (cmd *PrometheusAdapter) addFlags() {
 	cmd.Flags().StringVar(&cmd.AdapterConfigFile, "config", cmd.AdapterConfigFile,
 		"Configuration file containing details of how to transform between Prometheus metrics "+
 			"and custom metrics API resources")
-	cmd.Flags().DurationVar(&cmd.MetricsRelistInterval, "metrics-relist-interval", cmd.MetricsRelistInterval, ""+
+	cmd.Flags().DurationVar(&cmd.MetricsRelistInterval, "metrics-relist-interval", cmd.MetricsRelistInterval,
 		"interval at which to re-list the set of all available metrics from Prometheus")
-	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge, ""+
+	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge,
 		"period for which to query the set of available metrics from Prometheus")
+
+	// Add logging flags
+	logs.AddFlags(cmd.Flags())
 }
 
 func (cmd *PrometheusAdapter) loadConfig() error {
@@ -295,10 +297,6 @@ func main() {
 	cmd.OpenAPIConfig.Info.Version = "1.0.0"
 
 	cmd.addFlags()
-	// make sure we get klog flags
-	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	logs.AddGoFlags(local)
-	cmd.Flags().AddGoFlagSet(local)
 	if err := cmd.Flags().Parse(os.Args); err != nil {
 		klog.Fatalf("unable to parse flags: %v", err)
 	}
