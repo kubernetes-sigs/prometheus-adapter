@@ -13,7 +13,7 @@ data:
         "nodeQuery": |
           sum by (<<.GroupBy>>) (
             irate(
-                container_cpu_usage_seconds_total{<<.LabelMatchers>>,id='/'}[4m]
+                node_cpu_usage_seconds_total{<<.LabelMatchers>>}[4m]
             )
           )
         "resources":
@@ -32,7 +32,7 @@ data:
           )
         "nodeQuery": |
           sum by (<<.GroupBy>>) (
-            container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}
+            node_memory_working_set_bytes{<<.LabelMatchers>>}
           )
         "resources":
           "overrides":
