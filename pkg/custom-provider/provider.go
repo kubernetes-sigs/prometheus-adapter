@@ -98,8 +98,20 @@ func (p *prometheusProvider) metricFor(value pmodel.SampleValue, name types.Name
 		Metric: custom_metrics.MetricIdentifier{
 			Name: info.Metric,
 		},
+		
 		// TODO(directxman12): use the right timestamp
-		Timestamp: metav1.Time{Time: time.Now()},
+		
+		
+		/*Making the changes in the timestamp as per issue
+		number #545*/
+
+		// Previously set timestamp
+		//Timestamp: metav1.Time{Time: time.Now()},
+
+		// Newly set timestamp
+		Timestamp: metav1.Time{
+			Time: value.Timestamp.Time(),
+		},
 		Value:     *q,
 	}
 
