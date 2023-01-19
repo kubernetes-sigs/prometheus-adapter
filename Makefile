@@ -55,6 +55,11 @@ push-multi-arch:
 test:
 	CGO_ENABLED=0 go test ./cmd/... ./pkg/...
 
+.PHONY: test-e2e
+test-e2e:
+	./test/run-e2e-tests.sh
+
+
 # Static analysis
 # ---------------
 
