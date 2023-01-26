@@ -36,8 +36,8 @@ rules:
     # skip specifying generic resource<->label mappings, and just
     # attach only pod and namespace resources by mapping label names to group-resources
     overrides:
-      namespace: {resource: "namespace"},
-      pod: {resource: "pod"},
+      namespace: {resource: "namespace"}
+      pod: {resource: "pod"}
   # specify that the `container_` and `_seconds_total` suffixes should be removed.
   # this also introduces an implicit filter on metric family names
   name:
