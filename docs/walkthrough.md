@@ -179,7 +179,7 @@ spec:
 If you try creating that now (and take a look at your controller-manager
 logs), you'll see that the that the HorizontalPodAutoscaler controller is
 attempting to fetch metrics from
-`/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app`,
+`/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?labelSelector=app%3Dsample-app`,
 but right now, nothing's serving that API.
 
 Before you can autoscale your application, you'll need to make sure that
@@ -361,7 +361,7 @@ sends a raw GET request to the Kubernetes API server, automatically
 injecting auth information:
 
 ```shell
-$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?selector=app%3Dsample-app"
+$ kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta2/namespaces/default/pods/*/http_requests?labelSelector=app%3Dsample-app"
 ```
 
 Because of the adapter's configuration, the cumulative metric
