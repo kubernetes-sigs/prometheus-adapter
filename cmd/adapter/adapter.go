@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"net/url"
 	"os"
@@ -250,6 +251,9 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 	if err != nil {
 		return err
 	}
+
+	rest.AcceptContentTypes = strings.Join([]string{runtime.ContentTypeProtobuf, runtime.ContentTypeJSON}, ",")
+	rest.ContentType = runtime.ContentTypeProtobuf
 
 	client, err := metadata.NewForConfig(rest)
 	if err != nil {
