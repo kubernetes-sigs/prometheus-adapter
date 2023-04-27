@@ -28,6 +28,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/metadata"
@@ -271,7 +272,7 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return err
 	}
 
-	if err := api.Install(provider, podInformer.Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer); err != nil {
+	if err := api.Install(provider, podInformer.Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer, []labels.Requirement{}); err != nil {
 		return err
 	}
 

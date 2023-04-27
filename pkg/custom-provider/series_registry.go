@@ -50,8 +50,6 @@ type SeriesRegistry interface {
 	// SetSeries replaces the known series in this registry.
 	// Each slice in series should correspond to a MetricNamer in namers.
 	SetSeries(series [][]prom.Series, namers []naming.MetricNamer) error
-	// ListAllMetrics lists all metrics known to this registry
-	ListAllMetrics() []provider.CustomMetricInfo
 	// SeriesForMetric looks up the minimum required series information to make a query for the given metric
 	// against the given resource (namespace may be empty for non-namespaced resources)
 	QueryForMetric(info provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, resourceNames ...string) (query prom.Selector, found bool)
@@ -129,13 +127,6 @@ func (r *basicSeriesRegistry) SetSeries(newSeriesSlices [][]prom.Series, namers 
 	r.metrics = newMetrics
 
 	return nil
-}
-
-func (r *basicSeriesRegistry) ListAllMetrics() []provider.CustomMetricInfo {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	return r.metrics
 }
 
 func (r *basicSeriesRegistry) QueryForMetric(metricInfo provider.CustomMetricInfo, namespace string, metricSelector labels.Selector, resourceNames ...string) (prom.Selector, bool) {

@@ -278,27 +278,5 @@ var _ = Describe("Series Registry", func() {
 				Expect(outputQuery).To(Equal(prom.Selector(tc.expectedQuery)))
 			})
 		}
-
-		It("should list all metrics", func() {
-			Expect(registry.ListAllMetrics()).To(ConsistOf(
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_count"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_count"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_time"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_time"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_usage"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_usage"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "ingress_hits"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "ingresses"}, Namespaced: true, Metric: "ingress_hits"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "ingress_hits"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "ingress_hits"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "service_proxy_packets"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "service_proxy_packets"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "deployments"}, Namespaced: true, Metric: "work_queue_wait"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "work_queue_wait"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "nodes"}, Namespaced: false, Metric: "node_gigawatts"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "persistentvolumes"}, Namespaced: false, Metric: "volume_claims"},
-				provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "nodes"}, Namespaced: false, Metric: "node_fan"},
-			))
-		})
 	})
 })

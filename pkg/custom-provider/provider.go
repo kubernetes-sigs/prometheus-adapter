@@ -37,6 +37,7 @@ import (
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
+	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider/defaults"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider/helpers"
 
 	prom "sigs.k8s.io/prometheus-adapter/pkg/client"
@@ -56,6 +57,7 @@ type prometheusProvider struct {
 	kubeClient dynamic.Interface
 	promClient prom.Client
 
+	defaults.DefaultCustomMetricsProvider
 	SeriesRegistry
 }
 

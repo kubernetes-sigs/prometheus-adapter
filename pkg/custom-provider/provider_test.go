@@ -84,8 +84,10 @@ var _ = Describe("Custom Metrics Provider", func() {
 		By("setting up the provider")
 		prov, fakeProm := setupPrometheusProvider()
 
-		By("ensuring that no metrics are present before we start listing")
-		Expect(prov.ListAllMetrics()).To(BeEmpty())
+		expected := provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: ""}, Namespaced: false, Metric: "custom_metric"}
+
+		By("listing all metrics, and checking that they contain the expected results")
+		Expect(prov.ListAllMetrics()).To(ConsistOf(expected))
 
 		By("setting the acceptable interval to now until the next update, with a bit of wiggle room")
 		startTime := pmodel.Now().Add(-1*fakeProviderUpdateInterval - fakeProviderUpdateInterval/10)
@@ -97,17 +99,6 @@ var _ = Describe("Custom Metrics Provider", func() {
 		Expect(lister.updateMetrics()).To(Succeed())
 
 		By("listing all metrics, and checking that they contain the expected results")
-		Expect(prov.ListAllMetrics()).To(ConsistOf(
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "ingress_hits"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "ingresses"}, Namespaced: true, Metric: "ingress_hits"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "ingress_hits"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "ingress_hits"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "services"}, Namespaced: true, Metric: "service_proxy_packets"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "service_proxy_packets"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Group: "extensions", Resource: "deployments"}, Namespaced: true, Metric: "work_queue_wait"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "work_queue_wait"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "namespaces"}, Namespaced: false, Metric: "some_usage"},
-			provider.CustomMetricInfo{GroupResource: schema.GroupResource{Resource: "pods"}, Namespaced: true, Metric: "some_usage"},
-		))
+		Expect(prov.ListAllMetrics()).To(ConsistOf(expected))
 	})
 })
