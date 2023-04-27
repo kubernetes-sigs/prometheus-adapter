@@ -106,12 +106,12 @@ func waitForPrometheusReady(ctx context.Context, namespace string, name string) 
 			return false, err
 		}
 
-		var reconciled, available *monitoringv1.PrometheusCondition
+		var reconciled, available *monitoringv1.Condition
 		for _, condition := range prom.Status.Conditions {
 			cond := condition
-			if cond.Type == monitoringv1.PrometheusReconciled {
+			if cond.Type == monitoringv1.Reconciled {
 				reconciled = &cond
-			} else if cond.Type == monitoringv1.PrometheusAvailable {
+			} else if cond.Type == monitoringv1.Available {
 				available = &cond
 			}
 		}
@@ -120,7 +120,7 @@ func waitForPrometheusReady(ctx context.Context, namespace string, name string) 
 			log.Printf("Prometheus instance '%s': Waiting for reconciliation status...", name)
 			return false, nil
 		}
-		if reconciled.Status != monitoringv1.PrometheusConditionTrue {
+		if reconciled.Status != monitoringv1.ConditionTrue {
 			log.Printf("Prometheus instance '%s': Reconciiled = %v. Waiting for reconciliation (reason %s, %q)...", name, reconciled.Status, reconciled.Reason, reconciled.Message)
 			return false, nil
 		}
@@ -136,7 +136,7 @@ func waitForPrometheusReady(ctx context.Context, namespace string, name string) 
 			log.Printf("Prometheus instance '%s': Waiting for Available status...", name)
 			return false, nil
 		}
-		if available.Status != monitoringv1.PrometheusConditionTrue {
+		if available.Status != monitoringv1.ConditionTrue {
 			log.Printf("Prometheus instance '%s': Available = %v. Waiting for Available status... (reason %s, %q)", name, available.Status, available.Reason, available.Message)
 			return false, nil
 		}
