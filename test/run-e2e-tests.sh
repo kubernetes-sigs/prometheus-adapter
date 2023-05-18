@@ -85,7 +85,7 @@ if [[ -n "${KIND_E2E}" ]]; then
     if [[ -z "${SKIP_INSTALL}" ]]; then
         BIN="${E2E_DIR}/bin"
         mkdir -p "${BIN}"
-        curl -Lo "${BIN}/kubectl" "https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl" && chmod +x "${BIN}/kubectl"
+        curl -Lo "${BIN}/kubectl" "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl" && chmod +x "${BIN}/kubectl"
         curl -Lo "${BIN}/kind" "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64" && chmod +x "${BIN}/kind"
         export PATH="${BIN}:${PATH}"
     fi
