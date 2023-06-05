@@ -100,7 +100,7 @@ func initializeClients(kubeconfig string) (clientset.Interface, monitoring.Inter
 }
 
 func waitForPrometheusReady(ctx context.Context, namespace string, name string) error {
-	return wait.PollImmediateWithContext(ctx, 5*time.Second, 120*time.Second, func(ctx context.Context) (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 120*time.Second, true, func(ctx context.Context) (bool, error) {
 		prom, err := promOpClient.MonitoringV1().Prometheuses(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -147,7 +147,7 @@ func waitForPrometheusReady(ctx context.Context, namespace string, name string) 
 }
 
 func waitForDeploymentReady(ctx context.Context, namespace string, name string) error {
-	return wait.PollImmediateWithContext(ctx, 5*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
 		sts, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -164,7 +164,7 @@ func waitForDeploymentReady(ctx context.Context, namespace string, name string) 
 func TestNodeMetrics(t *testing.T) {
 	ctx := context.Background()
 	var nodeMetrics *metricsv1beta1.NodeMetricsList
-	err := wait.PollImmediateWithContext(ctx, 2*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
 		var err error
 		nodeMetrics, err = metricsClient.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
 		if err != nil {
@@ -190,7 +190,7 @@ func TestNodeMetrics(t *testing.T) {
 func TestPodMetrics(t *testing.T) {
 	ctx := context.Background()
 	var podMetrics *metricsv1beta1.PodMetricsList
-	err := wait.PollImmediateWithContext(ctx, 2*time.Second, 30*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
 		var err error
 		podMetrics, err = metricsClient.MetricsV1beta1().PodMetricses(ns).List(ctx, metav1.ListOptions{})
 		if err != nil {
