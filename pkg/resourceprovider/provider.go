@@ -43,7 +43,6 @@ import (
 
 var (
 	nodeResource = schema.GroupResource{Resource: "nodes"}
-	nsResource   = schema.GroupResource{Resource: "ns"}
 	podResource  = schema.GroupResource{Resource: "pods"}
 )
 
