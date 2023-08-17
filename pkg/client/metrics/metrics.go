@@ -23,6 +23,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"sigs.k8s.io/prometheus-adapter/pkg/client"
 )
 
@@ -30,18 +32,18 @@ var (
 	// queryLatency is the total latency of any query going through the
 	// various endpoints (query, range-query, series).  It includes some deserialization
 	// overhead and HTTP overhead.
-	queryLatency = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
+	queryLatency = metrics.NewHistogramVec(
+		&metrics.HistogramOpts{
 			Name:    "cmgateway_prometheus_query_latency_seconds",
 			Help:    "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
-			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 10),
+			Buckets: prometheus.ExponentialBuckets(0.01, 2, 10),
 		},
 		[]string{"endpoint", "server"},
 	)
 )
 
 func init() {
-	prometheus.MustRegister(queryLatency)
+	legacyregistry.MustRegister(queryLatency)
 }
 
 // instrumentedClient is a client.GenericAPIClient which instruments calls to Do,
