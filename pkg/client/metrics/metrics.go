@@ -36,7 +36,7 @@ var (
 		&metrics.HistogramOpts{
 			Name:    "cmgateway_prometheus_query_latency_seconds",
 			Help:    "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
-			Buckets: prometheus.ExponentialBuckets(0.01, 2, 10),
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
 		},
 		[]string{"endpoint", "server"},
 	)
