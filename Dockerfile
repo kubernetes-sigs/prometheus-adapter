@@ -1,3 +1,4 @@
+ARG ARCH
 ARG GO_VERSION
 
 FROM golang:${GO_VERSION} as build
@@ -14,7 +15,7 @@ COPY Makefile Makefile
 ARG ARCH
 RUN make prometheus-adapter
 
-FROM gcr.io/distroless/static:latest
+FROM gcr.io/distroless/static:latest-$ARCH
 
 COPY --from=build /go/src/sigs.k8s.io/prometheus-adapter/adapter /
 USER 65534
