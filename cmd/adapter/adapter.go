@@ -273,6 +273,12 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return err
 	}
 
+	metricsHandler, err := mprom.MetricsHandler()
+	if err != nil {
+		return err
+	}
+	server.GenericAPIServer.Handler.NonGoRestfulMux.HandleFunc("/metrics", metricsHandler)
+
 	if err := api.Install(provider, podInformer.Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer, nil); err != nil {
 		return err
 	}

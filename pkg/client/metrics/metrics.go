@@ -18,13 +18,15 @@ package metrics
 
 import (
 	"context"
+	"k8s.io/component-base/metrics/legacyregistry"
+	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	apimetrics "k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
 	"sigs.k8s.io/prometheus-adapter/pkg/client"
 )
 
@@ -34,16 +36,27 @@ var (
 	// overhead and HTTP overhead.
 	queryLatency = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
-			Name:    "cmgateway_prometheus_query_latency_seconds",
-			Help:    "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
+			Namespace: "prometheus_adapter",
+			Subsystem: "prometheus_client",
+			Name:      "request_duration_seconds",
+			Help:      "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
+			Buckets:   prometheus.DefBuckets,
 		},
 		[]string{"endpoint", "server"},
 	)
 )
 
-func init() {
-	legacyregistry.MustRegister(queryLatency)
+func MetricsHandler() (http.HandlerFunc, error) {
+	registry := metrics.NewKubeRegistry()
+	err := registry.Register(queryLatency)
+	if err != nil {
+		return nil, err
+	}
+	apimetrics.Register()
+	return func(w http.ResponseWriter, req *http.Request) {
+		legacyregistry.Handler().ServeHTTP(w, req)
+		metrics.HandlerFor(registry, metrics.HandlerOpts{}).ServeHTTP(w, req)
+	}, nil
 }
 
 // instrumentedClient is a client.GenericAPIClient which instruments calls to Do,
