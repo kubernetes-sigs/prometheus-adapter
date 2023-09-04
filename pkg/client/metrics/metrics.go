@@ -18,13 +18,13 @@ package metrics
 
 import (
 	"context"
-	"k8s.io/component-base/metrics/legacyregistry"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"k8s.io/component-base/metrics/legacyregistry"
 	apimetrics "k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/component-base/metrics"
 	"sigs.k8s.io/prometheus-adapter/pkg/client"
