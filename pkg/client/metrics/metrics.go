@@ -42,7 +42,7 @@ var (
 			Help:      "Prometheus client query latency in seconds.  Broken down by target prometheus endpoint and target server",
 			Buckets:   prometheus.DefBuckets,
 		},
-		[]string{"endpoint", "server"},
+		[]string{"path", "server"},
 	)
 )
 
