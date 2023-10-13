@@ -268,6 +268,12 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return err
 	}
 
+	config, err := cmd.Config()
+	if err != nil {
+		return err
+	}
+	config.GenericConfig.EnableMetrics = false
+
 	server, err := cmd.Server()
 	if err != nil {
 		return err

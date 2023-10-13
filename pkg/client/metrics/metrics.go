@@ -24,9 +24,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"k8s.io/component-base/metrics/legacyregistry"
 	apimetrics "k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
+
 	"sigs.k8s.io/prometheus-adapter/pkg/client"
 )
 
