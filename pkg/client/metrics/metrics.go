@@ -79,7 +79,7 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 				return
 			}
 		}
-		queryLatency.With(prometheus.Labels{"endpoint": endpoint, "server": c.serverName}).Observe(endTime.Sub(startTime).Seconds())
+		queryLatency.With(prometheus.Labels{"path": endpoint, "server": c.serverName}).Observe(endTime.Sub(startTime).Seconds())
 	}()
 
 	var resp client.APIResponse
