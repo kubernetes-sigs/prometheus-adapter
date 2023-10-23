@@ -277,7 +277,12 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return err
 	}
 
-	go podInformer.Informer().Run(stopCh)
+	ifm := podInformer.Informer()
+
+	if err := ifm.SetTransform(partialMetadataRemoveAll); err != nil {
+		return err
+	}
+	go ifm.Run(stopCh)
 
 	return nil
 }
