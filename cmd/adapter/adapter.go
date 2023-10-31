@@ -82,7 +82,8 @@ type PrometheusAdapter struct {
 	MetricsRelistInterval time.Duration
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
-
+	// DisableHTTP2 indicates that http2 should not be enabled.
+	DisableHTTP2  bool
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
 }
 
@@ -156,6 +157,8 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"interval at which to re-list the set of all available metrics from Prometheus")
 	cmd.Flags().DurationVar(&cmd.MetricsMaxAge, "metrics-max-age", cmd.MetricsMaxAge,
 		"period for which to query the set of available metrics from Prometheus")
+	cmd.Flags().BoolVar(&cmd.DisableHTTP2, "disable-http2", cmd.DisableHTTP2,
+		"Disable HTTP/2 support")
 
 	// Add logging flags
 	logs.AddFlags(cmd.Flags())
@@ -356,6 +359,14 @@ func main() {
 	if err := cmd.addResourceMetricsAPI(promClient, stopCh); err != nil {
 		klog.Fatalf("unable to install resource metrics API: %v", err)
 	}
+
+	// disable HTTP/2 to mitigate CVE-2023-44487 until the Go standard library
+	// and golang.org/x/net are fully fixed.
+	server, err := cmd.Server()
+	if err != nil {
+		klog.Fatalf("unable to fetch server: %v", err)
+	}
+	server.GenericAPIServer.SecureServingInfo.DisableHTTP2 = cmd.DisableHTTP2
 
 	// run the server
 	if err := cmd.Run(stopCh); err != nil {
