@@ -238,6 +238,7 @@ type selectorSeries struct {
 
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.maxAge)
+	endTime := pmodel.Now()
 
 	// don't do duplicate queries when it's just the matchers that change
 	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
@@ -256,7 +257,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 		}
 		selectors[sel] = struct{}{}
 		go func() {
-			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{Start: startTime, End: 0}, sel)
+			series, err := l.promClient.Series(context.TODO(), pmodel.Interval{Start: startTime, End: endTime}, sel)
 			if err != nil {
 				errs <- fmt.Errorf("unable to fetch metrics for query %q: %v", sel, err)
 				return
