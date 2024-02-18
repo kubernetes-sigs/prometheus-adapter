@@ -31,7 +31,9 @@ var _ cache.TransformFunc = partialMetadataRemoveAll
 func partialMetadataRemoveAll(obj interface{}) (interface{}, error) {
 	partialMeta, ok := obj.(*metav1.PartialObjectMetadata)
 	if !ok {
-		return nil, fmt.Errorf("internal error: cannot cast object %#+v to PartialObjectMetadata", obj)
+		// Don't do anything if the cast isn't successful.
+		// The object might be of type "cache.DeletedFinalStateUnknown".
+		return obj, nil
 	}
 	partialMeta.Annotations = nil
 	partialMeta.ManagedFields = nil
