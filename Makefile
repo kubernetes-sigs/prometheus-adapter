@@ -20,7 +20,7 @@ all: prometheus-adapter
 SRC_DEPS=$(shell find pkg cmd -type f -name "*.go")
 
 prometheus-adapter: $(SRC_DEPS)
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o prometheus-adapter-custom sigs.k8s.io/prometheus-adapter/cmd/adapter
+	CGO_ENABLED=0 GOARCH=$(ARCH) go build sigs.k8s.io/prometheus-adapter/cmd/adapter
 
 .PHONY: container
 container:
