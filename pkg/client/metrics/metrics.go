@@ -47,15 +47,15 @@ var (
 	)
 
 	// define a counter for API errors for various ErrorTypes
-    apiErrorCount = metrics.NewCounterVec(
-    	&metrics.CounterOpts{
-    		Namespace: "prometheus_adapter",
-    		Subsystem: "prometheus_client",
-    		Name:      "api_errors_total",
-    		Help:      "Total number of API errors",
-    	},
-    	[]string{"error_code", "path", "server"},
-    )
+	apiErrorCount = metrics.NewCounterVec(
+    		&metrics.CounterOpts{
+        		Namespace: "prometheus_adapter",
+        		Subsystem: "prometheus_client",
+        		Name:      "api_errors_total",
+        		Help:      "Total number of API errors",
+    		},
+    		[]string{"error_code", "path", "server"},
+	)
 )
 
 func MetricsHandler() (http.HandlerFunc, error) {
@@ -67,9 +67,9 @@ func MetricsHandler() (http.HandlerFunc, error) {
 	}
 
 	errRegisterAPIErrorCount := registry.Register(apiErrorCount)
-    if errRegisterAPIErrorCount != nil {
-        return nil, errRegisterAPIErrorCount
-    }
+	if errRegisterAPIErrorCount != nil {
+		return nil, errRegisterAPIErrorCount
+	}
 
 	apimetrics.Register()
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -93,12 +93,12 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 		// skip calls where we don't make the actual request
 		if err != nil {
 			if apiErr, wasAPIErr := err.(*client.Error); wasAPIErr {
-				// Measure API errors
-                apiErrorCount.With(prometheus.Labels{"error_code": string(apiErr.Type), "path": endpoint, "server": c.serverName}).Inc()
+				// measure API errors
+				apiErrorCount.With(prometheus.Labels{"error_code": string(apiErr.Type), "path": endpoint, "server": c.serverName}).Inc()
 			} else {
-                // Increment a generic error code counter
-                apiErrorCount.With(prometheus.Labels{"error_code": "generic", "path": endpoint, "server": c.serverName}).Inc()
-             }
+				// increment a generic error code counter
+				apiErrorCount.With(prometheus.Labels{"error_code": "generic", "path": endpoint, "server": c.serverName}).Inc()
+			}
 			return
 		}
 		queryLatency.With(prometheus.Labels{"path": endpoint, "server": c.serverName}).Observe(endTime.Sub(startTime).Seconds())
