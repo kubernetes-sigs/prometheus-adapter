@@ -1,0 +1,41 @@
+name: Generate SBOM with Kubernetes BOM
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    env:
+      OUTPUT: prometheus-adapter-${{ github.ref_name }}.spdx
+      TAG: ${{ github.ref_name }}
+
+    steps:
+      - name: Fetch source code into GITHUB_WORKSPACE
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install Kubernetes BOM
+        uses: kubernetes-sigs/release-actions/setup-bom@9be3ab721e914ad41141f302d6b5d0124a12cd1e # v0.6.0
+
+      - name: Generate SBOM
+        run: |
+          bom generate \
+            --dirs=. \
+            --image=registry.k8s.io/prometheus-adapter/prometheus-adapter:$TAG \
+            --namespace=https://github.com/kubernetes-sigs/prometheus-adapter/releases/download/$TAG/$OUTPUT
+            --output=$OUTPUT
+
+      - name: Upload SBOM to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload $TAG $OUTPUT
