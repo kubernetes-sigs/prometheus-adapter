@@ -44,15 +44,35 @@ var (
 			Buckets:   prometheus.DefBuckets,
 		},
 		[]string{"path", "server"},
+
+	)
+
+	// define a counter for API errors for various ErrorTypes
+	apiErrorCount = metrics.NewCounterVec(
+    		&metrics.CounterOpts{
+        		Namespace: "prometheus_adapter",
+        		Subsystem: "prometheus_client",
+        		Name:      "api_errors_total",
+        		Help:      "Total number of API errors",
+    		},
+    		[]string{"error_code", "path", "server"},
+
 	)
 )
 
 func MetricsHandler() (http.HandlerFunc, error) {
 	registry := metrics.NewKubeRegistry()
-	err := registry.Register(queryLatency)
-	if err != nil {
-		return nil, err
+
+	errRegisterQueryLatency := registry.Register(queryLatency)
+	if errRegisterQueryLatency != nil {
+		return nil, errRegisterQueryLatency
 	}
+
+	errRegisterAPIErrorCount := registry.Register(apiErrorCount)
+	if errRegisterAPIErrorCount != nil {
+		return nil, errRegisterAPIErrorCount
+	}
+  
 	apimetrics.Register()
 	return func(w http.ResponseWriter, req *http.Request) {
 		legacyregistry.Handler().ServeHTTP(w, req)
@@ -74,10 +94,14 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 		endTime := time.Now()
 		// skip calls where we don't make the actual request
 		if err != nil {
-			if _, wasAPIErr := err.(*client.Error); !wasAPIErr {
-				// TODO: measure API errors by code?
-				return
+			if apiErr, wasAPIErr := err.(*client.Error); wasAPIErr {
+				// measure API errors
+				apiErrorCount.With(prometheus.Labels{"error_code": string(apiErr.Type), "path": endpoint, "server": c.serverName}).Inc()
+			} else {
+				// increment a generic error code counter
+				apiErrorCount.With(prometheus.Labels{"error_code": "generic", "path": endpoint, "server": c.serverName}).Inc()
 			}
+			return
 		}
 		queryLatency.With(prometheus.Labels{"path": endpoint, "server": c.serverName}).Observe(endTime.Sub(startTime).Seconds())
 	}()
