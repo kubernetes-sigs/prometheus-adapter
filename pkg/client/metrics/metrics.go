@@ -44,6 +44,7 @@ var (
 			Buckets:   prometheus.DefBuckets,
 		},
 		[]string{"path", "server"},
+
 	)
 
 	// define a counter for API errors for various ErrorTypes
@@ -55,11 +56,13 @@ var (
         		Help:      "Total number of API errors",
     		},
     		[]string{"error_code", "path", "server"},
+
 	)
 )
 
 func MetricsHandler() (http.HandlerFunc, error) {
 	registry := metrics.NewKubeRegistry()
+
 
 	errRegisterQueryLatency := registry.Register(queryLatency)
 	if errRegisterQueryLatency != nil {
@@ -70,7 +73,7 @@ func MetricsHandler() (http.HandlerFunc, error) {
 	if errRegisterAPIErrorCount != nil {
 		return nil, errRegisterAPIErrorCount
 	}
-
+  
 	apimetrics.Register()
 	return func(w http.ResponseWriter, req *http.Request) {
 		legacyregistry.Handler().ServeHTTP(w, req)
