@@ -318,6 +318,12 @@ func main() {
 		cmd.OpenAPIConfig.Info.Version = "1.0.0"
 	}
 
+    if cmd.OpenAPIV3Config == nil {
+        cmd.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(api.Scheme, customexternalmetrics.Scheme))
+        cmd.OpenAPIV3Config.Info.Title = "prometheus-metrics-adapter"
+        cmd.OpenAPIV3Config.Info.Version = "1.0.0"
+    }
+
 	// if --metrics-max-age is not set, make it equal to --metrics-relist-interval
 	if cmd.MetricsMaxAge == 0*time.Second {
 		cmd.MetricsMaxAge = cmd.MetricsRelistInterval
