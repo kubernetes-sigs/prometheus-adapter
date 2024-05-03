@@ -29,9 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
-	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/metadata/metadatainformer"
 	"k8s.io/client-go/rest"
@@ -320,7 +318,7 @@ func main() {
 		cmd.OpenAPIConfig.Info.Version = "1.0.0"
 	}
 
-	if cmd.OpenAPIV3Config == nil && utilfeature.DefaultFeatureGate.Enabled(features.OpenAPIV3) {
+	if cmd.OpenAPIV3Config == nil {
 		cmd.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(api.Scheme, customexternalmetrics.Scheme))
 		cmd.OpenAPIV3Config.Info.Title = "prometheus-metrics-adapter"
 		cmd.OpenAPIV3Config.Info.Version = "1.0.0"
