@@ -109,4 +109,10 @@ verify-generated: update-generated
 .PHONY: update-generated
 update-generated:
 	go install -mod=readonly k8s.io/kube-openapi/cmd/openapi-gen
-	$(GOPATH)/bin/openapi-gen --logtostderr -i k8s.io/metrics/pkg/apis/custom_metrics,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,k8s.io/metrics/pkg/apis/custom_metrics/v1beta2,k8s.io/metrics/pkg/apis/external_metrics,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,k8s.io/metrics/pkg/apis/metrics,k8s.io/metrics/pkg/apis/metrics/v1beta1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/version,k8s.io/api/core/v1 -h ./hack/boilerplate.go.txt -p ./pkg/api/generated/openapi -O zz_generated.openapi -o ./ -r /dev/null
+	$(GOPATH)/bin/openapi-gen --logtostderr \
+		--go-header-file ./hack/boilerplate.go.txt \
+		--output-pkg ./pkg/api/generated/openapi \
+		--output-file zz_generated.openapi.go \
+		--output-dir ./pkg/api/generated/openapi \
+		-r /dev/null \
+		"k8s.io/metrics/pkg/apis/custom_metrics" "k8s.io/metrics/pkg/apis/custom_metrics/v1beta1" "k8s.io/metrics/pkg/apis/custom_metrics/v1beta2" "k8s.io/metrics/pkg/apis/external_metrics" "k8s.io/metrics/pkg/apis/external_metrics/v1beta1" "k8s.io/metrics/pkg/apis/metrics" "k8s.io/metrics/pkg/apis/metrics/v1beta1" "k8s.io/apimachinery/pkg/apis/meta/v1" "k8s.io/apimachinery/pkg/api/resource" "k8s.io/apimachinery/pkg/version" "k8s.io/api/core/v1"
