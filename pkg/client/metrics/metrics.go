@@ -46,7 +46,7 @@ var (
 		[]string{"path", "server"},
 	)
 
-	// define a counter for API errors for various ErrorTypes
+	// define a counter for api requests
 	apiRequestsTotal = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Namespace: "prometheus_adapter",
@@ -94,10 +94,8 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 		endTime := time.Now()
 		if err != nil {
 			if apiErr, wasAPIErr := err.(*client.Error); wasAPIErr {
-				// measure API errors
 				apiRequestsTotal.With(prometheus.Labels{"code": string(apiErr.Type), "path": endpoint, "server": c.serverName}).Inc()
 			} else {
-				// increment a generic error code counter
 				apiRequestsTotal.With(prometheus.Labels{"code": "generic", "path": endpoint, "server": c.serverName}).Inc()
 			}
 			return
