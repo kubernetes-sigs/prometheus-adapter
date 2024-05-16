@@ -19,9 +19,9 @@ set -o errexit
 set -o nounset
 
 # Tool versions
-K8S_VERSION=${KUBERNETES_VERSION:-v1.26.0}   # cf https://hub.docker.com/r/kindest/node/tags
-KIND_VERSION=${KIND_VERSION:-v0.17.0}        # cf https://github.com/kubernetes-sigs/kind/releases
-PROM_OPERATOR_VERSION=${PROM_OPERATOR_VERSION:-v0.62.0} # cf https://github.com/prometheus-operator/prometheus-operator/releases
+K8S_VERSION=${KUBERNETES_VERSION:-v1.30.0}   # cf https://hub.docker.com/r/kindest/node/tags
+KIND_VERSION=${KIND_VERSION:-v0.23.0}        # cf https://github.com/kubernetes-sigs/kind/releases
+PROM_OPERATOR_VERSION=${PROM_OPERATOR_VERSION:-v0.73.2} # cf https://github.com/prometheus-operator/prometheus-operator/releases
 
 # Variables; set to empty if unbound/empty
 REGISTRY=${REGISTRY:-}
