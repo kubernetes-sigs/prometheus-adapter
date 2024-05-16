@@ -20,7 +20,7 @@ set -o nounset
 
 # Tool versions
 K8S_VERSION=${KUBERNETES_VERSION:-v1.30.0}   # cf https://hub.docker.com/r/kindest/node/tags
-KIND_VERSION=${KIND_VERSION:-v0.22.2}        # cf https://github.com/kubernetes-sigs/kind/releases
+KIND_VERSION=${KIND_VERSION:-v0.23.0}        # cf https://github.com/kubernetes-sigs/kind/releases
 PROM_OPERATOR_VERSION=${PROM_OPERATOR_VERSION:-v0.73.2} # cf https://github.com/prometheus-operator/prometheus-operator/releases
 
 # Variables; set to empty if unbound/empty
@@ -90,8 +90,7 @@ if [[ -n "${KIND_E2E}" ]]; then
         export PATH="${BIN}:${PATH}"
     fi
 
-    # TODO: use the official image on a 1.30 version is available
-    kind create cluster --image "dgrisonnet/node:${K8S_VERSION}"
+    kind create cluster --image "kindest/node:${K8S_VERSION}"
 
     REGISTRY="localhost"
 
