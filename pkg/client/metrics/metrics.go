@@ -92,18 +92,8 @@ func (c *instrumentedGenericClient) Do(ctx context.Context, verb, endpoint strin
 	var resp client.APIResponse
 	defer func() {
 		endTime := time.Now()
-		if err != nil {
-			if apiErr, wasAPIErr := err.(*client.Error); wasAPIErr {
-				// measure API errors
-				apiRequestsTotal.With(prometheus.Labels{"code": string(apiErr.Type), "path": endpoint, "server": c.serverName}).Inc()
-			} else {
-				// increment a generic error code counter
-				apiRequestsTotal.With(prometheus.Labels{"code": "generic", "path": endpoint, "server": c.serverName}).Inc()
-			}
-			return
-		} else {
-			apiRequestsTotal.With(prometheus.Labels{"code": string(resp.Status), "path": endpoint, "server": c.serverName}).Inc()
-		}
+
+		apiRequestsTotal.With(prometheus.Labels{"code": string(resp.HTTPStatusCode), "path": endpoint, "server": c.serverName}).Inc()
 		queryLatency.With(prometheus.Labels{"path": endpoint, "server": c.serverName}).Observe(endTime.Sub(startTime).Seconds())
 	}()
 

@@ -62,7 +62,9 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 
 	req, err := http.NewRequestWithContext(ctx, verb, u.String(), reqBody)
 	if err != nil {
-		return APIResponse{}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
+		return APIResponse{
+			HTTPStatusCode: 400,
+		}, fmt.Errorf("error constructing HTTP request to Prometheus: %v", err)
 	}
 	for key, values := range c.headers {
 		for _, value := range values {
@@ -81,7 +83,7 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 	}()
 
 	if err != nil {
-		return APIResponse{}, err
+		return APIResponse{HTTPStatusCode: 400}, err
 	}
 
 	if klog.V(6).Enabled() {
@@ -92,17 +94,21 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 
 	// codes that aren't 2xx, 400, 422, or 503 won't return JSON objects
 	if code/100 != 2 && code != 400 && code != 422 && code != 503 {
-		return APIResponse{}, &Error{
-			Type: ErrBadResponse,
-			Msg:  fmt.Sprintf("unknown response code %d", code),
-		}
+		return APIResponse{
+				HTTPStatusCode: code,
+			}, &Error{
+				Type: ErrBadResponse,
+				Msg:  fmt.Sprintf("unknown response code %d", code),
+			}
 	}
 
 	var body io.Reader = resp.Body
 	if klog.V(8).Enabled() {
 		data, err := io.ReadAll(body)
 		if err != nil {
-			return APIResponse{}, fmt.Errorf("unable to log response body: %v", err)
+			return APIResponse{
+				HTTPStatusCode: code,
+			}, fmt.Errorf("unable to log response body: %v", err)
 		}
 		klog.Infof("Response Body: %s", string(data))
 		body = bytes.NewReader(data)
@@ -110,11 +116,15 @@ func (c *httpAPIClient) Do(ctx context.Context, verb, endpoint string, query url
 
 	var res APIResponse
 	if err = json.NewDecoder(body).Decode(&res); err != nil {
-		return APIResponse{}, &Error{
-			Type: ErrBadResponse,
-			Msg:  err.Error(),
-		}
+		return APIResponse{
+				HTTPStatusCode: code,
+			}, &Error{
+				Type: ErrBadResponse,
+				Msg:  err.Error(),
+			}
 	}
+
+	res.HTTPStatusCode = code
 
 	if res.Status == ResponseError {
 		return res, &Error{
