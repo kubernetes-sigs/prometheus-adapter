@@ -46,7 +46,7 @@ var (
 		[]string{"path", "server"},
 	)
 
-	// define a counter for API errors for various ErrorTypes
+	// define a counter for api requests
 	apiRequestsTotal = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Namespace: "prometheus_adapter",
