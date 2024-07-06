@@ -45,7 +45,7 @@ func setupPrometheusProvider() (provider.CustomMetricsProvider, *fakeprom.FakePr
 	namers, err := naming.NamersFromConfig(cfg.Rules, restMapper())
 	Expect(err).NotTo(HaveOccurred())
 
-	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval, fakeProviderStartDuration)
+	prov, _ := NewPrometheusProvider(restMapper(), fakeKubeClient, fakeProm, namers, fakeProviderUpdateInterval, fakeProviderStartDuration, false, "")
 
 	containerSel := prom.MatchSeries("", prom.NameMatches("^container_.*"), prom.LabelNeq("container", "POD"), prom.LabelNeq("namespace", ""), prom.LabelNeq("pod", ""))
 	namespacedSel := prom.MatchSeries("", prom.LabelNeq("namespace", ""), prom.NameNotMatches("^container_.*"))

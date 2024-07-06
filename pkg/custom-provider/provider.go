@@ -19,7 +19,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"math"
+	adaptercfg "sigs.k8s.io/prometheus-adapter/pkg/config"
+	"sync/atomic"
 	"time"
 
 	pmodel "github.com/prometheus/common/model"
@@ -51,31 +55,44 @@ type Runnable interface {
 	RunUntil(stopChan <-chan struct{})
 }
 
-type prometheusProvider struct {
-	mapper     apimeta.RESTMapper
+type kubeClientAndMapper struct {
 	kubeClient dynamic.Interface
+	mapper     apimeta.RESTMapper
+}
+
+type prometheusProvider struct {
 	promClient prom.Client
 
+	kubeClientAndMapper
 	SeriesRegistry
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration, enableMetricsConfigsDiscovery bool, metricsConfigsLabels string) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
-		updateInterval: updateInterval,
-		maxAge:         maxAge,
-		promClient:     promClient,
-		namers:         namers,
+		updateInterval:                updateInterval,
+		maxAge:                        maxAge,
+		promClient:                    promClient,
+		namers:                        namers,
+		enableMetricsConfigsDiscovery: enableMetricsConfigsDiscovery,
+		discoveredNamers:              atomic.Pointer[[]naming.MetricNamer]{},
+		metricsConfigsLabels:          metricsConfigsLabels,
 
 		SeriesRegistry: &basicSeriesRegistry{
 			mapper: mapper,
 		},
+		kubeClientAndMapper: kubeClientAndMapper{
+			kubeClient: kubeClient,
+			mapper:     mapper,
+		},
 	}
 
 	return &prometheusProvider{
-		mapper:     mapper,
-		kubeClient: kubeClient,
 		promClient: promClient,
 
+		kubeClientAndMapper: kubeClientAndMapper{
+			kubeClient: kubeClient,
+			mapper:     mapper,
+		},
 		SeriesRegistry: lister,
 	}, lister
 }
@@ -212,11 +229,15 @@ func (p *prometheusProvider) GetMetricBySelector(ctx context.Context, namespace 
 
 type cachingMetricsLister struct {
 	SeriesRegistry
+	kubeClientAndMapper
 
-	promClient     prom.Client
-	updateInterval time.Duration
-	maxAge         time.Duration
-	namers         []naming.MetricNamer
+	promClient                    prom.Client
+	updateInterval                time.Duration
+	maxAge                        time.Duration
+	namers                        []naming.MetricNamer
+	enableMetricsConfigsDiscovery bool
+	discoveredNamers              atomic.Pointer[[]naming.MetricNamer]
+	metricsConfigsLabels          string
 }
 
 func (l *cachingMetricsLister) Run() {
@@ -239,15 +260,24 @@ type selectorSeries struct {
 func (l *cachingMetricsLister) updateMetrics() error {
 	startTime := pmodel.Now().Add(-1 * l.maxAge)
 
+	var allNamers []naming.MetricNamer
+
+	if l.enableMetricsConfigsDiscovery {
+		l.discoverMetricsConfigs()
+		allNamers = append(l.namers, *l.discoveredNamers.Load()...)
+	} else {
+		allNamers = l.namers
+	}
+
 	// don't do duplicate queries when it's just the matchers that change
 	seriesCacheByQuery := make(map[prom.Selector][]prom.Series)
 
 	// these can take a while on large clusters, so launch in parallel
 	// and don't duplicate
 	selectors := make(map[prom.Selector]struct{})
-	selectorSeriesChan := make(chan selectorSeries, len(l.namers))
-	errs := make(chan error, len(l.namers))
-	for _, namer := range l.namers {
+	selectorSeriesChan := make(chan selectorSeries, len(allNamers))
+	errs := make(chan error, len(allNamers))
+	for _, namer := range allNamers {
 		sel := namer.Selector()
 		if _, ok := selectors[sel]; ok {
 			errs <- nil
@@ -270,7 +300,7 @@ func (l *cachingMetricsLister) updateMetrics() error {
 	}
 
 	// iterate through, blocking until we've got all results
-	for range l.namers {
+	for range allNamers {
 		if err := <-errs; err != nil {
 			return fmt.Errorf("unable to update list of all metrics: %v", err)
 		}
@@ -280,8 +310,8 @@ func (l *cachingMetricsLister) updateMetrics() error {
 	}
 	close(errs)
 
-	newSeries := make([][]prom.Series, len(l.namers))
-	for i, namer := range l.namers {
+	newSeries := make([][]prom.Series, len(allNamers))
+	for i, namer := range allNamers {
 		series, cached := seriesCacheByQuery[namer.Selector()]
 		if !cached {
 			return fmt.Errorf("unable to update list of all metrics: no metrics retrieved for query %q", namer.Selector())
@@ -291,5 +321,60 @@ func (l *cachingMetricsLister) updateMetrics() error {
 
 	klog.V(10).Infof("Set available metric list from Prometheus to: %v", newSeries)
 
-	return l.SetSeries(newSeries, l.namers)
+	return l.SetSeries(newSeries, allNamers)
+}
+
+func (l *cachingMetricsLister) discoverMetricsConfigs() {
+	configmaps, err := l.kubeClient.Resource(corev1.SchemeGroupVersion.WithResource("configmaps")).Namespace("").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: l.metricsConfigsLabels,
+	})
+	if err != nil {
+		klog.V(5).ErrorS(err, "Could not obtain configmaps from apiserver with label: ", "label", l.metricsConfigsLabels)
+		return
+	}
+
+	var discoveredNamers []naming.MetricNamer
+	var errs []error
+
+	for _, cm := range configmaps.Items {
+		var configmap corev1.ConfigMap
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(cm.UnstructuredContent(), &configmap)
+		if err != nil {
+			klog.V(5).ErrorS(err, "Could not convert unstructured ConfigMap to structured representation.")
+		}
+
+		if configmap.Data == nil {
+			klog.V(5).ErrorS(err, "ConfigMap does not have any data in it for name="+configmap.ObjectMeta.Name)
+			errs = append(errs, err)
+			continue
+		}
+		c, ok := configmap.Data["config.yaml"]
+		if !ok {
+			klog.V(5).ErrorS(err, "ConfigMap does not have the adapter YAML config under 'config.yaml' for="+configmap.ObjectMeta.Name)
+			errs = append(errs, err)
+			continue
+		}
+		metricsConfig, err := adaptercfg.FromYAML([]byte(c))
+		if err != nil {
+			klog.V(5).ErrorS(err, "Could not unmarshal metrics config for name="+configmap.ObjectMeta.Name)
+			errs = append(errs, err)
+			continue
+		}
+
+		namers, err := naming.NamersFromConfig(metricsConfig.Rules, l.mapper)
+		if err != nil {
+			klog.V(5).ErrorS(err, "Could not create a metric namer from given config for name="+configmap.ObjectMeta.Name)
+			errs = append(errs, err)
+			continue
+		}
+
+		discoveredNamers = append(discoveredNamers, namers...)
+	}
+
+	if len(errs) == 0 {
+		klog.V(5).Infof("Found %d namers, replacing the old namers with the new ones.", len(discoveredNamers))
+		l.discoveredNamers.Store(&discoveredNamers)
+	} else {
+		klog.V(5).Infof("Found errors while creating namers from config -- not updating the existing list of dynamically discovered namers.")
+	}
 }

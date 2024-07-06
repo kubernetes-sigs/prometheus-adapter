@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -81,8 +82,12 @@ type PrometheusAdapter struct {
 	// MetricsMaxAge is the period to query available metrics for
 	MetricsMaxAge time.Duration
 	// DisableHTTP2 indicates that http2 should not be enabled.
-	DisableHTTP2  bool
-	metricsConfig *adaptercfg.MetricsDiscoveryConfig
+	DisableHTTP2 bool
+	// Load Dynamic Adapter Configurations
+	EnableMetricsConfigsDiscovery bool
+	// ConfigMap labels to select on
+	MetricsConfigsLabels string
+	metricsConfig        *adaptercfg.MetricsDiscoveryConfig
 }
 
 func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
@@ -157,6 +162,10 @@ func (cmd *PrometheusAdapter) addFlags() {
 		"period for which to query the set of available metrics from Prometheus")
 	cmd.Flags().BoolVar(&cmd.DisableHTTP2, "disable-http2", cmd.DisableHTTP2,
 		"Disable HTTP/2 support")
+	cmd.Flags().BoolVar(&cmd.EnableMetricsConfigsDiscovery, "enable-metrics-configs-disovery", cmd.EnableMetricsConfigsDiscovery,
+		"Load metrics configuration dynamically by querying the cluster for configmaps")
+	cmd.Flags().StringVar(&cmd.MetricsConfigsLabels, "metrics-configs-labels", cmd.MetricsConfigsLabels,
+		"Labels to query on while filtering ConfigMap objects when dynamically discovering metrics configuration")
 
 	// Add logging flags
 	logs.AddFlags(cmd.Flags())
@@ -165,7 +174,16 @@ func (cmd *PrometheusAdapter) addFlags() {
 func (cmd *PrometheusAdapter) loadConfig() error {
 	// load metrics discovery configuration
 	if cmd.AdapterConfigFile == "" {
-		return fmt.Errorf("no metrics discovery configuration file specified (make sure to use --config)")
+		if !cmd.EnableMetricsConfigsDiscovery {
+			return fmt.Errorf("loading dynamic config is turned off, and no metrics discovery configuration file specified (make sure to use --config)")
+		}
+		// Assign empty metrics config to prevent nilptr exceptions
+		cmd.metricsConfig = &adaptercfg.MetricsDiscoveryConfig{
+			Rules:         []adaptercfg.DiscoveryRule{},
+			ExternalRules: []adaptercfg.DiscoveryRule{},
+			ResourceRules: &adaptercfg.ResourceRules{},
+		}
+		return nil
 	}
 	metricsConfig, err := adaptercfg.FromFile(cmd.AdapterConfigFile)
 	if err != nil {
@@ -178,7 +196,7 @@ func (cmd *PrometheusAdapter) loadConfig() error {
 }
 
 func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan struct{}) (provider.CustomMetricsProvider, error) {
-	if len(cmd.metricsConfig.Rules) == 0 {
+	if len(cmd.metricsConfig.Rules) == 0 && !cmd.EnableMetricsConfigsDiscovery {
 		return nil, nil
 	}
 
@@ -203,7 +221,7 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// construct the provider and start it
-	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge)
+	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge, cmd.EnableMetricsConfigsDiscovery, cmd.MetricsConfigsLabels)
 	runner.RunUntil(stopCh)
 
 	return cmProvider, nil
@@ -338,6 +356,11 @@ func main() {
 	// load the config
 	if err := cmd.loadConfig(); err != nil {
 		klog.Fatalf("unable to load metrics discovery config: %v", err)
+	}
+
+	// verify the dynamic metrics loading properties
+	if cmd.EnableMetricsConfigsDiscovery && cmd.MetricsConfigsLabels == "" {
+		klog.Fatal("", errors.New("Did not specify --metrics-configs-labels to provide a list of labels to select on but metrics configs discovery is turned on"))
 	}
 
 	// stop channel closed on SIGTERM and SIGINT
