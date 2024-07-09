@@ -68,6 +68,10 @@ type prometheusProvider struct {
 }
 
 func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration, enableMetricsConfigsDiscovery bool, metricsConfigsLabels string) (provider.CustomMetricsProvider, Runnable) {
+	k := kubeClientAndMapper{
+		kubeClient: kubeClient,
+		mapper:     mapper,
+	}
 	lister := &cachingMetricsLister{
 		updateInterval:                updateInterval,
 		maxAge:                        maxAge,
@@ -80,20 +84,14 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interfa
 		SeriesRegistry: &basicSeriesRegistry{
 			mapper: mapper,
 		},
-		kubeClientAndMapper: kubeClientAndMapper{
-			kubeClient: kubeClient,
-			mapper:     mapper,
-		},
+		kubeClientAndMapper: k,
 	}
 
 	return &prometheusProvider{
 		promClient: promClient,
 
-		kubeClientAndMapper: kubeClientAndMapper{
-			kubeClient: kubeClient,
-			mapper:     mapper,
-		},
-		SeriesRegistry: lister,
+		kubeClientAndMapper: k,
+		SeriesRegistry:      lister,
 	}, lister
 }
 
