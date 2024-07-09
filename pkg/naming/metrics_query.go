@@ -20,8 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
+	"regexp/syntax"
 	"strings"
 	"text/template"
+	"unicode/utf8"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -123,25 +126,24 @@ func (q *metricsQuery) Build(series string, resource schema.GroupResource, names
 		})
 	}
 
-	exprs, valuesByName, err := q.processQueryParts(queryParts)
-	if err != nil {
-		return "", err
-	}
-
 	resourceLbl, err := q.resConverter.LabelForResource(resource)
 	if err != nil {
 		return "", err
 	}
-
-	matcher := prom.LabelEq
-	targetValue := strings.Join(names, "|")
-
-	if len(names) > 1 {
-		matcher = prom.LabelMatches
+	resourceOp := selection.DoesNotExist
+	if len(names) > 0 {
+		resourceOp = selection.Equals
 	}
+	queryParts = append(queryParts, queryPart{
+		labelName: string(resourceLbl),
+		values:    names,
+		operator:  resourceOp,
+	})
 
-	exprs = append(exprs, matcher(string(resourceLbl), targetValue))
-	valuesByName[string(resourceLbl)] = targetValue
+	exprs, valuesByName, err := q.processQueryParts(queryParts)
+	if err != nil {
+		return "", err
+	}
 
 	groupBy := make([]string, 0, len(extraGroupBy)+1)
 	groupBy = append(groupBy, string(resourceLbl))
@@ -167,17 +169,14 @@ func (q *metricsQuery) Build(series string, resource schema.GroupResource, names
 }
 
 func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupBy string, groupBySlice []string, metricSelector labels.Selector) (prom.Selector, error) {
-	queryParts := []queryPart{}
-
 	// Build up the query parts from the selector.
-	queryParts = append(queryParts, q.createQueryPartsFromSelector(metricSelector)...)
+	queryParts := q.createQueryPartsFromSelector(metricSelector)
 
 	if q.namespaced && namespace != "" {
 		namespaceLbl, err := q.resConverter.LabelForResource(NsGroupResource)
 		if err != nil {
 			return "", err
 		}
-
 		queryParts = append(queryParts, queryPart{
 			labelName: string(namespaceLbl),
 			values:    []string{namespace},
@@ -187,7 +186,6 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 
 	// Convert our query parts into the types we need for our template.
 	exprs, valuesByName, err := q.processQueryParts(queryParts)
-
 	if err != nil {
 		return "", err
 	}
@@ -215,25 +213,15 @@ func (q *metricsQuery) BuildExternal(seriesName string, namespace string, groupB
 func (q *metricsQuery) createQueryPartsFromSelector(metricSelector labels.Selector) []queryPart {
 	requirements, _ := metricSelector.Requirements()
 
-	selectors := []queryPart{}
-	for i := 0; i < len(requirements); i++ {
-		selector := q.convertRequirement(requirements[i])
-
-		selectors = append(selectors, selector)
+	var parts []queryPart
+	for _, req := range requirements {
+		parts = append(parts, queryPart{
+			labelName: req.Key(),
+			values:    req.Values().List(),
+			operator:  req.Operator(),
+		})
 	}
-
-	return selectors
-}
-
-func (q *metricsQuery) convertRequirement(requirement labels.Requirement) queryPart {
-	labelName := requirement.Key()
-	values := requirement.Values().List()
-
-	return queryPart{
-		labelName: labelName,
-		values:    values,
-		operator:  requirement.Operator(),
-	}
+	return parts
 }
 
 func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[string]string, error) {
@@ -264,7 +252,6 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 		}
 
 		matcher, err := q.selectMatcher(qPart.operator, qPart.values)
-
 		if err != nil {
 			return nil, nil, err
 		}
@@ -274,9 +261,9 @@ func (q *metricsQuery) processQueryParts(queryParts []queryPart) ([]string, map[
 			return nil, nil, err
 		}
 
+		valuesByName[qPart.labelName] = targetValue
 		expression := matcher(qPart.labelName, targetValue)
 		exprs = append(exprs, expression)
-		valuesByName[qPart.labelName] = strings.Join(qPart.values, "|")
 	}
 
 	return exprs, valuesByName, nil
@@ -355,7 +342,7 @@ func (q *metricsQuery) selectTargetValue(operator selection.Operator, values []s
 			// They might choose to send an "IN" request and give a list of static values
 			// or they could send a single value that's a regex, giving them a passthrough
 			// for their label selector.
-			return strings.Join(values, "|"), nil
+			return compactRegexp(values)
 		case selection.Exists, selection.DoesNotExist:
 			return "", ErrQueryUnsupportedValues
 		}
@@ -366,4 +353,32 @@ func (q *metricsQuery) selectTargetValue(operator selection.Operator, values []s
 
 func (q *metricsQuery) operatorIsSupported(operator selection.Operator) bool {
 	return operator != selection.GreaterThan && operator != selection.LessThan
+}
+
+// compactRegexp returns a regular expression that matches the given values.
+// It makes a reasonable effort to return a short string by letting the
+// regexp/syntax package simplify the naive expression.
+func compactRegexp(values []string) (string, error) {
+	for _, v := range values {
+		if !utf8.ValidString(v) || regexp.QuoteMeta(v) != v {
+			return "", ErrMalformedQuery
+		}
+	}
+	if len(values) == 0 {
+		return "", nil
+	}
+	if len(values) == 1 {
+		return values[0], nil
+	}
+	expr := strings.Join(values, "|")
+	re, err := syntax.Parse(expr, syntax.POSIX)
+	if err != nil {
+		return "", ErrMalformedQuery
+	}
+	short := re.Simplify().String()
+	short = strings.ReplaceAll(short, "(?:", "(") // Remove non-capturing group prefix.
+	if len(expr) <= len(short) {
+		return expr, nil
+	}
+	return short, nil
 }

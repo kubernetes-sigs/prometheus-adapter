@@ -17,6 +17,7 @@ limitations under the License.
 package naming
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -28,6 +29,8 @@ import (
 
 	pmodel "github.com/prometheus/common/model"
 )
+
+var errUnknownResource = errors.New("unknown resource")
 
 type resourceConverterMock struct {
 	namespaced bool
@@ -42,6 +45,9 @@ func (rcm *resourceConverterMock) ResourcesForSeries(series prom.Series) (res []
 // LabelForResource is a mock that returns the label name,
 // simply by taking the given resource.
 func (rcm *resourceConverterMock) LabelForResource(gr schema.GroupResource) (pmodel.LabelName, error) {
+	if gr.Resource == "" {
+		return "", errUnknownResource
+	}
 	return pmodel.LabelName(gr.Resource), nil
 }
 
@@ -107,9 +113,22 @@ func TestBuildSelector(t *testing.T) {
 		check checkFunc
 	}{
 		{
+			name: "unknown resource",
+
+			mq:             mustNewQuery(`series <<.Series>>`, false),
+			metricSelector: labels.NewSelector(),
+			series:         "foo",
+
+			check: checks(
+				hasError(errUnknownResource),
+			),
+		},
+
+		{
 			name: "series",
 
 			mq:             mustNewQuery(`series <<.Series>>`, false),
+			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
 			metricSelector: labels.NewSelector(),
 			series:         "foo",
 
@@ -129,7 +148,7 @@ func TestBuildSelector(t *testing.T) {
 
 			check: checks(
 				hasError(nil),
-				hasSelector(`resource=~"bar|baz"`),
+				hasSelector(`resource=~"ba[rz]"`),
 			),
 		},
 
@@ -183,11 +202,11 @@ func TestBuildSelector(t *testing.T) {
 			mq:             mustNewQuery(`<<index .LabelValuesByName "resource">>`, false),
 			metricSelector: labels.NewSelector(),
 			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
-			names:          []string{"bar", "baz"},
+			names:          []string{"bar", "baz", "foo-26jf7", "foo-2hqnf", "foo-8dddc", "foo-kwlkg"},
 
 			check: checks(
 				hasError(nil),
-				hasSelector("bar|baz"),
+				hasSelector("ba[rz]|foo-(2(6jf7|hqnf)|8dddc|kwlkg)"),
 			),
 		},
 
@@ -198,11 +217,11 @@ func TestBuildSelector(t *testing.T) {
 			metricSelector: labels.NewSelector(),
 			resource:       schema.GroupResource{Group: "group", Resource: "resource"},
 			namespace:      "default",
-			names:          []string{"bar", "baz"},
+			names:          []string{"bar", "baz", "foo-26jf7", "foo-2hqnf", "foo-8dddc", "foo-kwlkg"},
 
 			check: checks(
 				hasError(nil),
-				hasSelector("default bar|baz"),
+				hasSelector("default ba[rz]|foo-(2(6jf7|hqnf)|8dddc|kwlkg)"),
 			),
 		},
 
@@ -409,7 +428,7 @@ func TestBuildExternalSelector(t *testing.T) {
 
 			check: checks(
 				hasError(nil),
-				hasSelector(`foo="bar",qux=~"bar|baz"`),
+				hasSelector(`foo="bar",qux=~"ba[rz]"`),
 			),
 		},
 		{
@@ -435,7 +454,7 @@ func TestBuildExternalSelector(t *testing.T) {
 
 			check: checks(
 				hasError(nil),
-				hasSelector("map[foo:bar|baz]"),
+				hasSelector("map[foo:ba[rz]]"),
 			),
 		},
 	}
