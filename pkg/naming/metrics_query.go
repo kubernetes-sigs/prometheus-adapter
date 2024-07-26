@@ -364,12 +364,6 @@ func compactRegexp(values []string) (string, error) {
 			return "", ErrMalformedQuery
 		}
 	}
-	if len(values) == 0 {
-		return "", nil
-	}
-	if len(values) == 1 {
-		return values[0], nil
-	}
 	expr := strings.Join(values, "|")
 	re, err := syntax.Parse(expr, syntax.POSIX)
 	if err != nil {

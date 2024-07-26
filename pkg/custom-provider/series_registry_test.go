@@ -164,7 +164,7 @@ var _ = Describe("Series Registry", func() {
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
 
-				expectedQuery: "sum(container_some_usage{namespace=\"somens\",pod=~\"somepod1|somepod2\",container!=\"POD\"}) by (pod)",
+				expectedQuery: "sum(container_some_usage{namespace=\"somens\",pod=~\"somepod[12]\",container!=\"POD\"}) by (pod)",
 			},
 			{
 				title:          "container metrics counter",
@@ -173,7 +173,7 @@ var _ = Describe("Series Registry", func() {
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
 
-				expectedQuery: "sum(rate(container_some_count_total{namespace=\"somens\",pod=~\"somepod1|somepod2\",container!=\"POD\"}[1m])) by (pod)",
+				expectedQuery: "sum(rate(container_some_count_total{namespace=\"somens\",pod=~\"somepod[12]\",container!=\"POD\"}[1m])) by (pod)",
 			},
 			{
 				title:          "container metrics seconds counter",
@@ -182,7 +182,7 @@ var _ = Describe("Series Registry", func() {
 				resourceNames:  []string{"somepod1", "somepod2"},
 				metricSelector: labels.Everything(),
 
-				expectedQuery: "sum(rate(container_some_time_seconds_total{namespace=\"somens\",pod=~\"somepod1|somepod2\",container!=\"POD\"}[1m])) by (pod)",
+				expectedQuery: "sum(rate(container_some_time_seconds_total{namespace=\"somens\",pod=~\"somepod[12]\",container!=\"POD\"}[1m])) by (pod)",
 			},
 			// namespaced metrics
 			{
