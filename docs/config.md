@@ -196,8 +196,8 @@ Additionally, there are two advanced fields that are "raw" forms of other
 fields:
 
 - `LabelValuesByName`: a map mapping the labels and values from the
-  `LabelMatchers` field.  The values are pre-joined by `|`
-  (for used with the `=~` matcher in Prometheus).
+  `LabelMatchers` field. The values are in regular expression format
+  (for use with the `=~` matcher in Prometheus).
 - `GroupBySlice`: the slice form of `GroupBy`.
 
 In general, you'll probably want to use the `Series`, `LabelMatchers`, and
