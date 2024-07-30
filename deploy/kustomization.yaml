@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - ./manifests/api-service.yaml
+  - ./manifests/cluster-role-aggregated-metrics-reader.yaml
+  - ./manifests/cluster-role-binding-delegator.yaml
+  - ./manifests/cluster-role-binding-hpa-custom-metrics.yaml
+  - ./manifests/cluster-role-binding.yaml
+  - ./manifests/cluster-role-metrics-server-resources.yaml
+  - ./manifests/cluster-role.yaml
+  - ./manifests/config-map.yaml
+  - ./manifests/deployment.yaml
+  - ./manifests/network-policy.yaml
+  - ./manifests/pod-disruption-budget.yaml
+  - ./manifests/role-binding-auth-reader.yaml
+  - ./manifests/service-account.yaml
+  - ./manifests/service.yaml
