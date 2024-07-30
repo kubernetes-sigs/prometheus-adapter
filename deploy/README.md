@@ -16,7 +16,7 @@
    kind: Kustomization
 
    resources:
-     - github.com/kubernetes-sigs/prometheus-adapter/deploy?ref=release-X.XX
+     - https://raw.githubusercontent.com/kubernetes-sigs/prometheus-adapter/release-X.XX/deploy
 
    patches:
    - path: deployment-patch.yaml
