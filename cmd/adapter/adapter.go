@@ -393,7 +393,9 @@ func makeKubeconfigHTTPClient(inClusterAuth bool, kubeConfigPath string) (*http.
 
 	// return the default client if we're using no auth
 	if !inClusterAuth && kubeConfigPath == "" {
-		return http.DefaultClient, nil
+		return &http.Client{
+			Transport: transport.DebugWrappers(http.DefaultTransport),
+		}, nil
 	}
 
 	var authConf *rest.Config
@@ -436,23 +438,27 @@ func makePrometheusCAClient(caFilePath string, tlsCertFilePath string, tlsKeyFil
 			return nil, fmt.Errorf("failed to read TLS key pair: %v", err)
 		}
 		return &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      pool,
-					Certificates: []tls.Certificate{tlsClientCerts},
-					MinVersion:   tls.VersionTLS12,
+			Transport: transport.DebugWrappers(
+				&http.Transport{
+					TLSClientConfig: &tls.Config{
+						RootCAs:      pool,
+						Certificates: []tls.Certificate{tlsClientCerts},
+						MinVersion:   tls.VersionTLS12,
+					},
 				},
-			},
+			),
 		}, nil
 	}
 
 	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    pool,
-				MinVersion: tls.VersionTLS12,
+		Transport: transport.DebugWrappers(
+			&http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:    pool,
+					MinVersion: tls.VersionTLS12,
+				},
 			},
-		},
+		),
 	}, nil
 }
 
