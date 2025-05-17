@@ -72,7 +72,7 @@ update: update-lint update-generated
 # Format and lint
 # ---------------
 
-HAS_GOLANGCI_VERSION:=$(shell $(GOPATH)/bin/golangci-lint version --format=short)
+HAS_GOLANGCI_VERSION:=$(shell $(GOPATH)/bin/golangci-lint version --short)
 .PHONY: golangci
 golangci:
 ifneq ($(HAS_GOLANGCI_VERSION), $(GOLANGCI_VERSION))

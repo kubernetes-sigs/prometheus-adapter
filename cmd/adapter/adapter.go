@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -379,7 +380,7 @@ func main() {
 	server.GenericAPIServer.SecureServingInfo.DisableHTTP2 = cmd.DisableHTTP2
 
 	// run the server
-	if err := cmd.Run(stopCh); err != nil {
+	if err := cmd.Run(context.Background()); err != nil {
 		klog.Fatalf("unable to run custom metrics adapter: %v", err)
 	}
 }
