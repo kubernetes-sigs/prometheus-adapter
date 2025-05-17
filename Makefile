@@ -8,8 +8,8 @@ VERSION=$(shell cat VERSION)
 TAG_PREFIX=v
 TAG?=$(TAG_PREFIX)$(VERSION)
 
-GO_VERSION?=1.22.5
-GOLANGCI_VERSION?=1.56.2
+GO_VERSION?=1.24.3
+GOLANGCI_VERSION?=1.64.8
 
 .PHONY: all
 all: prometheus-adapter
@@ -72,7 +72,7 @@ update: update-lint update-generated
 # Format and lint
 # ---------------
 
-HAS_GOLANGCI_VERSION:=$(shell $(GOPATH)/bin/golangci-lint version --format=short)
+HAS_GOLANGCI_VERSION:=$(shell $(GOPATH)/bin/golangci-lint version --short)
 .PHONY: golangci
 golangci:
 ifneq ($(HAS_GOLANGCI_VERSION), $(GOLANGCI_VERSION))
