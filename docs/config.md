@@ -48,7 +48,7 @@ rules:
   # This is a Go template where the `.Series` and `.LabelMatchers` string values
   # are available, and the delimiters are `<<` and `>>` to avoid conflicts with
   # the prometheus query language
-  metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
+  metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)'
 ```
 
 Discovery
@@ -168,7 +168,14 @@ metric.  It's controlled by the `metricsQuery` field.
 
 The `metricsQuery` field is a Go template that gets turned into
 a Prometheus query, using input from a particular call to the custom
-metrics API. A given call to the custom metrics API is distilled down to
+metrics API.
+
+When the Prometheus query contains double quotes (for example
+`container!="POD"`), wrap the entire `metricsQuery` value in single
+quotes in YAML to avoid parse errors. See [sample-config.yaml](sample-config.yaml)
+for a working example.
+
+A given call to the custom metrics API is distilled down to
 a metric name, a group-resource, and one or more objects of that
 group-resource.  These get turned into the following fields in the
 template:
@@ -211,5 +218,5 @@ For example:
 
 ```yaml
 # convert cumulative cAdvisor metrics into rates calculated over 2 minutes
-metricsQuery: "sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)"
+metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[2m])) by (<<.GroupBy>>)'
 ```

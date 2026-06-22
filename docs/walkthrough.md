@@ -25,9 +25,8 @@ Kubernetes 1.9+), or enabling custom metrics autoscaling support will
 disable CPU autoscaling support.
 
 Note that most of the API versions in this walkthrough target Kubernetes
-1.9+.  Note that current versions of the adapter *only* work with
-Kubernetes 1.8+.  Version 0.1.0 works with Kubernetes 1.7, but is
-significantly different.
+1.27+.  See the [compatibility matrix](README.md#compatibility-matrix) in
+the README for supported Kubernetes versions.
 
 ### Binaries and Images
 

@@ -4,6 +4,13 @@ Configuration Walkthroughs
 *If you're looking for reference documentation on configuration, please
 read the [configuration reference](/docs/config.md)*
 
+For a complete, working example configuration, see
+[sample-config.yaml](sample-config.yaml). When writing `metricsQuery`
+values that contain Prometheus label matchers with double quotes (for
+example `container!="POD"`), wrap the entire value in **single quotes**
+in YAML so the inner double quotes are not parsed as YAML string
+delimiters.
+
 Per-pod HTTP Requests
 ---------------------
 
@@ -160,14 +167,14 @@ configuration, we should see discovery information at
   "groupVersion": "custom.metrics.k8s.io/v1beta1",
   "resources": [
     {
-      "name": "pods/http_requests_total",
+      "name": "pods/http_requests_per_second",
       "singularName": "",
       "namespaced": true,
       "kind": "MetricValueList",
       "verbs": ["get"]
     },
     {
-      "name": "namespaces/http_requests_total",
+      "name": "namespaces/http_requests_per_second",
       "singularName": "",
       "namespaced": false,
       "kind": "MetricValueList",
