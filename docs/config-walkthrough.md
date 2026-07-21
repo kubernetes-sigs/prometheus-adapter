@@ -62,7 +62,7 @@ find all `http_requests_total` series that were associated with
 a namespace and pod.
 
 We can add this to our rule in the `seriesQuery` field, to tell the
-adapter how *discover* the right series itself:
+adapter how to *discover* the right series itself:
 
 ```yaml
 rules:
@@ -121,12 +121,24 @@ rules:
 ```
 
 Here, we've said that we should take the name matching
-`<something>_total`, and turning it into `<something>_per_second`.
+`<something>_total`, and turn it into `<something>_per_second`.
 
 Finally, we need to tell the adapter how to actually query Prometheus to
 get some numbers.  Since we want a rate, we might write:
-`sum(rate(http_requests_total{kubernetes_namespace="production",kubernetes_pod_name=~"frontend-server-abcd-0123|fronted-server-abcd-4567"}) by (kubernetes_pod_name)`,
-which would get us the total requests per second for each pod, summed across verbs.
+
+```promql
+sum(
+  rate(
+    http_requests_total{
+      kubernetes_namespace="production",
+      kubernetes_pod_name=~"frontend-server-abcd-0123|frontend-server-abcd-4567"
+    }[2m]
+  )
+) by (kubernetes_pod_name)
+```
+
+This would get us the total requests per second for each pod, summed across
+verbs.
 
 We can write something similar in the adapter, using the `metricsQuery`
 field:
@@ -151,23 +163,23 @@ Since we're only working with a single metric anyway, we could replace
 
 Now, if we run an instance of the Prometheus adapter with this
 configuration, we should see discovery information at
-`$KUBERNETES/apis/custom.metrics.k8s.io/v1beta1/` of
+`$KUBERNETES/apis/custom.metrics.k8s.io/v1beta2/` of
 
 ```json
 {
   "kind": "APIResourceList",
   "apiVersion": "v1",
-  "groupVersion": "custom.metrics.k8s.io/v1beta1",
+  "groupVersion": "custom.metrics.k8s.io/v1beta2",
   "resources": [
     {
-      "name": "pods/http_requests_total",
+      "name": "pods/http_requests_per_second",
       "singularName": "",
       "namespaced": true,
       "kind": "MetricValueList",
       "verbs": ["get"]
     },
     {
-      "name": "namespaces/http_requests_total",
+      "name": "namespaces/http_requests_per_second",
       "singularName": "",
       "namespaced": false,
       "kind": "MetricValueList",
@@ -184,24 +196,24 @@ a namespace), and will fill in the `<<.GroupBy>>` section with the
 appropriate label depending on which we ask for.
 
 We can now connect to
-`$KUBERNETES/apis/custom.metrics.k8s.io/v1beta1/namespaces/production/pods/*/http_requests_per_second`,
+`$KUBERNETES/apis/custom.metrics.k8s.io/v1beta2/namespaces/production/pods/*/http_requests_per_second`,
 and we should see
 
 ```json
 {
   "kind": "MetricValueList",
-  "apiVersion": "custom.metrics.k8s.io/v1beta1",
-  "metadata": {
-    "selfLink": "/apis/custom.metrics.k8s.io/v1beta1/namespaces/production/pods/*/http_requests_per_second",
-  },
+  "apiVersion": "custom.metrics.k8s.io/v1beta2",
+  "metadata": {},
   "items": [
     {
       "describedObject": {
         "kind": "Pod",
         "name": "frontend-server-abcd-0123",
-        "apiVersion": "/__internal",
+        "apiVersion": "v1"
       },
-      "metricName": "http_requests_per_second",
+      "metric": {
+        "name": "http_requests_per_second"
+      },
       "timestamp": "2018-08-07T17:45:22Z",
       "value": "16m"
     },
@@ -209,9 +221,11 @@ and we should see
       "describedObject": {
         "kind": "Pod",
         "name": "frontend-server-abcd-4567",
-        "apiVersion": "/__internal",
+        "apiVersion": "v1"
       },
-      "metricName": "http_requests_per_second",
+      "metric": {
+        "name": "http_requests_per_second"
+      },
       "timestamp": "2018-08-07T17:45:22Z",
       "value": "22m"
     }
