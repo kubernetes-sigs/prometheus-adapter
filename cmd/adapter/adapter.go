@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/metadata/metadatainformer"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/logs"
@@ -83,6 +84,9 @@ type PrometheusAdapter struct {
 	// DisableHTTP2 indicates that http2 should not be enabled.
 	DisableHTTP2  bool
 	metricsConfig *adaptercfg.MetricsDiscoveryConfig
+
+	podLister   cache.GenericLister
+	podInformer cache.SharedIndexInformer
 }
 
 func (cmd *PrometheusAdapter) makePromClient() (prom.Client, error) {
@@ -203,7 +207,11 @@ func (cmd *PrometheusAdapter) makeProvider(promClient prom.Client, stopCh <-chan
 	}
 
 	// construct the provider and start it
-	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge)
+	podLister, err := cmd.ensurePodInformer(stopCh)
+	if err != nil {
+		return nil, fmt.Errorf("unable to construct pod informer: %v", err)
+	}
+	cmProvider, runner := cmprov.NewPrometheusProvider(mapper, dynClient, promClient, namers, cmd.MetricsRelistInterval, cmd.MetricsMaxAge, podLister)
 	runner.RunUntil(stopCh)
 
 	return cmProvider, nil
@@ -233,6 +241,30 @@ func (cmd *PrometheusAdapter) makeExternalProvider(promClient prom.Client, stopC
 	return emProvider, nil
 }
 
+func (cmd *PrometheusAdapter) ensurePodInformer(stopCh <-chan struct{}) (cache.GenericLister, error) {
+	if cmd.podLister != nil {
+		return cmd.podLister, nil
+	}
+
+	restCfg, err := cmd.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := metadata.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	podInformerFactory := metadatainformer.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
+		options.FieldSelector = "status.phase=Running"
+	})
+	podInformer := podInformerFactory.ForResource(corev1.SchemeGroupVersion.WithResource("pods"))
+	cmd.podInformer = podInformer.Informer()
+	cmd.podLister = podInformer.Lister()
+	go cmd.podInformer.Run(stopCh)
+	return cmd.podLister, nil
+}
+
 func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stopCh <-chan struct{}) error {
 	if cmd.metricsConfig.ResourceRules == nil {
 		// bail if we don't have rules for setting things up
@@ -249,20 +281,10 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 		return fmt.Errorf("unable to construct resource metrics API provider: %v", err)
 	}
 
-	rest, err := cmd.ClientConfig()
+	podLister, err := cmd.ensurePodInformer(stopCh)
 	if err != nil {
 		return err
 	}
-
-	client, err := metadata.NewForConfig(rest)
-	if err != nil {
-		return err
-	}
-
-	podInformerFactory := metadatainformer.NewFilteredSharedInformerFactory(client, 0, corev1.NamespaceAll, func(options *metav1.ListOptions) {
-		options.FieldSelector = "status.phase=Running"
-	})
-	podInformer := podInformerFactory.ForResource(corev1.SchemeGroupVersion.WithResource("pods"))
 
 	informer, err := cmd.Informers()
 	if err != nil {
@@ -286,11 +308,9 @@ func (cmd *PrometheusAdapter) addResourceMetricsAPI(promClient prom.Client, stop
 	}
 	server.GenericAPIServer.Handler.NonGoRestfulMux.HandleFunc("/metrics", metricsHandler)
 
-	if err := api.Install(provider, podInformer.Lister(), informer.Core().V1().Nodes().Lister(), server.GenericAPIServer, nil); err != nil {
+	if err := api.Install(provider, podLister, informer.Core().V1().Nodes().Lister(), server.GenericAPIServer, nil); err != nil {
 		return err
 	}
-
-	go podInformer.Informer().Run(stopCh)
 
 	return nil
 }
