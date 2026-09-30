@@ -33,6 +33,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 
@@ -51,15 +52,18 @@ type Runnable interface {
 	RunUntil(stopChan <-chan struct{})
 }
 
+var podResource = "pods"
+
 type prometheusProvider struct {
 	mapper     apimeta.RESTMapper
 	kubeClient dynamic.Interface
 	promClient prom.Client
+	podLister  cache.GenericLister
 
 	SeriesRegistry
 }
 
-func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration) (provider.CustomMetricsProvider, Runnable) {
+func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interface, promClient prom.Client, namers []naming.MetricNamer, updateInterval time.Duration, maxAge time.Duration, podLister cache.GenericLister) (provider.CustomMetricsProvider, Runnable) {
 	lister := &cachingMetricsLister{
 		updateInterval: updateInterval,
 		maxAge:         maxAge,
@@ -75,6 +79,7 @@ func NewPrometheusProvider(mapper apimeta.RESTMapper, kubeClient dynamic.Interfa
 		mapper:     mapper,
 		kubeClient: kubeClient,
 		promClient: promClient,
+		podLister:  podLister,
 
 		SeriesRegistry: lister,
 	}, lister
@@ -193,7 +198,12 @@ func (p *prometheusProvider) GetMetricByName(ctx context.Context, name types.Nam
 
 func (p *prometheusProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	// fetch a list of relevant resource names
-	resourceNames, err := helpers.ListObjectNames(p.mapper, p.kubeClient, namespace, selector, info)
+	resourceNames, err := func() ([]string, error) {
+		if info.GroupResource.Resource == podResource && p.podLister != nil {
+			return p.getPodNamesFromLister(namespace, selector)
+		}
+		return helpers.ListObjectNames(p.mapper, p.kubeClient, namespace, selector, info)
+	}()
 	if err != nil {
 		klog.Errorf("unable to list matching resource names: %v", err)
 		// don't leak implementation details to the user
@@ -208,6 +218,22 @@ func (p *prometheusProvider) GetMetricBySelector(ctx context.Context, namespace 
 
 	// return the resulting metrics
 	return p.metricsFor(queryResults, namespace, resourceNames, info, metricSelector)
+}
+
+func (p *prometheusProvider) getPodNamesFromLister(namespace string, selector labels.Selector) ([]string, error) {
+	objs, err := p.podLister.ByNamespace(namespace).List(selector)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(objs))
+	for _, obj := range objs {
+		accessor, err := apimeta.Accessor(obj)
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, accessor.GetName())
+	}
+	return names, nil
 }
 
 type cachingMetricsLister struct {
